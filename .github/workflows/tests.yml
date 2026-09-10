@@ -23,6 +23,6 @@ jobs:
       - name: Compile all Python modules
         run: python -m compileall -q .
       - name: Import all runtime modules
-        run: python -c "import backtest, candles, config, dashboard, db, main, market_data, reminders, signal_gate, strategies, sweep_engine, sweep_service, telegram, trading, trendpulse_runtime, trendpulse_service, yahoo_provider"
+        run: python -c "import backtest, candles, config, dashboard, db, main, market_data, reminders, signal_gate, strategies, sweep_engine, telegram, trading, yahoo_provider"
       - name: Run complete test suite
         run: pytest
