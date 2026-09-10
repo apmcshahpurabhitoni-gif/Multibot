@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 import math
 import pandas as pd
-from config import ACCOUNT_SIZE_INR, ACCOUNT_TRADE_LIMITS, RISK_PER_TRADE_INR
+from config import ACCOUNT_SIZE_INR, ACCOUNT_TRADE_LIMITS, LIVE_ASSET_MAP, RISK_PER_TRADE_INR, USD_TO_INR
+from trading import quantity_for_risk
 from strategies.base import Signal
 
 @dataclass(frozen=True)
@@ -48,16 +49,20 @@ def score_metrics(metrics_raw):
     return round(max(0,min(100,rating)),2),label,breakdown
 
 def _simulate(frame, strategy, symbol, account_limit):
-    signals=[]; trades=[]; equity=ACCOUNT_SIZE_INR; peak=equity; max_dd=0; exposure_bars=0; losses=0; current_day=None; day_trades=0
-    f=frame.sort_index()
+    signals=[]; trades=[]; equity=ACCOUNT_SIZE_INR; peak=equity; max_dd=0; exposure_bars=0
+    current_day=None; day_trades=0; next_eligible=0
+    f=frame.sort_index(); asset=LIVE_ASSET_MAP[symbol]; fx_rate=1.0 if asset.currency=="INR" else USD_TO_INR
     for i in range(max(2,50),len(f)):
+        if i < next_eligible: continue
         prefix=f.iloc[:i+1]; ts=f.index[i]; signal=strategy.backtest_signal(symbol,prefix,now=ts); signals.append(signal)
         if not signal.is_directional or signal.stop_loss is None or signal.take_profit is None: continue
         day=ts.tz_convert("Asia/Kolkata").date() if ts.tzinfo else ts.date()
         if day!=current_day: current_day=day; day_trades=0
         if day_trades>=account_limit: continue
-        day_trades+=1
-        entry=float(signal.entry or f.close.iloc[i]); sl=float(signal.stop_loss); tp=float(signal.take_profit); exit_price=None; exit_i=i
+        entry=float(signal.entry or f.close.iloc[i]); sl=float(signal.stop_loss); tp=float(signal.take_profit)
+        try: qty=quantity_for_risk(entry,sl,fx_rate=fx_rate)
+        except ValueError: continue
+        exit_price=None; exit_i=i
         for j in range(i+1,len(f)):
             hi,lo=float(f.high.iloc[j]),float(f.low.iloc[j])
             if signal.direction=="BUY":
@@ -67,10 +72,11 @@ def _simulate(frame, strategy, symbol, account_limit):
                 if hi>=sl: exit_price=sl; exit_i=j; break
                 if lo<=tp: exit_price=tp; exit_i=j; break
         if exit_price is None: exit_price=float(f.close.iloc[-1]); exit_i=len(f)-1
-        risk=abs(entry-sl); qty=RISK_PER_TRADE_INR/risk if risk>0 else 0
-        pnl=(exit_price-entry)*qty*(1 if signal.direction=="BUY" else -1); equity+=pnl; peak=max(peak,equity); max_dd=max(max_dd,(peak-equity)/peak*100); exposure_bars+=max(1,exit_i-i); trades.append(BacktestTrade(ts,signal.direction,entry,exit_price,pnl,exit_i-i))
+        pnl=(exit_price-entry)*qty*(1 if signal.direction=="BUY" else -1)*fx_rate
+        equity+=pnl; peak=max(peak,equity); max_dd=max(max_dd,(peak-equity)/peak*100); exposure_bars+=max(1,exit_i-i)
+        trades.append(BacktestTrade(ts,signal.direction,entry,exit_price,pnl,exit_i-i))
+        day_trades+=1; next_eligible=max(i+1,exit_i+1)
     return signals,trades,equity,max_dd,exposure_bars
-
 def backtest_strategy(strategy, symbol, candles, *, account=None, parameters=None):
     if not isinstance(candles,pd.DataFrame) or not isinstance(candles.index,pd.DatetimeIndex): raise ValueError("Backtest candles must use a timezone-aware DatetimeIndex")
     if candles.index.tz is None: raise ValueError("Backtest timestamps must be timezone-aware")
