@@ -1,16 +1,16 @@
-MULTIBOT2 v3.0.0
+MULTIBOT2 v3.2.0
 ================
 
 Architecture
 - Automatic strategy discovery under strategies/.
 - Stable Strategy / StrategyManifest / Signal contracts.
 - Shared signal -> freshness -> duplicate -> risk -> trade -> persistence -> Telegram lifecycle.
-- Strategy-owned timeframes and data requests.
+- Canonical AssetConfig-owned market, currency and Sweep timeframe metadata.
 - Generic registry-driven backtesting.
 
 Built-in strategies
 - Adaptive Trend Momentum 1.0.0: BTC-USD + GC=F, 1D.
-- Sweep V2 2.0.0: 19-asset canonical sweep schedules.
+- Sweep V2 2.0.1: 19-asset canonical sweep schedules.
 
 Locked rules
 - Paper only, Yahoo only, 19 assets, ₹100,000, ₹2,000 risk, 1x leverage.

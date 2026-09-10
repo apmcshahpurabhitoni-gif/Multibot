@@ -37,9 +37,15 @@ def ensure_runtime():
     if REGISTRY is None: REGISTRY=discover_strategies()
     if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
-    for st in REGISTRY.all(): LAST_SCANS.setdefault(st.manifest.id,{"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0})
+    with LOCK:
+        for st in REGISTRY.all():
+            LAST_SCANS.setdefault(st.manifest.id,{"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0})
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
-    ensure_runtime(); current=now_at or now(); started=time.monotonic(); results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send); info=LAST_SCANS[strategy_id]; info.update(status="OK",at=current.isoformat(),checked=len(results),directional=sum(r.signal.is_directional for r in results),sent=sum(r.sent for r in results),errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),elapsed_ms=round((time.monotonic()-started)*1000)); return results
+    ensure_runtime(); current=now_at or now(); started=time.monotonic(); results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
+    with LOCK:
+        info=LAST_SCANS[strategy_id]
+        info.update(status="OK",at=current.isoformat(),checked=len(results),directional=sum(r.signal.is_directional for r in results),sent=sum(r.sent for r in results),errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),elapsed_ms=round((time.monotonic()-started)*1000))
+    return results
 def run_all_cycles(*,now_at=None,send=True,period="30d"):
     ensure_runtime(); out=[]
     for st in REGISTRY.all(): out.extend(run_strategy_cycle(st.manifest.id,now_at=now_at,send=send,period=period))
@@ -69,9 +75,13 @@ def _backtest_payload(strategy,symbol,period):
         elif sig.direction=="SELL": daily[d]["sell"]+=1; daily[d]["total"]+=1
     signals=[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"reason":x.reason,"entry":x.entry} for x in result.signals if x.is_directional][-200:]
     return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"generated_at":now().isoformat()}
+def _scan_snapshot():
+    with LOCK:
+        return {k:dict(v) for k,v in LAST_SCANS.items()}
+
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={k:dict(v) for k,v in LAST_SCANS.items()},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED"},strategies=REGISTRY.all())
+    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan=_scan_snapshot(),health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])

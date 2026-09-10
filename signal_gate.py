@@ -40,8 +40,8 @@ def build_signal_identity(signal: Signal, *, symbol: str | None = None) -> str:
 class SignalGate:
     """Stateless compatibility facade.
 
-    Durable duplicate/send counts belong to DatabaseManager. This object owns
-    only freshness and canonical signal identity so every runtime path agrees.
+    Durable duplicate/send counts belong exclusively to DatabaseManager. This
+    facade owns only freshness and canonical signal identity.
     """
 
     max_age_hours = SIGNAL_FRESHNESS_HOURS
@@ -66,18 +66,6 @@ class SignalGate:
     def can_send(self, signal: Signal, *, symbol: str | None = None, now: pd.Timestamp | None = None) -> bool:
         return signal.is_directional and self.is_fresh(signal, now=now)
 
-    def accept(self, signal: Signal, *, symbol: str | None = None, now: pd.Timestamp | None = None) -> bool:
-        return self.can_send(signal, symbol=symbol, now=now)
-
-    def clear(self):
-        return None
-
-    def snapshot(self):
-        return {}
-
-    def restore(self, counts):
-        if not isinstance(counts, dict):
-            raise TypeError("Signal counts must be a dictionary")
 
 def signal_status(signal: Signal, *, now: pd.Timestamp | None = None) -> tuple[str, float]:
     age = signal_age_hours(signal, now=now)
