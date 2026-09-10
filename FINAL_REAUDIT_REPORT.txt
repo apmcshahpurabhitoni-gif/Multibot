@@ -1,0 +1,36 @@
+MULTIBOT2 FINAL RE-AUDIT
+
+Repository basis: Multibot-main_2.zip supplied by the user.
+
+Restored canonical tests:
+- test_account_limits.py
+- test_backtest.py
+- test_candles.py
+- test_config.py
+- test_dashboard_ui.py
+- test_db.py
+- test_main.py
+- test_market_data.py
+- test_signal_gate.py
+- test_strategies.py
+- test_telegram_messages.py
+
+Retired-module tests intentionally NOT restored:
+- test_trendpulse_runtime.py
+- test_trendpulse_service.py
+- test_sweep_service.py
+
+Those modules are no longer part of the current architecture.
+
+Fixes:
+- CI runtime imports no longer reference retired modules.
+- Restored signal gate tests were rewritten for the current stateless SignalGate architecture.
+- Completed-candle live/backtest contract remains in place.
+- Sweep candle construction remains single-owner.
+- Canonical AssetConfig Sweep metadata ownership remains in place.
+
+Validation:
+- Python compilation: PASS
+- Runtime import check: PASS
+- pytest: PASS
+- Retired module references in Python/YAML: 0
