@@ -53,9 +53,16 @@ class Strategy(ABC):
     def build_trade_plan(self, signal: Signal, *, entry: float | None = None) -> tuple[float, float, float] | None:
         if not signal.is_directional:
             return None
-        if signal.stop_loss is None or signal.take_profit is None:
-            raise ValueError(f"{self.manifest.id} returned a directional signal without SL/TP")
-        return (float(entry if entry is not None else signal.entry), float(signal.stop_loss), float(signal.take_profit))
+        resolved_entry = entry if entry is not None else signal.entry
+        if resolved_entry is None or signal.stop_loss is None or signal.take_profit is None:
+            raise ValueError(
+                f"{self.manifest.id} returned a directional signal without entry/SL/TP"
+            )
+        return (
+            float(resolved_entry),
+            float(signal.stop_loss),
+            float(signal.take_profit),
+        )
 
     def validate_config(self, config: dict[str, Any]) -> dict[str, Any]:
         merged = {k: v.get("default") if isinstance(v, dict) else v for k, v in self.manifest.parameters.items()}
