@@ -44,7 +44,6 @@ def run_all_cycles(*,now_at=None,send=True,period="30d"):
     ensure_runtime(); out=[]
     for st in REGISTRY.all(): out.extend(run_strategy_cycle(st.manifest.id,now_at=now_at,send=send,period=period))
     return out
-def run_sweep_cycle(**kwargs): return run_strategy_cycle("sweep_v2",**kwargs)
 def scanner_loop():
     while not STOP.is_set():
         try:
@@ -81,7 +80,16 @@ def web_server():
     def app(env,start):
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
         if path=="/ping": start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")]); return [b"pong"]
-        if path=="/api/health": return _json_response(start,{"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":now().isoformat()})
+        if path=="/api/health":
+            try:
+                ensure_runtime()
+                payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":now().isoformat(),
+                    "runtime":True,"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK",
+                    "scheduler":not STOP.is_set(),"strategies":len(REGISTRY.all()),
+                    "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED"}
+                return _json_response(start,payload)
+            except Exception as exc:
+                return _json_response(start,{"ok":False,"status":"DEGRADED","error":str(exc),"timestamp":now().isoformat()},"503 Service Unavailable")
         if path=="/api/dashboard":
             try:return _json_response(start,snapshot())
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
@@ -149,6 +157,6 @@ def main():
     if settings.telegram_bot_token and settings.telegram_chat_id:
         threading.Thread(target=telegram_commands,daemon=True,name="telegram").start()
         if REMINDERS is not None: REMINDERS.start()
-    logger.info("MULTIBOT2 %s started: 19 assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(REGISTRY.all()))
+    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(LIVE_ASSETS),len(REGISTRY.all()))
     while True: time.sleep(3600)
 if __name__=="__main__": main()
