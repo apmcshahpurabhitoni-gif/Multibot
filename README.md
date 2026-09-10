@@ -23,7 +23,7 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 ---
 
-## 🚀 What's new in v3.1.0?
+## 🚀 What's new in v3.2.0?
 
 ### 🧩 Plug-and-play strategies
 
@@ -486,4 +486,4 @@ For strategy-only work, give it:
 🎨 Presentation separated from trading logic
 ```
 
-**MULTIBOT2 v3.1.0 — built to add strategies without rebuilding the bot.** 🚀
+**MULTIBOT2 v3.2.0 — built to add strategies without rebuilding the bot.** 🚀

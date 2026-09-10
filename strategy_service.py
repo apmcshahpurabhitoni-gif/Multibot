@@ -2,6 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from threading import RLock
+import logging
 import pandas as pd
 from config import ACCOUNT_NAMES, ACCOUNT_SIZE_INR, LIVE_ASSET_MAP, LIVE_ASSETS, RISK_PER_TRADE_INR, USD_TO_INR
 from db import DatabaseManager
@@ -10,6 +11,8 @@ from strategy_engine import StrategyEngine
 from strategies.base import Signal, Strategy
 from telegram import TelegramConfig, TelegramMessage, render_signal_message, send_message
 from trading import AccountState, PaperTrade, TradePlan, can_open_trade, quantity_for_risk, register_trade
+
+logger = logging.getLogger("multibot2.strategy_service")
 
 @dataclass(frozen=True)
 class DispatchResult:
@@ -65,7 +68,8 @@ class StrategyService:
         try:
             frame = self.engine.provider.fetch(asset.yahoo_symbol, period="1d", interval="1m", validate_hourly=False)
             return None if frame.empty else float(frame.close.iloc[-1])
-        except Exception:
+        except Exception as exc:
+            logger.warning("Current price lookup failed for %s: %s", symbol, exc)
             return None
 
     def scan_and_dispatch(self,strategy_id,*,now=None,period="30d",send=True):

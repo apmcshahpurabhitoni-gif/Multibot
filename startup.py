@@ -7,7 +7,12 @@ import logging
 import os
 from urllib import parse, request
 
-from config import APP_VERSION as CONFIG_APP_VERSION
+from config import (
+    APP_VERSION as CONFIG_APP_VERSION,
+    LIVE_ASSETS,
+    SIGNAL_FRESHNESS_HOURS,
+)
+from strategies import discover_strategies
 
 
 APP_NAME = "MULTIBOT2"
@@ -72,55 +77,58 @@ def telegram_send(
         )
 
 
+def _strategy_lines() -> list[str]:
+    """Build human-readable startup facts from the canonical strategy registry."""
+    try:
+        registry = discover_strategies()
+        return [
+            f"🧩 {strategy.manifest.name}: "
+            f"{', '.join(strategy.manifest.timeframes)} · "
+            f"{len(strategy.manifest.assets)} assets"
+            for strategy in registry.all()
+        ]
+    except Exception as exc:
+        logger.warning("Could not discover strategies for startup announcement: %s", exc)
+        return ["🧩 Strategy registry: discovery unavailable"]
+
+
 def startup_message() -> str:
-    return (
-        f"🤖 {APP_NAME} STARTED\n"
-        f"{BR}\n"
-        f"🟢 Status: ONLINE\n"
-        f"🏷 Version: {APP_VERSION}\n"
-        f"🔖 Build: {BUILD}\n"
-        "🧪 Mode: PAPER\n"
-        "🌐 Universe: 19 live assets\n"
-        "🧩 Strategy registry: automatic plug-in discovery\n"
-        "🧠 Adaptive Trend: BTC/Gold 1D\n"
-        "🔎 Sweep V2: NIFTY/BANK 1H · "
-        "Stocks/Gold/BTC 4H\n"
-        "⏳ Signal freshness: 1h\n"
-        "💾 Persistence: Supabase + SQLite fallback\n"
-        "\n"
-        "🌐 DASHBOARD\n"
-        f"👉 {DASHBOARD_URL}\n"
-        f"{BR}"
-    )
+    lines = [
+        f"🤖 {APP_NAME} STARTED",
+        BR,
+        "🟢 Status: ONLINE",
+        f"🏷 Version: {APP_VERSION}",
+        f"🔖 Build: {BUILD}",
+        "🧪 Mode: PAPER",
+        f"🌐 Universe: {len(LIVE_ASSETS)} live assets",
+        "🧩 Strategy registry: automatic plug-in discovery",
+        *_strategy_lines(),
+        f"⏳ Signal freshness: {SIGNAL_FRESHNESS_HOURS}h",
+        "💾 Persistence: Supabase + SQLite fallback",
+        "",
+        "🌐 DASHBOARD",
+        f"👉 {DASHBOARD_URL}",
+        BR,
+    ]
+    return "\n".join(lines)
 
 
 def whats_new_message() -> str:
-    return (
-        f"🆕 WHAT'S NEW — v{APP_VERSION}\n"
-        f"{BR}\n"
-        "🌐 19-asset live universe:\n"
-        "15 NSE stocks + NIFTY + BANK NIFTY "
-        "+ Gold + BTC\n"
-        "🧩 Plug-and-play strategy registry\n"
-        "🧠 Adaptive Trend: BTC/Gold 1D\n"
-        "🔎 Sweep V2:\n"
-        "NIFTY/BANK = 1H\n"
-        "Stocks/Gold/BTC = 4H\n"
-        "🕯️ Canonical NSE 1H closes:\n"
-        "10:15, 11:15, 12:15, 13:15, "
-        "14:15, 15:15\n"
-        "⏳ Freshness: exactly 1 hour\n"
-        "🔁 Duplicate protection survives restart\n"
-        "💾 Supabase authoritative + "
-        "SQLite fallback\n"
-        "🎨 Dashboard is presentation-only "
-        "and expandable\n"
-        "\n"
-        "🌐 DASHBOARD\n"
-        f"👉 {DASHBOARD_URL}\n"
-        f"{BR}"
-    )
-
+    lines = [
+        f"🆕 WHAT'S NEW — v{APP_VERSION}",
+        BR,
+        f"🌐 {len(LIVE_ASSETS)}-asset live universe",
+        *_strategy_lines(),
+        f"⏳ Freshness: exactly {SIGNAL_FRESHNESS_HOURS} hour",
+        "🔁 Duplicate protection survives restart",
+        "💾 Supabase authoritative + SQLite fallback",
+        "🎨 Dashboard is presentation-only and expandable",
+        "",
+        "🌐 DASHBOARD",
+        f"👉 {DASHBOARD_URL}",
+        BR,
+    ]
+    return "\n".join(lines)
 
 def _send_notice(
     token: str,

@@ -1,4 +1,4 @@
-# MULTIBOT2 Canonical Notes — v3.0.0
+# MULTIBOT2 Canonical Notes — v3.2.0
 
 ## Core
 

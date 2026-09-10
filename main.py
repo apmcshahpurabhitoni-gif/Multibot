@@ -88,10 +88,40 @@ def _backtest_payload(strategy,symbol,period):
         if sig.direction=="BUY": daily[d]["buy"]+=1; daily[d]["total"]+=1
         elif sig.direction=="SELL": daily[d]["sell"]+=1; daily[d]["total"]+=1
     signals=[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"reason":x.reason,"entry":x.entry} for x in result.signals if x.is_directional][-200:]
-    return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"generated_at":now().isoformat()}
+    directional = [sig for sig in result.signals if sig.is_directional]
+    buy_signals = sum(sig.direction == "BUY" for sig in directional)
+    sell_signals = sum(sig.direction == "SELL" for sig in directional)
+    trades_taken = int(m.number_of_trades)
+    planned_risk = float(trades_taken * RISK_PER_TRADE_INR)
+    return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"buy_signals":buy_signals,"sell_signals":sell_signals,"trades_taken":trades_taken,"planned_risk":planned_risk,"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"generated_at":now().isoformat()}
 def _scan_snapshot():
+    """Return one dashboard contract with aggregate and per-strategy scan state."""
     with LOCK:
-        return {k: dict(v) for k, v in LAST_SCANS.items()}
+        strategies = {key: dict(value) for key, value in LAST_SCANS.items()}
+    if not strategies:
+        return {
+            "status": "NOT_RUN", "at": None, "checked": 0,
+            "directional": 0, "sent": 0, "errors": 0,
+            "strategies": {},
+        }
+    rows = list(strategies.values())
+    completed = [row for row in rows if row.get("status") == "OK"]
+    latest_at = max((row.get("at") for row in completed if row.get("at")), default=None)
+    if any(row.get("status") == "ERROR" for row in rows):
+        status = "ERROR"
+    elif completed:
+        status = "COMPLETE"
+    else:
+        status = "NOT_RUN"
+    return {
+        "status": status,
+        "at": latest_at,
+        "checked": sum(int(row.get("checked", 0)) for row in completed),
+        "directional": sum(int(row.get("directional", 0)) for row in completed),
+        "sent": sum(int(row.get("sent", 0)) for row in completed),
+        "errors": sum(int(row.get("errors", 0)) for row in rows),
+        "strategies": strategies,
+    }
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
@@ -121,8 +151,17 @@ def web_server():
             try:return _json_response(start,_calendar_payload(query))
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
         if path=="/api/backtest":
-            try:return _json_response(start,_backtest_payload(query.get("strategy",[REGISTRY.ids()[0]])[0],query.get("symbol",[LIVE_SYMBOLS[0]])[0],query.get("period",["30d"])[0]))
-            except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
+            try:
+                ensure_runtime()
+                default_strategy = REGISTRY.ids()[0]
+                return _json_response(start,_backtest_payload(
+                    query.get("strategy",[default_strategy])[0],
+                    query.get("symbol",[LIVE_SYMBOLS[0]])[0],
+                    query.get("period",["30d"])[0],
+                ))
+            except Exception as exc:
+                logger.exception("Backtest request failed")
+                return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
         if path in files:
             name,typ=files[path]
             try: body=open(os.path.join(root,name),"rb").read()
@@ -148,8 +187,10 @@ def _handle_command(chat_id,cmd):
         elif cmd=="/test": ensure_runtime(); ok=SERVICE.engine.provider.fetch("RELIANCE.NS",period="2d",interval="1d",validate_hourly=False) is not None; _send_chat(chat_id,msg_test(ok,"Yahoo Finance responded." if ok else "Yahoo Finance did not respond."))
     except Exception as exc:
         logger.exception("Telegram command failed")
-        try:_send_chat(chat_id,msg_error(f"COMMAND {cmd}",exc))
-        except Exception:pass
+        try:
+            _send_chat(chat_id,msg_error(f"COMMAND {cmd}",exc))
+        except Exception:
+            logger.exception("Failed to send Telegram command error response")
 def _telegram_api_call(token,method,payload=None,timeout=15):
     data=parse.urlencode(payload or {}).encode(); req=request.Request(f"https://api.telegram.org/bot{token}/{method}",data=data,method="POST",headers={"Content-Type":"application/x-www-form-urlencoded"})
     with request.urlopen(req,timeout=timeout) as response: body=json.loads(response.read())
