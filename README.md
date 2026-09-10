@@ -4,7 +4,7 @@
 >
 > **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Supabase · Dashboard · Strategy Lab**
 
-[![Version](https://img.shields.io/badge/version-3.0.0-111827?style=for-the-badge)](.)
+[![Version](https://img.shields.io/badge/version-3.1.0-111827?style=for-the-badge)](.)
 [![Mode](https://img.shields.io/badge/mode-PAPER-16a34a?style=for-the-badge)](.)
 [![Provider](https://img.shields.io/badge/data-Yahoo%20Finance-7c3aed?style=for-the-badge)](.)
 [![Python](https://img.shields.io/badge/python-3.11%2B-2563eb?style=for-the-badge)](.)
@@ -23,7 +23,7 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 ---
 
-## 🚀 What's new in v3.0.0?
+## 🚀 What's new in v3.1.0?
 
 ### 🧩 Plug-and-play strategies
 
@@ -404,7 +404,6 @@ MULTIBOT2/
 ├── telegram.py                  # Telegram adapter
 ├── dashboard.py                 # dashboard backend payloads
 ├── sweep_engine.py              # Sweep V2 calculations
-├── sweep_service.py             # Sweep compatibility facade
 │
 ├── strategies/
 │   ├── base.py                 # stable plug-in contract
@@ -487,4 +486,4 @@ For strategy-only work, give it:
 🎨 Presentation separated from trading logic
 ```
 
-**MULTIBOT2 v3.0.0 — built to add strategies without rebuilding the bot.** 🚀
+**MULTIBOT2 v3.1.0 — built to add strategies without rebuilding the bot.** 🚀
