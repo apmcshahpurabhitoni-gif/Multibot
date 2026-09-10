@@ -1,7 +1,7 @@
 """Sweep V2 strategy.
 
-The strategy owns signal classification. sweep_engine owns canonical candle
-construction and is called exactly once through prepare_candles().
+sweep_engine owns schedule-aligned completed-candle construction.
+This strategy consumes the prepared candles and owns only signal classification.
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ class SweepV2Strategy(Strategy):
     ) -> Signal:
         asset = LIVE_ASSET_MAP[symbol]
         timeframe = asset.sweep_timeframe
-        ts = candles.index[-1] if len(candles) else pd.Timestamp(now)
+        timestamp = candles.index[-1] if len(candles) else pd.Timestamp(now)
 
         if len(candles) < 2:
             return Signal(
@@ -77,14 +77,13 @@ class SweepV2Strategy(Strategy):
                 self.manifest.version,
                 symbol,
                 "NO_SIGNAL",
-                ts,
+                timestamp,
                 timeframe,
                 "NO_SWEEP",
             )
 
         previous = candles.iloc[-2]
         current = candles.iloc[-1]
-
         high_swept = float(current["high"]) > float(previous["high"])
         low_swept = float(current["low"]) < float(previous["low"])
 
@@ -94,13 +93,12 @@ class SweepV2Strategy(Strategy):
                 self.manifest.version,
                 symbol,
                 "NO_SIGNAL",
-                ts,
+                timestamp,
                 timeframe,
                 "NO_SWEEP",
             )
 
         entry = float(current["close"])
-
         if entry > float(previous["high"]):
             direction = "BUY"
             reason = "BULLISH"
@@ -122,14 +120,14 @@ class SweepV2Strategy(Strategy):
             self.manifest.version,
             symbol,
             direction,
-            ts,
+            timestamp,
             timeframe,
             reason,
             entry,
             stop_loss,
             take_profit,
             {
-                "candle_start": pd.Timestamp(ts).isoformat(),
+                "candle_start": pd.Timestamp(timestamp).isoformat(),
                 "previous": {
                     key: float(previous[key])
                     for key in ("open", "high", "low", "close")

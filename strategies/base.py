@@ -73,6 +73,6 @@ class Strategy(ABC):
         return {"enabled": False}
 
     def backtest_signal(self, symbol: str, candles: pd.DataFrame, *, now: pd.Timestamp) -> Signal:
-        """Use the same completed-candle preparation contract as live evaluation."""
+        """Backtests must use the same candle-preparation contract as live scans."""
         prepared = self.prepare_candles(symbol, candles, now=now)
         return self.generate_signal(symbol, prepared, now=now)

@@ -10,7 +10,7 @@ class PreparedStrategy(Strategy):
         version="1",
         description="test",
         assets=("X",),
-        timeframes=("1d",),
+        timeframes=("1D",),
         schedule="test",
         parameters={},
     )
@@ -30,12 +30,11 @@ class PreparedStrategy(Strategy):
         )
 
 
-def test_backtest_uses_same_prepare_contract_as_live():
+def test_backtest_uses_prepare_candles():
     index = pd.date_range("2026-01-01", periods=3, freq="D", tz="Asia/Kolkata")
     frame = pd.DataFrame(
-        {"open": [1, 2, 3], "high": [1, 2, 3], "low": [1, 2, 3], "close": [1, 2, 3]},
+        {"open":[1,2,3], "high":[1,2,3], "low":[1,2,3], "close":[1,2,3]},
         index=index,
     )
-    strategy = PreparedStrategy()
-    signal = strategy.backtest_signal("X", frame, now=index[-1])
+    signal = PreparedStrategy().backtest_signal("X", frame, now=index[-1])
     assert signal.reason == "2"
