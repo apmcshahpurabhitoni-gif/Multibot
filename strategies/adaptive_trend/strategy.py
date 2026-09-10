@@ -43,6 +43,25 @@ class AdaptiveTrendMomentum(Strategy):
     def data_request(self, symbol, *, period="30d"):
         return "1d", "2y"
 
+    def prepare_candles(self, symbol, candles, *, now):
+        f = candles.copy().sort_index()
+        if f.empty:
+            return f
+        if not isinstance(f.index, pd.DatetimeIndex):
+            raise ValueError("Adaptive Trend candles require a DatetimeIndex")
+        if f.index.tz is None:
+            raise ValueError("Adaptive Trend candle timestamps must be timezone-aware")
+        current = pd.Timestamp(now)
+        if current.tzinfo is None:
+            raise ValueError("Runtime timestamp must be timezone-aware")
+        current = current.tz_convert(IST)
+        last_ts = f.index[-1].tz_convert(IST)
+        # Daily bars are labelled by their session date. A bar from today's
+        # session is not completed yet and must never drive a live signal.
+        if last_ts.date() >= current.date():
+            f = f.iloc[:-1]
+        return f
+
     def generate_signal(self, symbol, candles, *, now):
         cfg = self.validate_config({})
         f = candles.copy().sort_index()
