@@ -5,7 +5,7 @@ Architecture
 - Automatic strategy discovery under strategies/.
 - Stable Strategy / StrategyManifest / Signal contracts.
 - Shared signal -> freshness -> duplicate -> risk -> trade -> persistence -> Telegram lifecycle.
-- Canonical AssetConfig-owned market, currency and Sweep timeframe metadata.
+- Strategy-owned timeframes and data requests.
 - Generic registry-driven backtesting.
 
 Built-in strategies

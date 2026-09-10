@@ -38,10 +38,9 @@ def build_signal_identity(signal: Signal, *, symbol: str | None = None) -> str:
     ))
 
 class SignalGate:
-    """Stateless compatibility facade.
+    """Stateless freshness and identity facade.
 
-    Durable duplicate/send counts belong exclusively to DatabaseManager. This
-    facade owns only freshness and canonical signal identity.
+    Durable duplicate/send counts belong exclusively to DatabaseManager.
     """
 
     max_age_hours = SIGNAL_FRESHNESS_HOURS

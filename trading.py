@@ -1,10 +1,10 @@
 """Canonical paper-trading, sizing, and account-risk rules."""
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import Literal
 import pandas as pd
 from config import ACCOUNT_SIZE_INR, ACCOUNT_TRADE_LIMITS, LEVERAGE, RISK_PER_TRADE_INR, SIGNAL_FRESHNESS_HOURS
+from signal_gate import normalize_timestamp, is_fresh_age
 
 TradeSide = Literal["BUY", "SELL"]
 TradeStatus = Literal["OPEN", "CLOSED"]
@@ -94,16 +94,15 @@ def validate_risk_configuration():
         raise TradingRuleError("MULTIBOT2 uses 1x leverage")
 
 def signal_freshness(signal_timestamp, now, *, freshness_hours=SIGNAL_FRESHNESS_HOURS):
-    ts = pd.Timestamp(signal_timestamp)
-    current = pd.Timestamp(now)
-    if ts.tzinfo is None or current.tzinfo is None:
-        raise TradingRuleError("Signal and current timestamps must be timezone-aware")
+    """Compatibility wrapper over the canonical signal_gate freshness rule."""
     if freshness_hours != SIGNAL_FRESHNESS_HOURS:
         raise TradingRuleError("Freshness is locked at one hour")
-    age = current.tz_convert("Asia/Kolkata") - ts.tz_convert("Asia/Kolkata")
-    if age < timedelta(0):
+    timestamp = normalize_timestamp(signal_timestamp)
+    current = normalize_timestamp(now)
+    age_hours = (current - timestamp).total_seconds() / 3600
+    if age_hours < 0:
         raise TradingRuleError("Signal timestamp cannot be in the future")
-    return "FRESH" if age <= timedelta(hours=SIGNAL_FRESHNESS_HOURS) else "STALE"
+    return "FRESH" if is_fresh_age(age_hours) else "STALE"
 
 def can_open_trade(account):
     validate_risk_configuration()

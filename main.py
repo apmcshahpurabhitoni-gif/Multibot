@@ -39,12 +39,26 @@ def ensure_runtime():
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:
         for st in REGISTRY.all():
-            LAST_SCANS.setdefault(st.manifest.id,{"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0})
+            LAST_SCANS.setdefault(
+                st.manifest.id,
+                {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
+            )
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
-    ensure_runtime(); current=now_at or now(); started=time.monotonic(); results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
+    ensure_runtime()
+    current=now_at or now()
+    started=time.monotonic()
+    results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
     with LOCK:
         info=LAST_SCANS[strategy_id]
-        info.update(status="OK",at=current.isoformat(),checked=len(results),directional=sum(r.signal.is_directional for r in results),sent=sum(r.sent for r in results),errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),elapsed_ms=round((time.monotonic()-started)*1000))
+        info.update(
+            status="OK",
+            at=current.isoformat(),
+            checked=len(results),
+            directional=sum(r.signal.is_directional for r in results),
+            sent=sum(r.sent for r in results),
+            errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),
+            elapsed_ms=round((time.monotonic()-started)*1000),
+        )
     return results
 def run_all_cycles(*,now_at=None,send=True,period="30d"):
     ensure_runtime(); out=[]
@@ -77,7 +91,7 @@ def _backtest_payload(strategy,symbol,period):
     return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"generated_at":now().isoformat()}
 def _scan_snapshot():
     with LOCK:
-        return {k:dict(v) for k,v in LAST_SCANS.items()}
+        return {k: dict(v) for k, v in LAST_SCANS.items()}
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]

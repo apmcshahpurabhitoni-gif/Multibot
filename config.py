@@ -307,6 +307,9 @@ def validate_configuration() -> None:
     if BITCOIN_SYMBOL not in LIVE_ASSET_MAP:
         raise ValueError("Bitcoin is missing from live universe")
 
+    if set(LIVE_ASSET_MAP) != set(LIVE_SYMBOLS):
+        raise ValueError("Live asset metadata must cover all live assets")
+
     for symbol in NSE_15_SYMBOLS:
         if LIVE_ASSET_MAP[symbol].sweep_timeframe != "4H":
             raise ValueError(f"{symbol} Sweep must be 4H")
