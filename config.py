@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Final
 
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.2.0"
 
 WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "🧩 Plug-and-play strategy architecture with automatic discovery.",
@@ -17,7 +17,8 @@ WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "⭐ Strategy results are versioned with parameter snapshots for reproducibility.",
     "🛡️ Core freshness, duplicate, risk, account-limit, paper-mode and Yahoo-only rules remain locked.",
     "💱 Asset currency is canonical and USD instruments are converted to INR for risk, P&L and reporting.",
-    "📚 Added AI rebuild specification and strategy developer template for future plug-ins.",
+    "🧹 Final architecture audit removed legacy TrendPulse paths, duplicate ownership and stale test trees.",
+    "🔎 Sweep now has one candle-construction owner and one canonical asset timeframe source.",
 )
 
 IST_TIMEZONE: Final = "Asia/Kolkata"
@@ -160,11 +161,6 @@ NSE_INDEX_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (
 
 SWEEP_MINUTE_NSE: Final[int] = 15
 SWEEP_MINUTE_GLOBAL: Final[int] = 30
-
-SWEEP_TIMEFRAME_BY_SYMBOL: Final[dict[str, str]] = {
-    **{s: "4H" for s in NSE_15_SYMBOLS},
-    "^NSEI": "1H", "^NSEBANK": "1H", "GC=F": "4H", "BTC-USD": "4H",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -309,13 +305,6 @@ def validate_configuration() -> None:
 
     if BITCOIN_SYMBOL not in LIVE_ASSET_MAP:
         raise ValueError("Bitcoin is missing from live universe")
-
-    if set(SWEEP_TIMEFRAME_BY_SYMBOL) != set(LIVE_SYMBOLS):
-        raise ValueError("Sweep timeframe configuration must cover all live assets")
-    for symbol in NSE_15_SYMBOLS:
-        if SWEEP_TIMEFRAME_BY_SYMBOL[symbol] != "4H": raise ValueError(f"{symbol} Sweep must be 4H")
-    if SWEEP_TIMEFRAME_BY_SYMBOL["^NSEI"] != "1H" or SWEEP_TIMEFRAME_BY_SYMBOL["^NSEBANK"] != "1H": raise ValueError("NIFTY indexes Sweep must be 1H")
-    if SWEEP_TIMEFRAME_BY_SYMBOL[GOLD_SYMBOL] != "4H" or SWEEP_TIMEFRAME_BY_SYMBOL[BITCOIN_SYMBOL] != "4H": raise ValueError("Global Sweep must be 4H")
 
     if LIVE_ASSET_MAP["^NSEI"].sweep_timeframe != "1H":
         raise ValueError("NIFTY 50 Sweep must be 1H")
