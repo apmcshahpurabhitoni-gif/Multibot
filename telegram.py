@@ -30,7 +30,7 @@ def _currency(symbol,market):
     asset = LIVE_ASSET_MAP.get(str(symbol).strip().upper())
     currency = asset.currency if asset is not None else ("INR" if str(market).upper()=="NSE" else "USD")
     return "₹" if currency=="INR" else "$"
-def _decimals(symbol): return 2 if symbol=="BTC-USD" else 2
+def _decimals(symbol): return 2
 def build_signal_fields(signal:Signal,**fields):
     symbol=fields.get("symbol",signal.symbol); market=fields.get("market",""); d=_decimals(symbol); freshness=fields.get("freshness","FRESH"); age=fields.get("age_str","")
     return {"strategy":signal.strategy,"version":signal.version,"asset":fields.get("asset",symbol),"symbol":symbol,"market":market,"timeframe":fields.get("timeframe",signal.timeframe),"direction":"LONG 📈" if signal.direction=="BUY" else "SHORT 📉","status_tag":freshness,"status_icon":"⚠️" if freshness=="STALE" else "✅","age_str":age,"time_str":signal.timestamp.strftime("%d-%b-%Y %H:%M IST"),"currency":_currency(symbol,market),"entry_fmt":f"{float(fields.get('entry',signal.entry or 0)):,.{d}f}","sl_fmt":f"{float(fields.get('stop_loss',signal.stop_loss or 0)):,.{d}f}","tp_fmt":f"{float(fields.get('take_profit',signal.take_profit or 0)):,.{d}f}","qty_fmt":f"{float(fields.get('quantity',0)):,.4f}","risk_fmt":f"{float(fields.get('risk',0)):,.2f}","account":str(fields.get("account","")).upper()}
