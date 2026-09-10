@@ -6,6 +6,7 @@ from urllib import parse, request
 import pandas as pd
 from strategies import Signal
 from trading import PaperTrade
+from config import LIVE_ASSET_MAP
 BR="━━━━━━━━━━━━━━━━━━━━━━"; BR2="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 DASHBOARD_URL=os.getenv("DASHBOARD_URL","https://multibot2-t74l.onrender.com/dashboard")
 class TelegramConfigurationError(RuntimeError): pass
@@ -25,7 +26,10 @@ class TelegramMessage: message_type:str; text:str
 def signal_message_type(signal):
     if signal.direction not in {"BUY","SELL"}: raise TelegramTemplateError(f"No approved template for {signal.strategy}/{signal.direction}")
     return f"MSG-SIGNAL-{signal.direction}-V1"
-def _currency(symbol,market): return "₹" if str(market).upper()=="NSE" or symbol in {"^NSEI","^NSEBANK"} else "$"
+def _currency(symbol,market):
+    asset = LIVE_ASSET_MAP.get(str(symbol).strip().upper())
+    currency = asset.currency if asset is not None else ("INR" if str(market).upper()=="NSE" else "USD")
+    return "₹" if currency=="INR" else "$"
 def _decimals(symbol): return 2 if symbol=="BTC-USD" else 2
 def build_signal_fields(signal:Signal,**fields):
     symbol=fields.get("symbol",signal.symbol); market=fields.get("market",""); d=_decimals(symbol); freshness=fields.get("freshness","FRESH"); age=fields.get("age_str","")
@@ -38,8 +42,8 @@ def build_trade_fields(trade:PaperTrade):
 def signal_rejection_message(*,strategy,symbol,reason,detail=""):
     labels={"STALE_SIGNAL":"⏳ Signal is older than the 1-hour freshness limit.","DUPLICATE_SIGNAL_LIMIT":"🔁 Signal reached its two-send limit.","REMINDER_PENDING":"🔔 Initial signal already exists; reminder workflow owns the second send.","ACCOUNT_DAILY_LIMIT":"🛑 Account daily limit reached.","NO_DIRECTIONAL_SIGNAL":"💤 No BUY/SELL signal was produced."}; return TelegramMessage("MSG-SIGNAL-REJECTED-V1",f"⚠️ *SIGNAL NOT SENT*\n{BR}\n🧠 *Strategy:* `{strategy}`\n🪙 *Asset:* `{symbol}`\n📝 {labels.get(reason,detail or reason)}\n{BR2}")
 def trade_closed_message(trade,live,pnl,balance,is_long,hit_tp): return TelegramMessage("MSG-TRADE-CLOSED-V1",f"{'🟢' if pnl>=0 else '🔴'} *TRADE CLOSED*\n{BR}\n🧠 `{trade.plan.strategy}` · `{trade.plan.strategy_version}`\n🪙 `{trade.plan.entry}` → `{trade.exit_price}`\n💰 P&L: `₹{pnl:,.2f}`\n💼 Balance: `₹{balance:,.2f}`\n{BR2}")
-def msg_start(): return f"🤖 *MULTIBOT2 ONLINE*\n{BR}\n🧩 Plug-and-play strategy engine\n📡 Yahoo Finance\n🧪 PAPER ONLY\n📊 19 locked assets\n🌐 {DASHBOARD_URL}\n{BR2}"
-def msg_scan_started(): return f"🔍 *SCAN STARTED*\n{BR}\n🧩 Running discovered strategy plug-ins\n📊 19 locked live assets\n⏳ Please wait...\n{BR2}"
+def msg_start(): return f"🤖 *MULTIBOT2 ONLINE*\n{BR}\n🧩 Plug-and-play strategy engine\n📡 Yahoo Finance\n🧪 PAPER ONLY\n📊 {len(LIVE_ASSET_MAP)} locked assets\n🌐 {DASHBOARD_URL}\n{BR2}"
+def msg_scan_started(): return f"🔍 *SCAN STARTED*\n{BR}\n🧩 Running discovered strategy plug-ins\n📊 {len(LIVE_ASSET_MAP)} locked live assets\n⏳ Please wait...\n{BR2}"
 def msg_scan_result(found,checked): return f"🔎 *SCAN COMPLETE*\n{BR}\n📊 Evaluations: `{checked}`\n🎯 New signals: `{found}`\n{BR2}"
 def msg_balance(accounts): return f"💰 *ACCOUNT BALANCE*\n{BR}\n"+"\n".join(f"🏢 `{a.name}` · ₹{a.balance:,.2f} · {a.remaining_trades} trades left" for a in accounts.values())+f"\n{BR2}"
 def msg_summary(active,history,live_prices=None): return f"📊 *SUMMARY*\n{BR}\n🟢 Open: `{len(active)}`\n⚪ Closed: `{len(history)}`\n{BR2}"

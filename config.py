@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Final
 
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 
 WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "🧩 Plug-and-play strategy architecture with automatic discovery.",
@@ -16,6 +16,7 @@ WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "📊 Strategy Lab backtesting now reports 11 metrics plus a transparent 0–100 rating.",
     "⭐ Strategy results are versioned with parameter snapshots for reproducibility.",
     "🛡️ Core freshness, duplicate, risk, account-limit, paper-mode and Yahoo-only rules remain locked.",
+    "💱 Asset currency is canonical and USD instruments are converted to INR for risk, P&L and reporting.",
     "📚 Added AI rebuild specification and strategy developer template for future plug-ins.",
 )
 
@@ -68,6 +69,7 @@ class AssetConfig:
     market: str
     asset_type: str
     group: str = "NSE Stocks"
+    currency: str = "INR"
 
     sweep_timeframe: str = "4H"
 
@@ -80,6 +82,7 @@ def _equity(symbol: str) -> AssetConfig:
         market="NSE",
         asset_type="equity",
         group="NSE Stocks",
+        currency="INR",
         sweep_timeframe="4H",
     )
 
@@ -94,6 +97,7 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="NSE",
         asset_type="index",
         group="NSE Indices",
+        currency="INR",
         sweep_timeframe="1H",
     ),
     AssetConfig(
@@ -112,6 +116,7 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="Gold",
         asset_type="commodity",
         group="Global Markets",
+        currency="USD",
         sweep_timeframe="4H",
     ),
     AssetConfig(
@@ -121,6 +126,7 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="Crypto",
         asset_type="crypto",
         group="Global Markets",
+        currency="USD",
         sweep_timeframe="4H",
     ),
 )
@@ -167,6 +173,9 @@ SWEEP_TIMEFRAME_BY_SYMBOL: Final[dict[str, str]] = {
 
 ACCOUNT_SIZE_INR = 100_000
 RISK_PER_TRADE_INR = 2_000
+# Locked paper-trading conversion used when an instrument price is quoted in USD.
+# All account risk, P&L and limits remain INR.
+USD_TO_INR = float(os.getenv("USD_TO_INR", "83.0"))
 
 ACCOUNT_TRADE_LIMITS = {
     "macro": 20,
@@ -196,6 +205,7 @@ BACKTEST_ASSETS = {
         "market": asset.market,
         "asset_type": asset.asset_type,
         "group": asset.group,
+        "currency": asset.currency,
         "sweep_timeframe": asset.sweep_timeframe,
     }
     for asset in LIVE_ASSETS
@@ -319,6 +329,9 @@ def validate_configuration() -> None:
 
     if RISK_PER_TRADE_INR != 2_000:
         raise ValueError("Risk per trade was changed")
+
+    if USD_TO_INR <= 0:
+        raise ValueError("USD_TO_INR must be positive")
 
     if LEVERAGE != 1.0:
         raise ValueError("Leverage must remain 1x")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from threading import RLock
 import pandas as pd
-from config import ACCOUNT_NAMES, ACCOUNT_SIZE_INR, LIVE_ASSET_MAP, LIVE_ASSETS, RISK_PER_TRADE_INR
+from config import ACCOUNT_NAMES, ACCOUNT_SIZE_INR, LIVE_ASSET_MAP, LIVE_ASSETS, RISK_PER_TRADE_INR, USD_TO_INR
 from db import DatabaseManager
 from signal_gate import SignalGate
 from strategy_engine import StrategyEngine
@@ -46,23 +46,24 @@ class StrategyService:
             if not can_open_trade(account): return DispatchResult(symbol,signal,None,None,False,"ACCOUNT_DAILY_LIMIT",account_name)
             entry,sl,tp = strategy.build_trade_plan(signal,entry=current_price) or (None,None,None)
             if entry is None: return DispatchResult(symbol,signal,None,None,False,"NO_TRADE_PLAN",account_name)
-            qty=quantity_for_risk(entry,sl); plan=TradePlan(strategy.manifest.name,signal.direction,signal.timestamp,float(entry),float(sl),float(tp),timeframe=signal.timeframe,strategy_version=signal.version,metadata=signal.metadata,trailing_policy=strategy.trailing_policy())
+            fx_rate = 1.0 if asset.currency == "INR" else USD_TO_INR
+            qty=quantity_for_risk(entry,sl,fx_rate=fx_rate); plan=TradePlan(strategy.manifest.name,signal.direction,signal.timestamp,float(entry),float(sl),float(tp),timeframe=signal.timeframe,strategy_version=signal.version,metadata=signal.metadata,trailing_policy=strategy.trailing_policy(),fx_rate=fx_rate)
             trade=PaperTrade(plan=plan,account=account_name,quantity=qty)
             age=max(0,int((current-signal.timestamp).total_seconds()/60)); age_text=f"{age} min ago" if age<60 else f"{age//60} hr {age%60} min ago"
             message=render_signal_message(signal,symbol=symbol,asset=asset.label,market=asset.market,timeframe=signal.timeframe,entry=entry,stop_loss=sl,take_profit=tp,quantity=qty,risk=trade.planned_risk,account=account_name,freshness="FRESH",age_str=age_text)
             if not send: return DispatchResult(symbol,signal,trade,message,False,"READY_TO_SEND",account_name)
             updated=register_trade(account,planned_risk=trade.planned_risk); self.accounts[account_name]=updated
             trade_id=f"{account_name}_{symbol}_{int(current.timestamp()*1000)}"
-            row={"id":trade_id,"status":"OPEN","symbol":symbol,"label":asset.label,"market":asset.market,"asset_type":asset.asset_type,"group":asset.group,"timeframe":signal.timeframe,"account":account_name,"strategy":plan.strategy,"strategy_version":plan.strategy_version,"type":signal.direction,"entry":entry,"sl":sl,"tp":tp,"qty":qty,"risk_per_unit":plan.risk_per_unit,"planned_risk":trade.planned_risk,"signal_ts":signal.timestamp.isoformat(),"opened_at":current.isoformat(),"trailing_policy":plan.trailing_policy}
+            row={"id":trade_id,"status":"OPEN","symbol":symbol,"label":asset.label,"market":asset.market,"asset_type":asset.asset_type,"group":asset.group,"timeframe":signal.timeframe,"account":account_name,"strategy":plan.strategy,"strategy_version":plan.strategy_version,"type":signal.direction,"entry":entry,"sl":sl,"tp":tp,"qty":qty,"risk_per_unit":plan.risk_per_unit,"risk_per_unit_inr":plan.risk_per_unit_inr,"fx_rate":plan.fx_rate,"currency":asset.currency,"planned_risk":trade.planned_risk,"signal_ts":signal.timestamp.isoformat(),"opened_at":current.isoformat(),"trailing_policy":plan.trailing_policy}
             self.database.save_trade(trade_id,"OPEN",row,current.isoformat()); self.database.save_account(account_name,balance=updated.balance,trades_today=updated.trades_today,planned_risk_used=updated.planned_risk_used,reset_date=current.date().isoformat())
             send_message(message,self._config())
             metadata={"message_type":message.message_type,"strategy":plan.strategy,"strategy_version":plan.strategy_version,"symbol":symbol,"asset":asset.label,"market":asset.market,"asset_type":asset.asset_type,"group":asset.group,"timeframe":signal.timeframe,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"reason":signal.reason,"parameter_snapshot":strategy.validate_config({})}
-            self.database.record_signal_send(key,current.isoformat(),(current+pd.Timedelta(hours=1)).isoformat(),message.text,metadata); self.gate.accept(signal,symbol=symbol,now=current)
+            self.database.record_signal_send(key,current.isoformat(),(current+pd.Timedelta(hours=1)).isoformat(),message.text,metadata)
             return DispatchResult(symbol,signal,trade,message,True,"SENT_AND_ACCEPTED",account_name,trade_id)
     def current_price(self, symbol: str) -> float | None:
         asset = LIVE_ASSET_MAP[symbol]
         try:
-            frame = self.engine.provider.fetch(asset.yahoo_symbol, period="2d", interval="1m", validate_hourly=False)
+            frame = self.engine.provider.fetch(asset.yahoo_symbol, period="1d", interval="1m", validate_hourly=False)
             return None if frame.empty else float(frame.close.iloc[-1])
         except Exception:
             return None
