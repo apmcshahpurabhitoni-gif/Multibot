@@ -37,7 +37,8 @@ def ensure_runtime():
     if REGISTRY is None: REGISTRY=discover_strategies()
     if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
-    for st in REGISTRY.all(): LAST_SCANS.setdefault(st.manifest.id,{"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0})
+    with LOCK:
+        for st in REGISTRY.all(): LAST_SCANS.setdefault(st.manifest.id,{"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0})
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     ensure_runtime(); current=now_at or now(); started=time.monotonic(); results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send); info=LAST_SCANS[strategy_id]; info.update(status="OK",at=current.isoformat(),checked=len(results),directional=sum(r.signal.is_directional for r in results),sent=sum(r.sent for r in results),errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),elapsed_ms=round((time.monotonic()-started)*1000)); return results
 def run_all_cycles(*,now_at=None,send=True,period="30d"):
