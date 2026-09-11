@@ -193,6 +193,14 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             except DatabaseError as exc:
                 if "HTTP 404" not in str(exc): raise
 
+    def market_data_cache_health(self):
+        if not self.supabase_enabled:return {"enabled":False,"remote":False,"reason":"SUPABASE_NOT_CONFIGURED"}
+        try:
+            self._supabase_request("GET","market_data_cache",params="select=cache_key&limit=1")
+            return {"enabled":True,"remote":True,"reason":"OK"}
+        except DatabaseError as exc:
+            return {"enabled":True,"remote":False,"reason":str(exc)}
+
     def load_market_data_cache(self,cache_key):
         with self._connect() as c: row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
         if row:return dict(row)
