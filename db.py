@@ -186,12 +186,17 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         return out
 
     def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
+        """Save cache locally first. Remote cache is best-effort and can never fail a scan."""
         row=(cache_key,symbol,period,interval,int(bool(validate_hourly)),payload,updated_at)
-        with self._connect() as c:c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",row); c.commit()
-        if self.supabase_enabled:
-            try:self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
-            except DatabaseError as exc:
-                if "HTTP 404" not in str(exc): raise
+        with self._connect() as c:
+            c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",row)
+            c.commit()
+        if not self.supabase_enabled:return
+        try:
+            self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
+        except DatabaseError as exc:
+            logger = __import__("logging").getLogger(__name__)
+            logger.warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
 
     def market_data_cache_health(self):
         if not self.supabase_enabled:return {"enabled":False,"remote":False,"reason":"SUPABASE_NOT_CONFIGURED"}
@@ -207,8 +212,8 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         if self.supabase_enabled:
             try: rows=self._supabase_request("GET","market_data_cache",params=parse.urlencode({"cache_key":f"eq.{cache_key}","select":"*"})) or []
             except DatabaseError as exc:
-                if "HTTP 404" in str(exc): return None
-                raise
+                __import__("logging").getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc)
+                return None
             if rows:
                 r=rows[0]; payload=r.get("payload") or {}
                 if not isinstance(payload,str): payload=json.dumps(payload,separators=(",",":"),default=str)
