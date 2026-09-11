@@ -6,6 +6,7 @@ to modern yfinance causes the curl_cffi session error seen in the dashboard.
 """
 from __future__ import annotations
 import time
+import warnings
 from threading import RLock
 from typing import Optional
 import pandas as pd
@@ -68,7 +69,9 @@ class YahooProvider:
             if time.monotonic() < self._backoff_until:
                 raise YahooDataError("Yahoo Finance is in rate-limit backoff")
         try:
-            frame = yf.download(symbol, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="The .*generic.* unit for NumPy timedelta is deprecated.*", category=DeprecationWarning)
+                frame = yf.download(symbol, period=period, interval=interval, progress=False, auto_adjust=True, threads=False)
         except Exception as exc:
             message = str(exc)
             if "429" in message or "too many requests" in message.lower() or "rate" in message.lower():
