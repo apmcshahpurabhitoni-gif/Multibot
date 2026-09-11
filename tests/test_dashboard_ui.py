@@ -81,3 +81,15 @@ def test_dashboard_resolves_friendly_names_and_canonical_signal_presentation():
 
 def test_dashboard_does_not_show_global_scan_panel():
     assert '<section class="panel"><div class="section-head"><div><h2>Scan History</h2>' not in HTML
+
+
+def test_dashboard_contract_keeps_stale_directional_signals_visible():
+    assert 'data-signal-filter="stale"' in HTML
+    assert 'state.signalFilter==="stale"' in APP
+    assert 'canonicalSignals' in APP
+
+def test_dashboard_contract_exposes_directional_signal_summary():
+    source=(ROOT / "dashboard.py").read_text(encoding="utf-8")
+    assert 'signal_summary' in source
+    assert 'stale_directional' in source
+    assert 'fresh_directional' in source
