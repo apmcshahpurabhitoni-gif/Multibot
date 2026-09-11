@@ -18,7 +18,7 @@ python_files = ["test_*.py"]
 addopts = "-q"
 
 [tool.setuptools]
-py-modules = ["main","config","market_data","candles","trading","telegram","backtest","dashboard","yahoo_provider","signal_gate","strategy_engine","strategy_service","sweep_engine","reminders","db","news","calendar_store"]
+py-modules = ["main","config","market_data","candles","trading","telegram","backtest","dashboard","yahoo_provider","signal_gate","strategy_engine","strategy_service","sweep_engine","reminders","db","news","calendar_store","trade_monitor"]
 
 [tool.setuptools.packages.find]
 include = ["strategies*"]
