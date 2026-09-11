@@ -39,7 +39,7 @@ def ensure_runtime():
     validate_runtime_configuration()
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
-    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
+    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
     if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:

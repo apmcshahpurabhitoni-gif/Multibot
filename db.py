@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS signals(signal_key TEXT PRIMARY KEY,send_count INTEGE
 CREATE TABLE IF NOT EXISTS signal_events(signal_id TEXT PRIMARY KEY,signal_key TEXT NOT NULL,strategy TEXT NOT NULL,version TEXT,symbol TEXT NOT NULL,direction TEXT NOT NULL,timestamp TEXT NOT NULL,timeframe TEXT,reason TEXT,pipeline_status TEXT NOT NULL,metadata TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signal_id TEXT NOT NULL,channel TEXT NOT NULL,status TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT,message_type TEXT,metadata TEXT);
 CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS market_data_cache(cache_key TEXT PRIMARY KEY,symbol TEXT NOT NULL,period TEXT NOT NULL,interval TEXT NOT NULL,validate_hourly INTEGER NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
 -- Canonical signal identity: one lifecycle row per signal_key, updated as it moves through the pipeline.
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
@@ -183,6 +184,30 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             except Exception:item["metadata"]={}
             out.append(item)
         return out
+
+    def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
+        row=(cache_key,symbol,period,interval,int(bool(validate_hourly)),payload,updated_at)
+        with self._connect() as c:c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",row); c.commit()
+        if self.supabase_enabled:
+            try:self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
+            except DatabaseError as exc:
+                if "HTTP 404" not in str(exc): raise
+
+    def load_market_data_cache(self,cache_key):
+        with self._connect() as c: row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
+        if row:return dict(row)
+        if self.supabase_enabled:
+            try: rows=self._supabase_request("GET","market_data_cache",params=parse.urlencode({"cache_key":f"eq.{cache_key}","select":"*"})) or []
+            except DatabaseError as exc:
+                if "HTTP 404" in str(exc): return None
+                raise
+            if rows:
+                r=rows[0]; payload=r.get("payload") or {}
+                if not isinstance(payload,str): payload=json.dumps(payload,separators=(",",":"),default=str)
+                item={"cache_key":r["cache_key"],"symbol":r["symbol"],"period":r["period"],"interval":r["interval"],"validate_hourly":int(bool(r.get("validate_hourly",True))),"payload":payload,"updated_at":r["updated_at"]}
+                with self._connect() as c:c.execute("INSERT OR REPLACE INTO market_data_cache VALUES(?,?,?,?,?,?,?)",(item["cache_key"],item["symbol"],item["period"],item["interval"],item["validate_hourly"],item["payload"],item["updated_at"])); c.commit()
+                return item
+        return None
 
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
         with self._connect() as c:c.execute("INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))); c.commit()

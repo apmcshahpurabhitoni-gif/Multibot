@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Final
 
 
-APP_VERSION = "3.2.1"
+APP_VERSION = "3.2.2"
 
 WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "🧩 Plug-and-play strategy architecture with automatic discovery.",
@@ -20,6 +20,7 @@ WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "📚 Added AI rebuild specification and strategy developer template for future plug-ins.",
     "🧹 Final audit unified completed-candle handling and canonical Sweep asset ownership.",
     "📡 Yahoo rate-limit handling is now isolated per symbol with recent-data fallback.",
+    "💾 Recent Yahoo candles now persist through restart when Supabase cache schema is installed.",
 )
 
 IST_TIMEZONE: Final = "Asia/Kolkata"
