@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS trades(id TEXT PRIMARY KEY,status TEXT NOT NULL,paylo
 CREATE TABLE IF NOT EXISTS signals(signal_key TEXT PRIMARY KEY,send_count INTEGER NOT NULL DEFAULT 0,first_sent_at TEXT,last_sent_at TEXT,reminder_due_at TEXT,reminder_sent INTEGER NOT NULL DEFAULT 0,message_text TEXT,metadata TEXT);
 CREATE TABLE IF NOT EXISTS signal_events(signal_id TEXT PRIMARY KEY,signal_key TEXT NOT NULL,strategy TEXT NOT NULL,version TEXT,symbol TEXT NOT NULL,direction TEXT NOT NULL,timestamp TEXT NOT NULL,timeframe TEXT,reason TEXT,pipeline_status TEXT NOT NULL,metadata TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signal_id TEXT NOT NULL,channel TEXT NOT NULL,status TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT,message_type TEXT,metadata TEXT);
+CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
 CREATE INDEX IF NOT EXISTS signal_events_key_idx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempted_at DESC);
@@ -120,7 +121,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
         ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
         row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts)
-        with self._connect() as c:c.execute("INSERT OR REPLACE INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row); c.commit()
+        with self._connect() as c:c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row); c.commit()
         return signal_id
 
     def update_signal_status(self,signal_id,status):
@@ -128,6 +129,27 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
 
     def record_delivery(self,signal_id,*,channel,status,attempted_at=None,error_text=None,message_type=None,metadata=None):
         with self._connect() as c:c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(signal_id,channel,status,attempted_at or datetime.now(timezone.utc).isoformat(),error_text,message_type,json.dumps(metadata or {},default=str))); c.commit()
+
+    def signal_send_state(self,key):
+        with self._connect() as c: row=c.execute("SELECT send_count,first_sent_at,last_sent_at FROM signals WHERE signal_key=?",(key,)).fetchone()
+        return dict(row) if row else {"send_count":0,"first_sent_at":None,"last_sent_at":None}
+
+    def failed_deliveries(self,limit=20):
+        with self._connect() as c: rows=c.execute("SELECT * FROM deliveries WHERE status='FAILED' ORDER BY id LIMIT ?",(int(limit),)).fetchall()
+        out=[]
+        for r in rows:
+            item=dict(r)
+            try:item["metadata"]=json.loads(item.get("metadata") or "{}")
+            except Exception:item["metadata"]={}
+            out.append(item)
+        return out
+
+    def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
+        with self._connect() as c:c.execute("INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))); c.commit()
+
+    def load_scan_runs(self,limit=50):
+        with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
+        return [{**dict(r),"payload":json.loads(r["payload"] or "{}")} for r in rows]
 
     def delivery_status(self,signal_id):
         with self._connect() as c: row=c.execute("SELECT status,attempted_at,error,message_type FROM deliveries WHERE signal_id=? ORDER BY id DESC LIMIT 1",(signal_id,)).fetchone()
@@ -140,7 +162,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             try: metadata=json.loads(r["metadata"] or "{}")
             except Exception: metadata={}
             item={k:r[k] for k in ("signal_id","signal_key","strategy","version","symbol","direction","timestamp","timeframe","reason","pipeline_status","created_at","updated_at")}
-            item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata; item["delivery"]=self.delivery_status(r["signal_id"]); out.append(item)
+            item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata; item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"]); out.append(item)
         return out
 
     def record_signal_send(self,key,sent_at,reminder_due_at=None,message_text=None,metadata=None):

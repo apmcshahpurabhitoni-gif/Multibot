@@ -2,12 +2,14 @@
 from __future__ import annotations
 from typing import Any, Iterable
 import pandas as pd
+from signal_lifecycle import dashboard_signal
 from config import *
 from strategies import Signal
 from trading import AccountState, PaperTrade
 
 def signal_to_dict(s):
-    if isinstance(s, dict): return dict(s)
+    if isinstance(s, dict):
+        event=dict(s); return dashboard_signal(event,event.get("send_state"),event.get("delivery"))
     return {"strategy":s.strategy,"strategy_version":s.version,"symbol":s.symbol,"signal":s.direction,"timestamp":s.timestamp.isoformat(),"timeframe":s.timeframe,"reason":s.reason,"entry":s.entry,"stop_loss":s.stop_loss,"take_profit":s.take_profit,"metadata":s.metadata}
 def trade_to_dict(t):
     if isinstance(t, dict): return dict(t)
@@ -19,5 +21,5 @@ def build_dashboard_snapshot(*,version=APP_VERSION,whats_new=WHAT_IS_NEW,account
     catalog=[]
     for st in strategies:
         catalog.append({"id":st.manifest.id,"name":st.manifest.name,"version":st.manifest.version,"description":st.manifest.description,"assets":list(st.manifest.assets),"timeframes":list(st.manifest.timeframes),"schedule":st.manifest.schedule,"account":st.manifest.account,"capabilities":list(st.manifest.capabilities),"parameters":st.manifest.parameters})
-    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":pd.Timestamp.now(tz=IST_TIMEZONE).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS)},"universe":{"count":len(LIVE_ASSETS),"symbols":list(LIVE_SYMBOLS),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in LIVE_ASSETS]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(ACCOUNT_NAMES),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"health":health or {},"counts":{"signals":len(sr),"trades":len(tr),"open_trades":sum(x["status"]=="OPEN" for x in tr),"closed_trades":sum(x["status"]=="CLOSED" for x in tr)}}
+    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":pd.Timestamp.now(tz=IST_TIMEZONE).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS)},"universe":{"count":len(LIVE_ASSETS),"symbols":list(LIVE_SYMBOLS),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in LIVE_ASSETS]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(ACCOUNT_NAMES),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"scan_history":(scan or {}).get("history",[]),"health":health or {},"counts":{"signals":len(sr),"trades":len(tr),"open_trades":sum(x["status"]=="OPEN" for x in tr),"closed_trades":sum(x["status"]=="CLOSED" for x in tr)}}
 def empty_dashboard_snapshot(): return build_dashboard_snapshot()

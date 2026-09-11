@@ -5,12 +5,14 @@ import pandas as pd
 from config import ACCOUNT_NAMES,ACCOUNT_SIZE_INR,LIVE_ASSET_MAP
 from db import DatabaseManager
 from trading import AccountState,PaperTrade,TradePlan,close_trade,settle_account
+from notification_service import NotificationService
+from telegram import trade_closed_message
 
 logger=logging.getLogger("multibot2.trade_monitor")
 
 class TradeMonitor:
-    def __init__(self,*,database:DatabaseManager,price_lookup,accounts:dict):
-        self.database=database; self.price_lookup=price_lookup; self.accounts=accounts
+    def __init__(self,*,database:DatabaseManager,price_lookup,accounts:dict,notifier=None):
+        self.database=database; self.price_lookup=price_lookup; self.accounts=accounts; self.notifier=notifier or NotificationService(database)
 
     def _hit(self,row,price):
         side=row.get("type","BUY")
@@ -49,6 +51,9 @@ class TradeMonitor:
                 payload=dict(row); payload.update({"status":"CLOSED","exit_price":float(price),"exit_reason":reason,"closed_at":current.isoformat(),"pnl":pnl,"result":"WIN" if pnl>=0 else "LOSS"})
                 self.database.save_trade(row["id"],"CLOSED",payload,current.isoformat())
                 self.database.save_account(updated.name,balance=updated.balance,trades_today=updated.trades_today,planned_risk_used=updated.planned_risk_used,reset_date=current.tz_convert("Asia/Kolkata").date().isoformat())
+                signal_id=str(row.get("signal_id") or row["id"])
+                message=trade_closed_message(closed_trade,float(price),pnl,updated.balance,trade.plan.side=="BUY",reason=="TAKE_PROFIT")
+                self.notifier.deliver(signal_id=signal_id,message=message,kind="TRADE_CLOSED",metadata={"trade_id":row["id"],"reason":reason,"pnl":pnl})
                 closed.append(payload)
             except Exception as exc:
                 logger.exception("Trade monitor failed for %s",row.get("id")); errors.append({"id":row.get("id"),"symbol":symbol,"reason":str(exc)})

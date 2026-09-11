@@ -15,12 +15,14 @@ from strategies import discover_strategies
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_stats, msg_summary, msg_test, msg_weekly, send_message
 from trading import AccountState
 from trade_monitor import TradeMonitor
+from strategy_scheduler import StrategyScheduler
+from news_gate import NewsGate
 from yahoo_provider import YahooProvider
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger=logging.getLogger("multibot2")
 DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
-REGISTRY=None; SERVICE=None; TRADE_MONITOR=None
+REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS)
 LAST_SCANS={}
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
@@ -49,6 +51,7 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     ensure_runtime()
     current=now_at or now()
     started=time.monotonic()
+    run_id=f"{strategy_id}_{int(current.timestamp()*1000)}"
     results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
     with LOCK:
         info=LAST_SCANS[strategy_id]
@@ -65,12 +68,15 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     return results
 def run_all_cycles(*,now_at=None,send=True,period="30d"):
     ensure_runtime(); out=[]
-    for st in REGISTRY.all(): out.extend(run_strategy_cycle(st.manifest.id,now_at=now_at,send=send,period=period))
+    current=now_at or now()
+    for st in REGISTRY.all():
+        if SCHEDULER.is_due(st,current): out.extend(run_strategy_cycle(st.manifest.id,now_at=current,send=send,period=period))
     return out
 def scanner_loop():
     while not STOP.is_set():
         try:
             if not NEWS_PAUSE_ENABLED: run_all_cycles(send=True)
+            if SERVICE is not None: SERVICE.notifier.retry_failed()
         except Exception: logger.exception("Strategy scan cycle failed")
         STOP.wait(settings.scan_interval_seconds)
 def monitor_once():
@@ -129,7 +135,7 @@ def _scan_snapshot():
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan=_scan_snapshot(),health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
