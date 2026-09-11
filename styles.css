@@ -11,3 +11,6 @@ html[data-style="neo"] .topbar,html[data-style="neo"] .metric-card,html[data-sty
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 .scan-history{display:grid;gap:8px}.scan-history-row{display:grid;grid-template-columns:1.3fr .8fr 2fr;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px}.scan-history-row small{opacity:.75}
+
+/* Existing backend backtest metrics: compact, data-first presentation. */
+.backtest-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}.backtest-metrics>div{padding:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);display:grid;gap:4px}.backtest-metrics span{text-transform:capitalize;font-size:.75rem;color:var(--muted)}.backtest-metrics b{font-size:1rem}
