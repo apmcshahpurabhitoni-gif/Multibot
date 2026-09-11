@@ -46,7 +46,12 @@ class StrategyService:
         return signal,prepared
 
     def _record(self,signal,key,status):
-        sid=new_signal_id(); self.database.record_signal_event(sid,key,signal,pipeline_status=status); return sid
+        """Persist every detected signal first and return the canonical persisted ID."""
+        requested_id=new_signal_id()
+        # DatabaseManager may reuse an existing canonical ID for the same signal_key.
+        # Always propagate that returned ID so deliveries can never reference a
+        # non-existent signal_events row in Supabase.
+        return self.database.record_signal_event(requested_id,key,signal,pipeline_status=status)
 
     def _result(self,symbol,signal,account,reason,**kw): return DispatchResult(symbol,signal,kw.get("trade"),kw.get("message"),kw.get("sent",False),reason,account,kw.get("trade_id"),kw.get("signal_id"))
 
@@ -57,7 +62,18 @@ class StrategyService:
             self.database.update_signal_status(sid,"NON_DIRECTIONAL")
             return self._result(symbol,signal,account_name,signal.reason or "NO_DIRECTIONAL_SIGNAL",signal_id=sid)
         if not self.gate.is_fresh(signal,now=current):
+            # Stale is a delivery decision, never a persistence decision. The event
+            # was already recorded above and remains visible in dashboard history.
             self.database.update_signal_status(sid,"STALE")
+            try:
+                self.database.record_delivery(
+                    sid, channel="telegram", status="NOT_SENT_STALE",
+                    metadata={"signal_key":key,"reason":"STALE_SIGNAL"}
+                )
+            except Exception as exc:
+                # Dashboard history must remain available even if delivery auditing
+                # is temporarily unavailable.
+                logger.warning("Stale delivery audit skipped for signal %s: %s",sid,exc)
             return self._result(symbol,signal,account_name,"STALE_SIGNAL",signal_id=sid)
         with self._lock:
             count=self.database.signal_count(key)
