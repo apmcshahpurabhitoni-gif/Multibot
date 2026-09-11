@@ -1,6 +1,6 @@
 """MULTIBOT2 runtime: registry-driven strategies, one shared trade lifecycle."""
 from __future__ import annotations
-import json, logging, os, threading, time
+import json, logging, os, threading, time, warnings
 from urllib import parse, request
 from wsgiref.simple_server import make_server
 import pandas as pd
@@ -21,6 +21,7 @@ from yahoo_provider import YahooProvider
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger=logging.getLogger("multibot2")
+warnings.filterwarnings("ignore", message="The .*generic.* unit for NumPy timedelta is deprecated.*", category=DeprecationWarning, module="yfinance\\..*")
 DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
 REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS, enabled=NEWS_PAUSE_ENABLED)
 LAST_SCANS={}
@@ -61,7 +62,9 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
         with LOCK: LAST_SCANS[strategy_id].update(status="ERROR",at=current.isoformat(),**payload)
         raise
     payload={"checked":len(results),"directional":sum(r.signal.is_directional for r in results),"sent":sum(r.sent for r in results),"errors":sum(r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED" for r in results)}
+    payload["buy"]=sum(r.signal.direction=="BUY" for r in results); payload["sell"]=sum(r.signal.direction=="SELL" for r in results); payload["no_signal"]=sum(not r.signal.is_directional for r in results)
     status="PARTIAL" if payload["errors"] else "OK"
+    logger.info("Scan complete | strategy=%s | checked=%s | buy=%s | sell=%s | no_signal=%s | sent=%s | errors=%s | elapsed_ms=%s",strategy_id,payload["checked"],payload["buy"],payload["sell"],payload["no_signal"],payload["sent"],payload["errors"],round((time.monotonic()-started)*1000))
     DB.record_scan_run(run_id,strategy_id,current.isoformat(),status,payload,now().isoformat())
     with LOCK:
         info=LAST_SCANS[strategy_id]
