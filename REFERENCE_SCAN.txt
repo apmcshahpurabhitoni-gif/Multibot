@@ -1,5 +1,0 @@
-SWEEP_TIMEFRAME_BY_SYMBOL: []
-LIVE_SYMBOLS[:15]: []
-trendpulse_runtime: []
-trendpulse_service: []
-sweep_service: []
