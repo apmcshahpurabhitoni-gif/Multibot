@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multibot2"
-version = "3.2.1"
+version = "3.2.2"
 description = "Mavis MULTIBOT2 paper-trading bot"
 requires-python = ">=3.11"
 dependencies = ["pandas>=2.2,<3", "yfinance>=0.2.50,<1", "requests>=2.31,<3"]
