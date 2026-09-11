@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 import pandas as pd
+from signal_gate import signal_status
+from strategies.base import Signal
 
 TERMINAL={"NON_DIRECTIONAL","STALE","DUPLICATE_LIMIT","ACCOUNT_LIMIT","NO_TRADE_PLAN","DELIVERED","ERROR"}
 
@@ -15,9 +17,19 @@ def dashboard_signal(event, send_state=None, delivery=None, now=None):
     current=pd.Timestamp.now(tz="Asia/Kolkata") if now is None else pd.Timestamp(now)
     ts=pd.Timestamp(event["timestamp"])
     if ts.tzinfo is None: ts=ts.tz_localize("Asia/Kolkata")
-    age=max(0,int((current.tz_convert(ts.tzinfo)-ts).total_seconds()/60))
+    signal=Signal(
+        str(event.get("strategy","")),
+        str(event.get("version","")),
+        str(event.get("symbol","")),
+        str(event.get("direction","NO_SIGNAL")),
+        ts,
+        str(event.get("timeframe","")),
+        str(event.get("reason","")),
+    )
+    freshness, age_hours = signal_status(signal, now=current)
+    age=max(0,int(age_hours*60))
     out=dict(event)
-    out["freshness"]="FRESH" if age<=60 else "STALE"
+    out["freshness"]=freshness
     out["age_minutes"]=age
     out["send_count"]=int((send_state or {}).get("send_count",0))
     out["first_sent_at"]=(send_state or {}).get("first_sent_at")

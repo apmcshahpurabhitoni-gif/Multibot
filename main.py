@@ -76,11 +76,12 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
             elapsed_ms=round((time.monotonic()-started)*1000),
         )
     return results
-def run_all_cycles(*,now_at=None,send=True,period="30d"):
+def run_all_cycles(*,now_at=None,send=True,period="30d",force=False):
     ensure_runtime(); out=[]
     current=now_at or now()
     for st in REGISTRY.all():
-        if SCHEDULER.is_due(st,current): out.extend(run_strategy_cycle(st.manifest.id,now_at=current,send=send,period=period))
+        if force or SCHEDULER.is_due(st,current):
+            out.extend(run_strategy_cycle(st.manifest.id,now_at=current,send=send,period=period))
     return out
 def scanner_loop():
     while not STOP.is_set():
@@ -241,7 +242,7 @@ def _handle_command(chat_id,cmd):
     global NEWS_PAUSE_ENABLED
     try:
         if cmd in ("/start","/menu"): _send_chat(chat_id,msg_start())
-        elif cmd in ("/check","/scan"): _send_chat(chat_id,msg_scan_started()); results=run_all_cycles(send=True); _send_chat(chat_id,msg_scan_result(sum(r.sent for r in results),sum(len(st.manifest.assets) for st in REGISTRY.all())))
+        elif cmd in ("/check","/scan"): _send_chat(chat_id,msg_scan_started()); results=run_all_cycles(send=True,force=True); _send_chat(chat_id,msg_scan_result(sum(r.sent for r in results),sum(len(st.manifest.assets) for st in REGISTRY.all())))
         elif cmd=="/balance": _send_chat(chat_id,msg_balance(ACCOUNTS))
         elif cmd=="/summary": _send_chat(chat_id,msg_summary(DB.load_trades("OPEN"),DB.load_trades("CLOSED")))
         elif cmd=="/risk": _send_chat(chat_id,msg_risk(DB.load_trades("OPEN")))

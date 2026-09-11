@@ -75,7 +75,7 @@ class StrategyService:
             qty=quantity_for_risk(entry,sl,fx_rate=fx)
             plan=TradePlan(strategy.manifest.name,signal.direction,signal.timestamp,float(entry),float(sl),float(tp),timeframe=signal.timeframe,strategy_version=signal.version,metadata=signal.metadata,trailing_policy=strategy.trailing_policy(),fx_rate=fx)
             trade=PaperTrade(plan=plan,account=account_name,quantity=qty)
-            age=max(0,int((current-signal.timestamp).total_seconds()/60))
+            age=max(0,int(self.gate.age_hours(signal,now=current)*60))
             message=render_signal_message(signal,symbol=symbol,asset=asset.label,market=asset.market,timeframe=signal.timeframe,entry=entry,stop_loss=sl,take_profit=tp,quantity=qty,risk=trade.planned_risk,account=account_name,freshness="FRESH",age_str=f"{age} min ago")
             self.database.update_signal_status(sid,"READY")
             if not send:return self._result(symbol,signal,account_name,"READY_TO_SEND",trade=trade,message=message,signal_id=sid)
