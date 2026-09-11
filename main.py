@@ -153,6 +153,41 @@ def snapshot():
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
+def _sweep_diagnostic_payload(*, period="30d"):
+    """Run the real Sweep V2 data -> prepare -> signal path without dispatching or sending."""
+    ensure_runtime()
+    strategy = REGISTRY.get("sweep_v2")
+    current = now()
+    rows = []
+    totals = {"assets": 0, "ok": 0, "errors": 0, "directional": 0, "reasons": {}}
+    for asset in LIVE_ASSETS:
+        if asset.symbol not in strategy.manifest.assets:
+            continue
+        totals["assets"] += 1
+        row = {"symbol": asset.symbol, "label": asset.label, "market": asset.market,
+               "timeframe": asset.sweep_timeframe}
+        try:
+            frame = SERVICE.engine.fetch(strategy, asset.symbol, period=period)
+            row["raw_candles"] = len(frame) if frame is not None else 0
+            prepared = strategy.prepare_candles(asset.symbol, frame, now=current)
+            row["prepared_candles"] = len(prepared) if prepared is not None else 0
+            signal = strategy.generate_signal(asset.symbol, prepared, now=current)
+            row.update({"status": "OK", "direction": signal.direction, "reason": signal.reason,
+                        "timestamp": signal.timestamp.isoformat(), "entry": signal.entry,
+                        "stop_loss": signal.stop_loss, "take_profit": signal.take_profit,
+                        "metadata": signal.metadata})
+            totals["ok"] += 1
+            totals["directional"] += int(signal.is_directional)
+            totals["reasons"][signal.reason] = totals["reasons"].get(signal.reason, 0) + 1
+        except Exception as exc:
+            row.update({"status": "ERROR", "error_type": type(exc).__name__, "error": str(exc),
+                        "direction": None, "reason": "MARKET_DATA_ERROR"})
+            totals["errors"] += 1
+            totals["reasons"]["MARKET_DATA_ERROR"] = totals["reasons"].get("MARKET_DATA_ERROR", 0) + 1
+        rows.append(row)
+    return {"ok": True, "strategy": {"id": strategy.manifest.id, "name": strategy.manifest.name,
+            "version": strategy.manifest.version}, "generated_at": current.isoformat(),
+            "period": period, "totals": totals, "assets": rows}
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
 def web_server():
@@ -173,6 +208,11 @@ def web_server():
         if path=="/api/dashboard":
             try:return _json_response(start,snapshot())
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
+        if path=="/api/diagnostics/sweep":
+            try:return _json_response(start,_sweep_diagnostic_payload(period=query.get("period",["30d"])[0]))
+            except Exception as exc:
+                logger.exception("Sweep diagnostics failed")
+                return _json_response(start,{"ok":False,"error_type":type(exc).__name__,"error":str(exc)},"500 Internal Server Error")
         if path in ("/api/calendar","/api/news"):
             try:return _json_response(start,_calendar_payload(query))
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
