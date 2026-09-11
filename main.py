@@ -64,7 +64,11 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     payload={"checked":len(results),"directional":sum(r.signal.is_directional for r in results),"sent":sum(r.sent for r in results),"errors":sum(r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED" for r in results)}
     payload["buy"]=sum(r.signal.direction=="BUY" for r in results); payload["sell"]=sum(r.signal.direction=="SELL" for r in results); payload["no_signal"]=sum(not r.signal.is_directional for r in results)
     status="PARTIAL" if payload["errors"] else "OK"
-    logger.info("Scan complete | strategy=%s | checked=%s | buy=%s | sell=%s | no_signal=%s | sent=%s | errors=%s | elapsed_ms=%s",strategy_id,payload["checked"],payload["buy"],payload["sell"],payload["no_signal"],payload["sent"],payload["errors"],round((time.monotonic()-started)*1000))
+    reasons={reason:sum(r.reason==reason for r in results) for reason in sorted({r.reason for r in results})}
+    directional=[r for r in results if r.signal.is_directional]
+    if directional:
+        logger.info("Directional dispatch | strategy=%s | outcomes=%s",strategy_id,"; ".join("{}:{}:{}:sent={}".format(r.symbol,r.signal.direction,r.reason,r.sent) for r in directional))
+    logger.info("Scan complete | strategy=%s | checked=%s | buy=%s | sell=%s | no_signal=%s | sent=%s | errors=%s | reasons=%s | elapsed_ms=%s",strategy_id,payload["checked"],payload["buy"],payload["sell"],payload["no_signal"],payload["sent"],payload["errors"],reasons,round((time.monotonic()-started)*1000))
     DB.record_scan_run(run_id,strategy_id,current.isoformat(),status,payload,now().isoformat())
     with LOCK:
         info=LAST_SCANS[strategy_id]
