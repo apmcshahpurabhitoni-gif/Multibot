@@ -1,6 +1,24 @@
 -- MULTIBOT2 production persistence schema. No pending_sweeps workflow.
 create table if not exists public.accounts(name text primary key,starting_balance double precision not null default 100000,balance double precision not null default 100000,daily_trades integer not null default 0,trades_today integer not null default 0,planned_risk_used double precision not null default 0,last_reset_date text,reset_date text,updated_at timestamptz not null default now());
 create table if not exists public.active_trades(id text primary key,symbol text not null default '',market text not null default 'NSE',account text not null default '',strat text not null default '',type text not null default 'LONG',entry double precision not null default 0,sl double precision not null default 0,tp double precision not null default 0,qty double precision not null default 0,trail_sl double precision not null default 0,ts_trigger text,opened_at timestamptz,time_str text,updated_at timestamptz not null default now());
+
+
+-- Compatibility migration for projects created before the canonical trade contract.
+alter table public.active_trades add column if not exists symbol text not null default '';
+alter table public.active_trades add column if not exists market text not null default 'NSE';
+alter table public.active_trades add column if not exists account text not null default '';
+alter table public.active_trades add column if not exists strat text not null default '';
+alter table public.active_trades add column if not exists type text not null default 'LONG';
+alter table public.active_trades add column if not exists entry double precision not null default 0;
+alter table public.active_trades add column if not exists sl double precision not null default 0;
+alter table public.active_trades add column if not exists tp double precision not null default 0;
+alter table public.active_trades add column if not exists qty double precision not null default 0;
+alter table public.active_trades add column if not exists trail_sl double precision not null default 0;
+alter table public.active_trades add column if not exists ts_trigger text;
+alter table public.active_trades add column if not exists opened_at timestamptz;
+alter table public.active_trades add column if not exists time_str text;
+alter table public.active_trades add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.closed_trades(id text primary key,symbol text not null default '',market text not null default 'NSE',account text not null default '',strat text not null default '',type text not null default 'LONG',entry double precision not null default 0,sl double precision not null default 0,tp double precision not null default 0,qty double precision not null default 0,trail_sl double precision not null default 0,ts_trigger text,opened_at timestamptz,time_str text,exit_price double precision not null default 0,pnl double precision not null default 0,result text not null default '',exit_reason text not null default '',close_time timestamptz,closed_at timestamptz,updated_at timestamptz not null default now());
 create table if not exists public.sent_signals(sig_key text primary key,send_count integer not null default 0,last_sent_ts bigint,reminder_due_at timestamptz,message_text text,metadata jsonb,updated_at timestamptz not null default now());
 alter table public.closed_trades add column if not exists sl double precision not null default 0;

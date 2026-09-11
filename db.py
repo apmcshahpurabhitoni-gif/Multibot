@@ -45,7 +45,14 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             body=None if data is None else json.dumps(data,default=str).encode()
             with request.urlopen(request.Request(url,data=body,headers=headers,method=method),timeout=10) as response:
                 raw=response.read().decode(); return json.loads(raw) if raw else True
-        except (error.HTTPError,error.URLError,TimeoutError,ValueError) as exc:
+        except error.HTTPError as exc:
+            try:
+                detail=exc.read().decode("utf-8","replace").strip()
+            except Exception:
+                detail=""
+            suffix=f" | response: {detail}" if detail else ""
+            raise DatabaseError(f"Supabase {method} {table} failed: HTTP {exc.code} {exc.reason}{suffix}") from exc
+        except (error.URLError,TimeoutError,ValueError) as exc:
             raise DatabaseError(f"Supabase {method} {table} failed: {exc}") from exc
 
     def _require_supabase(self,result,operation):
@@ -107,7 +114,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         payload=dict(payload); payload["status"]=status
         with self._connect() as c:c.execute("INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",(trade_id,status,json.dumps(payload,default=str),updated_at)); c.commit()
         if status=="OPEN":
-            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0)),"ts_trigger":payload.get("signal_ts",""),"opened_at":payload.get("opened_at",updated_at),"time_str":payload.get("opened_at",updated_at)}
+            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0)),"ts_trigger":payload.get("signal_ts",""),"opened_at":payload.get("opened_at",updated_at),"time_str":payload.get("opened_at",updated_at),"updated_at":updated_at}
             result=self._supabase_request("POST","active_trades",data=data,upsert=True); self._require_supabase(result,"open trade")
         else:
             result=self._supabase_request("DELETE","active_trades",params=parse.urlencode({"id":f"eq.{trade_id}"})); self._require_supabase(result,"active trade delete")
