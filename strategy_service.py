@@ -38,7 +38,12 @@ class StrategyService:
     def scan_symbol(self,strategy_id,symbol,*,now=None,period="30d"):
         strategy=self.registry.get(strategy_id); current=self._now(now)
         if symbol not in strategy.manifest.assets: raise ValueError(f"{strategy_id} does not support {symbol}")
-        return self.engine.evaluate(strategy,symbol,now=current,period=period)
+        raw=self.engine.fetch(strategy,symbol,period=period)
+        signal,prepared=self.engine.evaluate(strategy,symbol,now=current,period=period,candles=raw)
+        metadata=dict(signal.metadata or {})
+        metadata.update({"raw_candle_count":len(raw),"prepared_candle_count":len(prepared)})
+        signal=Signal(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp,signal.timeframe,signal.reason,signal.entry,signal.stop_loss,signal.take_profit,metadata)
+        return signal,prepared
 
     def _record(self,signal,key,status):
         sid=new_signal_id(); self.database.record_signal_event(sid,key,signal,pipeline_status=status); return sid
@@ -107,8 +112,18 @@ class StrategyService:
                     continue
                 signal,_=self.scan_symbol(strategy_id,asset.symbol,now=current,period=period)
                 price=self.current_price(asset.symbol) if signal.is_directional else 0.0
-                if signal.is_directional and price is None:
-                    signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,signal.timeframe,"MARKET_DATA_ERROR",metadata={"error":"CURRENT_PRICE_UNAVAILABLE"})
+                if signal.is_directional:
+                    metadata=dict(signal.metadata or {})
+                    # A strategy-confirmed entry is authoritative enough to preserve a valid signal
+                    # when the separate best-effort 1-minute quote lookup is unavailable.
+                    resolved_price=price if price is not None else signal.entry
+                    metadata.update({"current_price":price,"entry_source":"LIVE_QUOTE" if price is not None else "SIGNAL_ENTRY_FALLBACK"})
+                    if resolved_price is None:
+                        metadata["current_price_error"]="CURRENT_PRICE_AND_SIGNAL_ENTRY_UNAVAILABLE"
+                        signal=Signal(signal.strategy,signal.version,signal.symbol,"NO_SIGNAL",signal.timestamp,signal.timeframe,"MARKET_DATA_ERROR",metadata=metadata)
+                    else:
+                        signal=Signal(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp,signal.timeframe,signal.reason,signal.entry,signal.stop_loss,signal.take_profit,metadata)
+                        price=float(resolved_price)
                 results.append(self.dispatch(strategy_id,asset.symbol,signal,current_price=price or 0.0,now=current,send=send))
             except Exception as exc:
                 signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)})

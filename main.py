@@ -88,7 +88,12 @@ def scanner_loop():
             run_all_cycles(send=True)
             if SERVICE is not None: SERVICE.notifier.retry_failed()
         except Exception: logger.exception("Strategy scan cycle failed")
-        STOP.wait(settings.scan_interval_seconds)
+        # Never sleep longer than the fastest registered strategy schedule.
+        interval=settings.scan_interval_seconds
+        if REGISTRY is not None:
+            try: interval=min(interval,*[SCHEDULER.interval_seconds(st) for st in REGISTRY.all()])
+            except Exception: logger.exception("Could not resolve strategy scan interval")
+        STOP.wait(interval)
 def monitor_once():
     ensure_runtime(); return TRADE_MONITOR.monitor_once(now=now())
 def monitor_loop():
@@ -145,7 +150,8 @@ def _scan_snapshot():
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+    failed_deliveries=DB.failed_deliveries(20)
+    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
@@ -201,7 +207,10 @@ def _handle_command(chat_id,cmd):
         elif cmd=="/risk": _send_chat(chat_id,msg_risk(DB.load_trades("OPEN")))
         elif cmd=="/stats": _send_chat(chat_id,msg_stats(DB.load_trades("CLOSED")))
         elif cmd=="/weekly": _send_chat(chat_id,msg_weekly(DB.load_trades("CLOSED")))
-        elif cmd=="/newspause": NEWS_PAUSE_ENABLED=not NEWS_PAUSE_ENABLED; _send_chat(chat_id,msg_news_pause(NEWS_PAUSE_ENABLED))
+        elif cmd=="/newspause":
+            NEWS_PAUSE_ENABLED=not NEWS_PAUSE_ENABLED
+            NEWS_GATE.enabled=NEWS_PAUSE_ENABLED
+            _send_chat(chat_id,msg_news_pause(NEWS_PAUSE_ENABLED))
         elif cmd=="/refreshnews": NEWS.refresh(); _send_chat(chat_id,msg_news_refresh())
         elif cmd=="/backtest": _send_chat(chat_id,msg_backtest())
         elif cmd=="/test": ensure_runtime(); ok=SERVICE.engine.provider.fetch("RELIANCE.NS",period="2d",interval="1d",validate_hourly=False) is not None; _send_chat(chat_id,msg_test(ok,"Yahoo Finance responded." if ok else "Yahoo Finance did not respond."))
