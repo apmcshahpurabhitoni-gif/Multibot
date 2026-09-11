@@ -110,6 +110,17 @@ class YahooProvider:
         if cached is not None:
             return cached
         key = (symbol, period, interval, validate_hourly)
+        # Persistent cache comes before Yahoo. On Render restart this prevents
+        # the first scan from immediately hammering Yahoo again.
+        persisted = self._restore_persisted(key)
+        if persisted is not None:
+            frame, age = persisted
+            if age <= self._ttl(interval):
+                now = time.monotonic()
+                with self._lock:
+                    self._cache[key] = (frame.copy(), now)
+                    self._last_success[key] = (frame.copy(), now - age)
+                return frame.copy()
         with self._lock:
             until = self._backoff_until.get(symbol, 0.0)
         if time.monotonic() < until:
