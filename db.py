@@ -31,8 +31,10 @@ CREATE TABLE IF NOT EXISTS signals(signal_key TEXT PRIMARY KEY,send_count INTEGE
 CREATE TABLE IF NOT EXISTS signal_events(signal_id TEXT PRIMARY KEY,signal_key TEXT NOT NULL,strategy TEXT NOT NULL,version TEXT,symbol TEXT NOT NULL,direction TEXT NOT NULL,timestamp TEXT NOT NULL,timeframe TEXT,reason TEXT,pipeline_status TEXT NOT NULL,metadata TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signal_id TEXT NOT NULL,channel TEXT NOT NULL,status TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT,message_type TEXT,metadata TEXT);
 CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
+-- Canonical signal identity: one lifecycle row per signal_key, updated as it moves through the pipeline.
+DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
+CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
-CREATE INDEX IF NOT EXISTS signal_events_key_idx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempted_at DESC);
 """); c.commit()
 
@@ -126,11 +128,29 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         return [json.loads(x["payload"]) for x in rows]
 
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
+        """Create or update the single canonical lifecycle row for a signal identity."""
         ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
-        row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts)
-        with self._connect() as c:c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row); c.commit()
+        with self._connect() as c:
+            existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
+            if existing:
+                signal_id=str(existing["signal_id"])
+        remote_existing=None
+        if self.supabase_enabled and not existing:
+            rows=self._supabase_request("GET","signal_events",params=parse.urlencode({"signal_key":f"eq.{signal_key}","select":"signal_id,created_at"})) or []
+            remote_existing=rows[0] if rows else None
+            if remote_existing:
+                signal_id=str(remote_existing["signal_id"])
+        created_at=(existing["created_at"] if existing else (remote_existing.get("created_at") if remote_existing else ts))
+        with self._connect() as c:
+            if existing:
+                c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",
+                    (signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key))
+            else:
+                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts)
+                c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
+            c.commit()
         if self.supabase_enabled:
-            data={"signal_id":signal_id,"signal_key":signal_key,"strategy":signal.strategy,"version":signal.version,"symbol":signal.symbol,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"timeframe":signal.timeframe,"reason":signal.reason,"pipeline_status":pipeline_status,"metadata":metadata,"created_at":ts,"updated_at":ts}
+            data={"signal_id":signal_id,"signal_key":signal_key,"strategy":signal.strategy,"version":signal.version,"symbol":signal.symbol,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"timeframe":signal.timeframe,"reason":signal.reason,"pipeline_status":pipeline_status,"metadata":metadata,"created_at":created_at,"updated_at":ts}
             result=self._supabase_request("POST","signal_events",data=data,upsert=True); self._require_supabase(result,"signal event")
         return signal_id
 

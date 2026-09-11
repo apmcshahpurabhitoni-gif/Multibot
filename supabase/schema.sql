@@ -19,4 +19,20 @@ create index if not exists active_trades_account_idx on public.active_trades(acc
 -- Canonical signal lifecycle and delivery history.
 create table if not exists public.signal_events(signal_id text primary key,signal_key text not null,strategy text not null,version text,symbol text not null,direction text not null,timestamp timestamptz not null,timeframe text,reason text,pipeline_status text not null,metadata jsonb not null default '{}'::jsonb,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
 create table if not exists public.signal_deliveries(id bigserial primary key,signal_id text not null references public.signal_events(signal_id) on delete cascade,channel text not null,status text not null,attempted_at timestamptz not null default now(),error text,message_type text,metadata jsonb not null default '{}'::jsonb);
-create index if not exists signal_events_timestamp_idx on public.signal_events(timestamp desc);create index if not exists signal_events_key_idx on public.signal_events(signal_key);create index if not exists signal_deliveries_signal_idx on public.signal_deliveries(signal_id,attempted_at desc);
+-- Canonical signal identity: one lifecycle row per signal_key. Preserve delivery history while reducing old duplicates.
+with ranked as (
+  select signal_id, signal_key, row_number() over (partition by signal_key order by updated_at desc, created_at desc, ctid desc) as rn,
+         first_value(signal_id) over (partition by signal_key order by updated_at desc, created_at desc, ctid desc) as keep_id
+  from public.signal_events
+)
+update public.signal_deliveries d set signal_id = r.keep_id
+from ranked r
+where d.signal_id = r.signal_id and r.rn > 1;
+with ranked as (
+  select ctid, row_number() over (partition by signal_key order by updated_at desc, created_at desc, ctid desc) as rn
+  from public.signal_events
+)
+delete from public.signal_events where ctid in (select ctid from ranked where rn > 1);
+create unique index if not exists signal_events_key_uidx on public.signal_events(signal_key);
+create index if not exists signal_events_timestamp_idx on public.signal_events(timestamp desc);
+create index if not exists signal_deliveries_signal_idx on public.signal_deliveries(signal_id,attempted_at desc);

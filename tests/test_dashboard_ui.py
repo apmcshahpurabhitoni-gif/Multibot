@@ -58,3 +58,26 @@ def test_dashboard_does_not_recalculate_execution_risk_or_freshness():
     assert 'Date.now()-new Date(value)' not in APP
     assert 'freshnessMs' not in APP
     assert 'function ageLabel' not in APP
+
+
+def test_dashboard_uses_canonical_calendar_and_history_placement():
+    assert 'data-page="calendar"' in HTML
+    assert 'page-calendar' in HTML
+    assert 'page-news' not in HTML
+    assert 'calendarRefreshButton' in HTML
+    assert 'newsRefreshButton' not in HTML
+    assert 'SCAN ACTIVITY' in HTML
+    assert 'id="scanHistory"' in HTML
+    assert 'state.activePage==="calendar"' in APP
+
+
+def test_dashboard_resolves_friendly_names_and_canonical_signal_presentation():
+    assert 'function assetLabel' in APP
+    assert 'function strategyLabel' in APP
+    assert 'function canonicalSignals' in APP
+    assert 'supportedBacktestAssets' in APP
+    assert 'signal.timeframe||strategyInfo(signal.strategy)?.timeframes?.[0]' in APP
+
+
+def test_dashboard_does_not_show_global_scan_panel():
+    assert '<section class="panel"><div class="section-head"><div><h2>Scan History</h2>' not in HTML
