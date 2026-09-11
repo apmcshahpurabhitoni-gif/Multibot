@@ -294,11 +294,25 @@ def telegram_commands():
                 if t-conflict_logged_at>=60: logger.warning("Telegram polling conflict: %s",msg); conflict_logged_at=t
                 STOP.wait(30)
             else: logger.warning("Telegram polling failed: %s",msg); STOP.wait(5)
+def _telegram_command_polling_enabled():
+    # Signal delivery uses sendMessage and does not require getUpdates polling.
+    # Polling is opt-in so another Telegram client cannot silently conflict with
+    # the scanner's primary signal-delivery runtime.
+    return os.getenv("TELEGRAM_COMMAND_POLLING", "false").strip().lower() in {"1","true","yes","on"}
+
 def main():
-    ensure_runtime(); threading.Thread(target=web_server,daemon=True,name="dashboard").start(); threading.Thread(target=scanner_loop,daemon=True,name="scanner").start(); threading.Thread(target=monitor_loop,daemon=True,name="monitor").start()
+    ensure_runtime()
+    threading.Thread(target=web_server,daemon=True,name="dashboard").start()
+    threading.Thread(target=scanner_loop,daemon=True,name="scanner").start()
+    threading.Thread(target=monitor_loop,daemon=True,name="monitor").start()
     if settings.telegram_bot_token and settings.telegram_chat_id:
-        threading.Thread(target=telegram_commands,daemon=True,name="telegram").start()
-        if REMINDERS is not None: REMINDERS.start()
+        if _telegram_command_polling_enabled():
+            threading.Thread(target=telegram_commands,daemon=True,name="telegram").start()
+            logger.info("Telegram command polling enabled")
+        else:
+            logger.info("Telegram command polling disabled; signal delivery remains enabled")
+        if REMINDERS is not None:
+            REMINDERS.start()
     logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(LIVE_ASSETS),len(REGISTRY.all()))
     while True: time.sleep(3600)
 if __name__=="__main__": main()
