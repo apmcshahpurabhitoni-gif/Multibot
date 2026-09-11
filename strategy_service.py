@@ -83,13 +83,26 @@ class StrategyService:
             if not delivered:
                 self.database.update_signal_status(sid,"DELIVERY_FAILED")
                 return self._result(symbol,signal,account_name,"TELEGRAM_FAILED",trade=trade,message=message,signal_id=sid)
-            updated=register_trade(account,planned_risk=trade.planned_risk); self.accounts[account_name]=updated
+            # Telegram has accepted the message. Persist send-state immediately so a later
+            # trade/account persistence failure can never make this signal look unsent.
+            self.database.record_signal_send(
+                key,current.isoformat(),(current+pd.Timedelta(hours=1)).isoformat(),
+                message.text,{"signal_id":sid,"message_type":message.message_type}
+            )
+            self.database.update_signal_status(sid,"DELIVERED")
+
+            updated=register_trade(account,planned_risk=trade.planned_risk)
             trade_id=f"{account_name}_{symbol}_{int(current.timestamp()*1000)}"
             row={"id":trade_id,"status":"OPEN","signal_id":sid,"symbol":symbol,"label":asset.label,"market":asset.market,"asset_type":asset.asset_type,"group":asset.group,"timeframe":signal.timeframe,"account":account_name,"strategy":plan.strategy,"strategy_version":plan.strategy_version,"type":signal.direction,"entry":entry,"sl":sl,"tp":tp,"qty":qty,"risk_per_unit":plan.risk_per_unit,"risk_per_unit_inr":plan.risk_per_unit_inr,"fx_rate":plan.fx_rate,"currency":asset.currency,"planned_risk":trade.planned_risk,"signal_ts":signal.timestamp.isoformat(),"opened_at":current.isoformat(),"trailing_policy":plan.trailing_policy}
-            self.database.save_trade(trade_id,"OPEN",row,current.isoformat())
-            self.database.save_account(account_name,balance=updated.balance,trades_today=updated.trades_today,planned_risk_used=updated.planned_risk_used,reset_date=current.date().isoformat())
-            self.database.record_signal_send(key,current.isoformat(),(current+pd.Timedelta(hours=1)).isoformat(),message.text,{"signal_id":sid,"message_type":message.message_type})
-            self.database.update_signal_status(sid,"DELIVERED")
+            try:
+                self.database.save_trade(trade_id,"OPEN",row,current.isoformat())
+                self.database.save_account(account_name,balance=updated.balance,trades_today=updated.trades_today,planned_risk_used=updated.planned_risk_used,reset_date=current.date().isoformat())
+                self.accounts[account_name]=updated
+            except Exception as exc:
+                # Delivery is already durable; never convert a sent signal into an unsent/error signal.
+                logger.exception("Post-delivery persistence failed for signal %s: %s",sid,exc)
+                return self._result(symbol,signal,account_name,"SENT_PERSISTENCE_FAILED",trade=trade,message=message,sent=True,trade_id=trade_id,signal_id=sid)
+
             return self._result(symbol,signal,account_name,"SENT_AND_ACCEPTED",trade=trade,message=message,sent=True,trade_id=trade_id,signal_id=sid)
 
     def current_price(self,symbol):
