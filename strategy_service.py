@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from threading import RLock
-import logging, uuid
+import logging, hashlib
 import pandas as pd
 from config import ACCOUNT_NAMES,ACCOUNT_SIZE_INR,LIVE_ASSET_MAP,LIVE_ASSETS,RISK_PER_TRADE_INR,USD_TO_INR
 from db import DatabaseManager
@@ -39,7 +39,7 @@ class StrategyService:
         return self.engine.evaluate(strategy,symbol,now=current,period=period)
 
     def _event(self,signal,key,status):
-        signal_id=uuid.uuid4().hex
+        signal_id=hashlib.sha256(key.encode()).hexdigest()[:32]
         self.database.record_signal_event(signal_id,key,signal,pipeline_status=status)
         return signal_id
 
