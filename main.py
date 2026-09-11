@@ -300,7 +300,7 @@ def _telegram_command_polling_enabled():
     # Signal delivery uses sendMessage and does not require getUpdates polling.
     # Polling is opt-in so another Telegram client cannot silently conflict with
     # the scanner's primary signal-delivery runtime.
-    return os.getenv("TELEGRAM_COMMAND_POLLING", "false").strip().lower() in {"1","true","yes","on"}
+    return os.getenv("TELEGRAM_COMMAND_POLLING", "true").strip().lower() in {"1","true","yes","on"}
 
 def main():
     ensure_runtime()
