@@ -64,3 +64,8 @@ create table if not exists public.scan_runs(
  payload jsonb not null default '{}'::jsonb
 );
 create index if not exists scan_runs_started_idx on public.scan_runs(started_at desc);
+
+
+-- Durable recent Yahoo candles for restart-safe rate-limit fallback.
+create table if not exists public.market_data_cache(cache_key text primary key,symbol text not null,period text not null,interval text not null,validate_hourly boolean not null default true,payload jsonb not null,updated_at timestamptz not null default now());
+create index if not exists market_data_cache_symbol_idx on public.market_data_cache(symbol,updated_at desc);
