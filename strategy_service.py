@@ -21,9 +21,9 @@ class DispatchResult:
     sent:bool; reason:str; account:str; trade_id:str|None=None; signal_id:str|None=None
 
 class StrategyService:
-    def __init__(self,*,registry,provider=None,database=None,accounts=None,telegram_config=None,notifier=None):
+    def __init__(self,*,registry,provider=None,database=None,accounts=None,telegram_config=None,notifier=None,news_gate=None):
         self.registry=registry; self.engine=StrategyEngine(provider); self.database=database or DatabaseManager()
-        self.gate=SignalGate(); self.telegram_config=telegram_config; self.notifier=notifier or NotificationService(self.database,telegram_config)
+        self.gate=SignalGate(); self.news_gate=news_gate; self.telegram_config=telegram_config; self.notifier=notifier or NotificationService(self.database,telegram_config)
         self._lock=RLock()
         if accounts is not None:self.accounts=accounts
         else:
@@ -99,6 +99,12 @@ class StrategyService:
         for asset in LIVE_ASSETS:
             if asset.symbol not in strategy.manifest.assets: continue
             try:
+                pause = self.news_gate.check(asset,current) if self.news_gate else None
+                if pause:
+                    signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"PAUSED_BY_NEWS",metadata=pause)
+                    key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"PAUSED_BY_NEWS")
+                    results.append(self._result(asset.symbol,signal,strategy.manifest.account,"PAUSED_BY_NEWS",signal_id=sid))
+                    continue
                 signal,_=self.scan_symbol(strategy_id,asset.symbol,now=current,period=period)
                 price=self.current_price(asset.symbol) if signal.is_directional else 0.0
                 if signal.is_directional and price is None:

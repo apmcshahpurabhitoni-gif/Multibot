@@ -20,3 +20,13 @@ create index if not exists active_trades_account_idx on public.active_trades(acc
 create table if not exists public.signal_events(signal_id text primary key,signal_key text not null,strategy text not null,version text,symbol text not null,direction text not null,timestamp timestamptz not null,timeframe text,reason text,pipeline_status text not null,metadata jsonb not null default '{}'::jsonb,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
 create table if not exists public.signal_deliveries(id bigserial primary key,signal_id text not null references public.signal_events(signal_id) on delete cascade,channel text not null,status text not null,attempted_at timestamptz not null default now(),error text,message_type text,metadata jsonb not null default '{}'::jsonb);
 create index if not exists signal_events_timestamp_idx on public.signal_events(timestamp desc);create index if not exists signal_events_key_idx on public.signal_events(signal_key);create index if not exists signal_deliveries_signal_idx on public.signal_deliveries(signal_id,attempted_at desc);
+
+create table if not exists public.scan_runs(
+ id text primary key,
+ strategy_id text not null,
+ started_at timestamptz not null,
+ finished_at timestamptz,
+ status text not null,
+ payload jsonb not null default '{}'::jsonb
+);
+create index if not exists scan_runs_started_idx on public.scan_runs(started_at desc);

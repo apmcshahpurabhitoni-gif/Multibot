@@ -122,20 +122,33 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
         row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts)
         with self._connect() as c:c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row); c.commit()
+        if self.supabase_enabled:
+            data={"signal_id":signal_id,"signal_key":signal_key,"strategy":signal.strategy,"version":signal.version,"symbol":signal.symbol,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"timeframe":signal.timeframe,"reason":signal.reason,"pipeline_status":pipeline_status,"metadata":metadata,"created_at":ts,"updated_at":ts}
+            result=self._supabase_request("POST","signal_events",data=data,upsert=True); self._require_supabase(result,"signal event")
         return signal_id
 
     def update_signal_status(self,signal_id,status):
-        with self._connect() as c:c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,datetime.now(timezone.utc).isoformat(),signal_id)); c.commit()
+        ts=datetime.now(timezone.utc).isoformat()
+        with self._connect() as c:c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,ts,signal_id)); c.commit()
+        if self.supabase_enabled:
+            result=self._supabase_request("PATCH","signal_events",params=parse.urlencode({"signal_id":f"eq.{signal_id}"}),data={"pipeline_status":status,"updated_at":ts}); self._require_supabase(result,"signal status")
 
     def record_delivery(self,signal_id,*,channel,status,attempted_at=None,error_text=None,message_type=None,metadata=None):
-        with self._connect() as c:c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(signal_id,channel,status,attempted_at or datetime.now(timezone.utc).isoformat(),error_text,message_type,json.dumps(metadata or {},default=str))); c.commit()
+        ts=attempted_at or datetime.now(timezone.utc).isoformat(); meta=metadata or {}
+        with self._connect() as c:c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(signal_id,channel,status,ts,error_text,message_type,json.dumps(meta,default=str))); c.commit()
+        if self.supabase_enabled:
+            data={"signal_id":signal_id,"channel":channel,"status":status,"attempted_at":ts,"error":error_text,"message_type":message_type,"metadata":meta}
+            result=self._supabase_request("POST","signal_deliveries",data=data); self._require_supabase(result,"signal delivery")
 
     def signal_send_state(self,key):
         with self._connect() as c: row=c.execute("SELECT send_count,first_sent_at,last_sent_at FROM signals WHERE signal_key=?",(key,)).fetchone()
         return dict(row) if row else {"send_count":0,"first_sent_at":None,"last_sent_at":None}
 
     def failed_deliveries(self,limit=20):
-        with self._connect() as c: rows=c.execute("SELECT * FROM deliveries WHERE status='FAILED' ORDER BY id LIMIT ?",(int(limit),)).fetchall()
+        with self._connect() as c:
+            rows=c.execute("""SELECT d.* FROM deliveries d
+                JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest
+                ON latest.max_id=d.id WHERE d.status='FAILED' ORDER BY d.id LIMIT ?""",(int(limit),)).fetchall()
         out=[]
         for r in rows:
             item=dict(r)

@@ -22,7 +22,7 @@ from yahoo_provider import YahooProvider
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger=logging.getLogger("multibot2")
 DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
-REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS)
+REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS, enabled=NEWS_PAUSE_ENABLED)
 LAST_SCANS={}
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
@@ -38,7 +38,7 @@ def ensure_runtime():
     validate_runtime_configuration()
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
-    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS)
+    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
     if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:
@@ -52,11 +52,21 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     current=now_at or now()
     started=time.monotonic()
     run_id=f"{strategy_id}_{int(current.timestamp()*1000)}"
-    results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
+    DB.record_scan_run(run_id,strategy_id,current.isoformat(),"RUNNING",{"checked":0,"directional":0,"sent":0,"errors":0})
+    try:
+        results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
+    except Exception as exc:
+        payload={"checked":0,"directional":0,"sent":0,"errors":1,"error":str(exc)}
+        DB.record_scan_run(run_id,strategy_id,current.isoformat(),"FAILED",payload,now().isoformat())
+        with LOCK: LAST_SCANS[strategy_id].update(status="ERROR",at=current.isoformat(),**payload)
+        raise
+    payload={"checked":len(results),"directional":sum(r.signal.is_directional for r in results),"sent":sum(r.sent for r in results),"errors":sum(r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED" for r in results)}
+    status="PARTIAL" if payload["errors"] else "OK"
+    DB.record_scan_run(run_id,strategy_id,current.isoformat(),status,payload,now().isoformat())
     with LOCK:
         info=LAST_SCANS[strategy_id]
         info.update(
-            status="OK",
+            status=status,
             at=current.isoformat(),
             checked=len(results),
             directional=sum(r.signal.is_directional for r in results),
@@ -75,7 +85,7 @@ def run_all_cycles(*,now_at=None,send=True,period="30d"):
 def scanner_loop():
     while not STOP.is_set():
         try:
-            if not NEWS_PAUSE_ENABLED: run_all_cycles(send=True)
+            run_all_cycles(send=True)
             if SERVICE is not None: SERVICE.notifier.retry_failed()
         except Exception: logger.exception("Strategy scan cycle failed")
         STOP.wait(settings.scan_interval_seconds)
@@ -115,7 +125,7 @@ def _scan_snapshot():
             "strategies": {},
         }
     rows = list(strategies.values())
-    completed = [row for row in rows if row.get("status") == "OK"]
+    completed = [row for row in rows if row.get("status") in {"OK","PARTIAL"}]
     latest_at = max((row.get("at") for row in completed if row.get("at")), default=None)
     if any(row.get("status") == "ERROR" for row in rows):
         status = "ERROR"
