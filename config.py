@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Final
 
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.2.1"
 
 WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "🧩 Plug-and-play strategy architecture with automatic discovery.",
@@ -19,6 +19,7 @@ WHAT_IS_NEW: Final[tuple[str, ...]] = (
     "💱 Asset currency is canonical and USD instruments are converted to INR for risk, P&L and reporting.",
     "📚 Added AI rebuild specification and strategy developer template for future plug-ins.",
     "🧹 Final audit unified completed-candle handling and canonical Sweep asset ownership.",
+    "📡 Yahoo rate-limit handling is now isolated per symbol with recent-data fallback.",
 )
 
 IST_TIMEZONE: Final = "Asia/Kolkata"
