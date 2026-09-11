@@ -132,6 +132,15 @@ def quantity_for_risk(entry, stop_loss, *, risk_inr=RISK_PER_TRADE_INR, fx_rate=
         raise TradingRuleError("FX rate must be positive")
     return risk / (distance * rate)
 
+def realized_pnl(trade, *, exit_price):
+    price=float(exit_price)
+    if trade.plan.side=="BUY": return (price-trade.plan.entry)*trade.quantity*trade.plan.fx_rate
+    return (trade.plan.entry-price)*trade.quantity*trade.plan.fx_rate
+
+def settle_account(account, *, trade, exit_price):
+    pnl=realized_pnl(trade,exit_price=exit_price)
+    return AccountState(account.name,account.starting_balance,account.balance+pnl,max(0.0,account.planned_risk_used-trade.planned_risk),account.trades_today),pnl
+
 def close_trade(trade, *, exit_price, exit_timestamp, exit_reason):
     if trade.status == "CLOSED":
         raise TradingRuleError("Trade is already closed")
@@ -149,5 +158,5 @@ def close_trade(trade, *, exit_price, exit_timestamp, exit_reason):
 __all__ = [
     "AccountState", "PaperTrade", "TradePlan", "TradingRuleError",
     "can_open_trade", "close_trade", "quantity_for_risk", "register_trade",
-    "signal_freshness", "validate_risk_configuration",
+    "signal_freshness", "validate_risk_configuration", "realized_pnl", "settle_account",
 ]
