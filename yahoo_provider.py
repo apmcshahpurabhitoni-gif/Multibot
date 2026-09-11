@@ -18,7 +18,8 @@ from candles import validate_hourly_observations
 from config import IST_TIMEZONE
 
 YF_TTL_BY_INTERVAL = {"1m": 45.0, "1h": 300.0, "4h": 300.0, "1d": 600.0}
-YAHOO_BACKOFF_SECONDS = 600.0
+YAHOO_BACKOFF_SECONDS = 120.0
+YAHOO_STALE_GRACE_SECONDS = 900.0
 
 class YahooDataError(RuntimeError):
     """Raised when Yahoo data cannot be safely returned."""
@@ -28,7 +29,8 @@ class YahooProvider:
     def __init__(self, *, session: Optional[object] = None) -> None:
         self._external_session = session
         self._cache: dict[tuple[str, str, str, bool], tuple[pd.DataFrame, float]] = {}
-        self._backoff_until = 0.0
+        self._backoff_until: dict[str, float] = {}
+        self._last_success: dict[tuple[str, str, str, bool], tuple[pd.DataFrame, float]] = {}
         self._lock = RLock()
 
     def _ttl(self, interval: str) -> float:
@@ -48,7 +50,9 @@ class YahooProvider:
 
     def _store(self, key: tuple[str, str, str, bool], frame: pd.DataFrame) -> pd.DataFrame:
         with self._lock:
-            self._cache[key] = (frame.copy(), time.monotonic())
+            now = time.monotonic()
+            self._cache[key] = (frame.copy(), now)
+            self._last_success[key] = (frame.copy(), now)
         return frame.copy()
 
     @staticmethod
@@ -65,9 +69,15 @@ class YahooProvider:
         cached = self._cached(symbol, period, interval, validate_hourly)
         if cached is not None:
             return cached
+        key = (symbol, period, interval, validate_hourly)
         with self._lock:
-            if time.monotonic() < self._backoff_until:
-                raise YahooDataError("Yahoo Finance is in rate-limit backoff")
+            until = self._backoff_until.get(symbol, 0.0)
+        if time.monotonic() < until:
+            with self._lock:
+                item = self._last_success.get(key)
+                stale = item[0].copy() if item and time.monotonic()-item[1] <= YAHOO_STALE_GRACE_SECONDS else None
+            if stale is not None: return stale
+            raise YahooDataError(f"Yahoo Finance is in rate-limit backoff for {symbol}")
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message="The .*generic.* unit for NumPy timedelta is deprecated.*", category=DeprecationWarning)
@@ -76,9 +86,14 @@ class YahooProvider:
             message = str(exc)
             if "429" in message or "too many requests" in message.lower() or "rate" in message.lower():
                 with self._lock:
-                    self._backoff_until = time.monotonic() + YAHOO_BACKOFF_SECONDS
+                    self._backoff_until[symbol] = time.monotonic() + YAHOO_BACKOFF_SECONDS
             raise YahooDataError(f"Yahoo request failed for {symbol}: {exc}") from exc
         if frame is None or frame.empty:
+            with self._lock:
+                self._backoff_until[symbol] = time.monotonic() + YAHOO_BACKOFF_SECONDS
+                item = self._last_success.get(key)
+                stale = item[0].copy() if item and time.monotonic()-item[1] <= YAHOO_STALE_GRACE_SECONDS else None
+            if stale is not None: return stale
             raise YahooDataError(f"Yahoo returned no data for {symbol}")
         if isinstance(frame.columns, pd.MultiIndex):
             frame.columns = frame.columns.get_level_values(0)
@@ -101,9 +116,11 @@ class YahooProvider:
         with self._lock:
             self._cache.clear()
 
-    def in_backoff(self) -> bool:
+    def in_backoff(self, symbol: str | None = None) -> bool:
         with self._lock:
-            return time.monotonic() < self._backoff_until
+            now = time.monotonic()
+            if symbol is not None: return now < self._backoff_until.get(symbol, 0.0)
+            return any(now < until for until in self._backoff_until.values())
 
 _default_provider = YahooProvider()
 
