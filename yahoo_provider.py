@@ -6,6 +6,7 @@ to modern yfinance causes the curl_cffi session error seen in the dashboard.
 """
 from __future__ import annotations
 import json
+import logging
 import time
 import warnings
 from datetime import datetime, timezone
@@ -25,6 +26,8 @@ YAHOO_STALE_GRACE_SECONDS = 900.0
 
 class YahooDataError(RuntimeError):
     """Raised when Yahoo data cannot be safely returned."""
+
+logger=logging.getLogger(__name__)
 
 class YahooProvider:
     """Rate-conscious Yahoo Finance provider with period-aware caching."""
@@ -57,7 +60,9 @@ class YahooProvider:
     def _restore_persisted(self,key):
         if self._database is None:return None
         row=self._database.load_market_data_cache(self._key_id(key))
-        if not row:return None
+        if not row:
+            logger.info("Yahoo persistent cache miss | symbol=%s key=%s",key[0],self._key_id(key))
+            return None
         try:
             updated=pd.Timestamp(row["updated_at"])
             if updated.tzinfo is None:updated=updated.tz_localize("UTC")
@@ -65,8 +70,11 @@ class YahooProvider:
             if age>YAHOO_STALE_GRACE_SECONDS:return None
             payload=json.loads(row["payload"]); frame=pd.DataFrame(payload["data"],columns=payload["columns"])
             frame.index=pd.to_datetime(payload["index"],utc=True).tz_convert(IST_TIMEZONE)
+            logger.info("Yahoo persistent cache hit | symbol=%s age_seconds=%d",key[0],int(age))
             return frame,age
-        except Exception:return None
+        except Exception as exc:
+            logger.warning("Yahoo persistent cache restore failed | symbol=%s error=%s",key[0],exc)
+            return None
 
     def _stale(self,key):
         with self._lock:item=self._last_success.get(key)
@@ -84,6 +92,7 @@ class YahooProvider:
         if self._database is not None:
             payload={"columns":list(frame.columns),"index":[x.isoformat() for x in frame.index],"data":frame.values.tolist()}
             self._database.save_market_data_cache(self._key_id(key),key[0],key[1],key[2],key[3],json.dumps(payload,separators=(",",":"),default=str),datetime.now(timezone.utc).isoformat())
+            logger.info("Yahoo persistent cache saved | symbol=%s key=%s",key[0],self._key_id(key))
         return frame.copy()
 
     @staticmethod

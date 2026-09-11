@@ -37,6 +37,8 @@ def init_state():
 def ensure_runtime():
     global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR
     validate_runtime_configuration()
+    health=DB.market_data_cache_health()
+    logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
     if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
