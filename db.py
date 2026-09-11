@@ -142,7 +142,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
                 signal_id=str(remote_existing["signal_id"])
         created_at=(existing["created_at"] if existing else (remote_existing.get("created_at") if remote_existing else ts))
         with self._connect() as c:
-            if existing or remote_existing:
+            if existing:
                 c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",
                     (signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key))
             else:
