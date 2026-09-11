@@ -14,12 +14,13 @@ from strategy_service import StrategyService
 from strategies import discover_strategies
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_stats, msg_summary, msg_test, msg_weekly, send_message
 from trading import AccountState
+from trade_monitor import TradeMonitor
 from yahoo_provider import YahooProvider
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger=logging.getLogger("multibot2")
 DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
-REGISTRY=None; SERVICE=None
+REGISTRY=None; SERVICE=None; TRADE_MONITOR=None
 LAST_SCANS={}
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
@@ -31,11 +32,12 @@ def init_state():
     rows=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat())
     ACCOUNTS={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in ACCOUNT_NAMES}
 def ensure_runtime():
-    global REGISTRY,SERVICE,REMINDERS
+    global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR
     validate_runtime_configuration()
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
     if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(),database=DB,accounts=ACCOUNTS)
+    if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:
         for st in REGISTRY.all():
@@ -56,7 +58,8 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
             checked=len(results),
             directional=sum(r.signal.is_directional for r in results),
             sent=sum(r.sent for r in results),
-            errors=sum(r.reason.startswith("MARKET_DATA_ERROR") for r in results),
+            errors=sum(r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED" for r in results),
+            reasons={reason:sum(r.reason==reason for r in results) for reason in sorted({r.reason for r in results})},
             elapsed_ms=round((time.monotonic()-started)*1000),
         )
     return results
@@ -70,7 +73,8 @@ def scanner_loop():
             if not NEWS_PAUSE_ENABLED: run_all_cycles(send=True)
         except Exception: logger.exception("Strategy scan cycle failed")
         STOP.wait(settings.scan_interval_seconds)
-def monitor_once(): return {"status":"OK","active_trades":len(DB.load_trades("OPEN")),"timestamp":now().isoformat()}
+def monitor_once():
+    ensure_runtime(); return TRADE_MONITOR.monitor_once(now=now())
 def monitor_loop():
     while not STOP.is_set():
         try: monitor_once()
@@ -125,7 +129,7 @@ def _scan_snapshot():
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan=_scan_snapshot(),health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED"},strategies=REGISTRY.all())
+    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan=_scan_snapshot(),health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
