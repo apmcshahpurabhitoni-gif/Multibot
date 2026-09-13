@@ -10,7 +10,8 @@ from __future__ import annotations
 import json
 import re
 import urllib.request
-from datetime import date, datetime, timedelta
+import xml.etree.ElementTree as ET
+from datetime import date, datetime, timedelta, timezone
 from threading import RLock
 from zoneinfo import ZoneInfo
 
@@ -31,6 +32,10 @@ JSON_URLS = {
         "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
         "https://cdn-nfs.faireconomy.media/ff_calendar_nextweek.json",
     ),
+}
+XML_URLS = {
+    key: tuple(url.rsplit(".", 1)[0] + ".xml" for url in urls)
+    for key, urls in JSON_URLS.items()
 }
 IMPACTS = ("High", "Medium", "Low", "Holiday")
 
@@ -98,6 +103,62 @@ class CalendarService:
                 "source": "Forex Factory",
                 "url": FOREX_FACTORY_CALENDAR,
             })
+        return cls._dedupe(events)
+
+    @classmethod
+    def _normalise_xml(cls, raw: str) -> list[dict]:
+        root = ET.fromstring(raw)
+        events: list[dict] = []
+        for node in root.findall(".//event"):
+            def value(name: str) -> str:
+                child = node.find(name)
+                return (child.text or "").strip() if child is not None else ""
+
+            title = value("title") or "Economic event"
+            currency = value("country").upper() or "ALL"
+            raw_date, raw_time = value("date"), value("time")
+            parsed_date = None
+            for fmt in ("%m-%d-%Y", "%Y-%m-%d", "%m/%d/%Y"):
+                try:
+                    parsed_date = datetime.strptime(raw_date, fmt).date()
+                    break
+                except ValueError:
+                    pass
+            if parsed_date is None:
+                continue
+            if raw_time.lower() in {"", "all day", "tentative"} or "day" in raw_time.lower():
+                hour, minute = 0, 0
+                display_time = "All day"
+            else:
+                parsed_time = None
+                for fmt in ("%I:%M%p", "%I:%M %p", "%H:%M"):
+                    try:
+                        parsed_time = datetime.strptime(raw_time.upper(), fmt)
+                        break
+                    except ValueError:
+                        pass
+                if parsed_time is None:
+                    hour, minute, display_time = 0, 0, "All day"
+                else:
+                    hour, minute = parsed_time.hour, parsed_time.minute
+                    display_time = f"{hour:02d}:{minute:02d}"
+            local_dt = datetime(parsed_date.year, parsed_date.month, parsed_date.day, hour, minute, tzinfo=timezone.utc).astimezone(IST)
+            events.append({
+                "id": f"{raw_date}|{raw_time}|{currency}|{title}",
+                "date": local_dt.date().isoformat(),
+                "time": display_time if display_time == "All day" else local_dt.strftime("%H:%M"),
+                "datetime": local_dt.isoformat(),
+                "currency": currency,
+                "impact": cls._impact(value("impact"), title),
+                "title": title,
+                "actual": value("actual"),
+                "forecast": value("forecast"),
+                "previous": value("previous"),
+                "source": "Forex Factory",
+                "url": FOREX_FACTORY_CALENDAR,
+            })
+        if not events:
+            raise ValueError("XML feed returned zero events")
         return cls._dedupe(events)
 
     @classmethod
@@ -216,6 +277,16 @@ class CalendarService:
                 raise ValueError("JSON feed returned zero events")
             except Exception as exc:
                 errors.append(f"json:{type(exc).__name__}: {exc}")
+
+        # XML is an independent export format and is a second structured
+        # fallback before HTML parsing.
+        for url in XML_URLS[feed_key]:
+            try:
+                events = self._normalise_xml(self._request(url))
+                if events:
+                    return events, "XML_FALLBACK"
+            except Exception as exc:
+                errors.append(f"xml:{type(exc).__name__}: {exc}")
 
         # Export endpoints have a documented per-IP limit. The ordinary calendar
         # page is intentionally only used once for a missing week, never per UI load.
