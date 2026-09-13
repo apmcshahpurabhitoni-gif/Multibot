@@ -47,3 +47,87 @@ html[data-style="neo"] .topbar,html[data-style="neo"] .metric-card,html[data-sty
 
 /* Tools settings: compact, functional controls. */
 .settings-group{display:grid;gap:10px;margin-top:18px}.settings-label{font-size:9px;font-weight:900;letter-spacing:.12em;color:var(--muted)}.appearance-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.settings-toggle-list{display:grid;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;padding:15px;border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--text)}.settings-toggle:last-child{border-bottom:0}.settings-toggle span{display:grid;gap:4px}.settings-toggle b{font-size:10px}.settings-toggle small{font-size:8px;color:var(--muted)}.settings-toggle i{width:34px;height:18px;border-radius:999px;background:var(--line);position:relative;flex:0 0 auto}.settings-toggle i:after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--surface);top:3px;left:3px;transition:transform .2s}.settings-toggle.active i{background:var(--accent)}.settings-toggle.active i:after{transform:translateX(16px)}html[data-compact="true"] .tool-card{padding:14px}html[data-compact="true"] .page-heading{margin-bottom:14px}html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *:before,html[data-reduce-motion="true"] *:after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}@media(max-width:560px){.appearance-theme-grid{grid-template-columns:1fr}.settings-toggle{padding:14px 12px}}
+
+
+/* === PONYTAIL CONSISTENT UI PASS: preserve functionality, improve hierarchy === */
+:root{--nav-w:184px;--space-page:24px;--space-block:18px;--row-pad:14px}
+.app{padding-left:var(--nav-w)}
+.desktop-nav{width:var(--nav-w);padding:12px 9px;gap:5px}
+.desktop-nav .nav-button{min-height:42px;padding:0 11px;border-radius:10px;font-size:10px;gap:9px}
+.desktop-nav .nav-button span{font-size:10px}
+.topbar{min-height:58px;padding:9px 18px}
+.brand{gap:8px}.brand-mark{width:32px;height:32px;font-size:15px}.brand-copy small{font-size:7px}
+main{padding:var(--space-page);max-width:1500px}
+.page-heading{margin-bottom:18px}.page-heading h1{font-size:30px}.page-heading p{max-width:680px}
+.section-block,.tool-card,.signals-workspace,.history-workspace,.calendar-workspace,.trades-workspace{margin-top:var(--space-block)}
+.metric-card{min-height:0;padding:14px}.metric-card strong{font-size:24px}
+.hero{padding:22px}.hero h2{font-size:28px}.hero-pills{margin-top:16px}.hero-pills span{font-size:8px;padding:7px 9px}
+
+/* Home: three strong blocks, no duplicate dashboard clutter */
+#page-overview .overview-risk,#page-overview .overview-activity,#page-overview .overview-scan,#page-overview .overview-trades{display:none}
+#page-overview>.metric-grid.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:12px}
+#page-overview .overview-signals{margin-top:18px}
+#page-overview .overview-signals .stack{display:grid;gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+#page-overview .overview-signals .signal-card{border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none}
+#page-overview .overview-signals .signal-card:last-child{border-bottom:0}
+
+/* Signals: no filter/card overload; date groups + compact semantic rows */
+#page-signals .signal-summary-grid,#page-signals .signals-toolbar,#page-signals .signals-scan-status{display:none}
+#page-signals .signals-workspace{margin-top:0}
+.signal-date-list,.history-date-list,.calendar-date-list{padding:6px 10px}
+.signal-date-toggle,.history-date-toggle,.calendar-date-toggle{padding:15px 6px}
+.signal-date-rows{gap:0;padding:0 0 10px}
+.signal-date-rows .signal-card{border-radius:0;background:transparent}
+.signal-date-rows .signal-card .card-main{min-height:64px;padding:12px 8px}
+.signal-card.buy{border-left:3px solid var(--positive)}.signal-card.sell{border-left:3px solid var(--negative)}
+.signal-card .freshness{display:none}
+.signal-card .card-state{gap:8px}
+.signal-card .direction-icon{font-size:14px}
+.signal-card .signal-leading strong{font-size:12px}
+.signal-card .signal-leading small{font-size:8px}
+
+/* History: actual completed trades, daily groups are primary; hide scan browsing controls */
+#page-history .history-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+#page-history .history-toolbar .history-tabs,#page-history .history-toolbar .history-filters{display:none}
+.history-toolbar{justify-content:flex-end;padding:10px 13px}
+.history-date-rows{gap:0;padding-bottom:10px}
+.history-date-rows .trade-row{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0;box-shadow:none}
+.history-date-rows .trade-row-main{padding:12px 8px}
+.history-date-group{position:relative}
+.history-date-group.is-open{background:var(--surface)}
+
+/* Shared date accordion language */
+.signal-date-toggle i,.history-date-toggle i,.calendar-date-toggle i,.trade-date-toggle i{font-size:14px}
+.signal-date-group.is-open>.signal-date-toggle,.history-date-group.is-open>.history-date-toggle,.calendar-date-group.is-open>.calendar-date-toggle{background:var(--accent-soft)}
+
+/* Tools: unified blocks and fixed internal scroll for backtest trades */
+.tool-card{padding:18px}.backtest-results{margin-top:16px}
+.backtest-results .backtest-trades,.backtest-results [data-backtest-trades]{max-height:420px;overflow:auto;overscroll-behavior:contain}
+.schedule-grid,.universe-grid,.account-grid,.diagnostic-grid{gap:9px}
+
+/* Calendar stays cache-first; only visual consistency */
+.calendar-summary-grid{padding:10px}.calendar-agenda-status,.calendar-agenda-bar{padding:11px 13px}
+
+/* Mobile keeps current navigation functionality but uses five lean items */
+@media(max-width:900px){
+ .app{padding-left:0}.desktop-nav{display:none}
+ main{padding:16px 12px 86px}.topbar{min-height:54px;padding:8px 12px}
+ .mobile-nav{padding:7px 6px;gap:3px}
+ .mobile-nav .nav-button{min-height:50px;padding:5px 3px;font-size:8px}
+ .mobile-nav .nav-button span{font-size:14px}
+ #page-overview>.metric-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .hero{padding:18px}.hero h2{font-size:23px}
+ .page-heading h1{font-size:25px}
+ .history-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:560px){
+ :root{--space-page:14px}
+ #page-overview>.metric-grid.four{gap:7px}
+ #page-overview>.metric-grid.four .metric-card{padding:11px}
+ #page-overview>.metric-grid.four .metric-card strong{font-size:20px}
+ #page-overview>.metric-grid.four .metric-card small{display:none}
+ .history-summary-grid .metric-card{padding:10px}
+ .history-summary-grid .metric-card strong{font-size:19px}
+ .history-summary-grid .metric-card small{display:none}
+ .hero-pills{display:grid;grid-template-columns:1fr 1fr}.hero-pills span:last-child{grid-column:1/-1}
+}
