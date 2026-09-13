@@ -127,3 +127,23 @@ def test_tools_workspace_uses_rebuilt_sections_and_simple_backtest_asset_names()
         assert token in HTML
     assert '${escapeHtml(asset.label)} · ${escapeHtml(asset.ticker)}' not in APP
     assert '<option value="${escapeHtml(asset.key||asset.ticker)}">${escapeHtml(asset.label)}</option>' in APP
+
+
+def test_dashboard_uses_equity_curves_for_primary_performance():
+    assert 'id="equityCurveChart"' in HTML
+    assert 'Equity curve' in HTML
+    assert 'function renderEquityLine' in APP
+    assert 'id="styleToggle"' not in HTML
+    assert 'id="themeToggle"' in HTML
+    assert 'equity_curve' in (ROOT / "main.py").read_text(encoding="utf-8")
+
+
+def test_dashboard_keeps_backtest_primary_chart_as_equity_curve():
+    assert 'Backtest equity curve' in APP
+    assert 'Paper account value after each completed backtest trade' in APP
+    assert 'Signals by day' not in APP[APP.index('function renderBacktest'):APP.index('async function runBacktest')]
+
+
+def test_dashboard_mobile_navigation_is_compact():
+    assert 'min-height:48px' in CSS
+    assert 'grid-template-columns:repeat(5' in CSS
