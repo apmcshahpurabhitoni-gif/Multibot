@@ -114,3 +114,16 @@ def test_dashboard_selector_helpers_and_bootstrap_cannot_block_runtime():
     assert "$('[data-page]')" not in APP
     assert "$('[data-theme-choice]')" not in APP
     assert "$('[data-style-choice]')" not in APP
+
+
+def test_dashboard_has_exactly_five_navigation_slots():
+    for page in ('overview','signals','history','calendar','tools'):
+        assert f'data-page="{page}"' in HTML
+    assert 'grid-template-columns:repeat(5,1fr)' in CSS or 'grid-template-columns:repeat(5,minmax(0,1fr))' in CSS
+
+
+def test_tools_workspace_uses_rebuilt_sections_and_simple_backtest_asset_names():
+    for token in ('tools-layout', 'tool-backtest', 'tool-universe', 'tool-accounts', 'tool-rules', 'tool-runtime'):
+        assert token in HTML
+    assert '${escapeHtml(asset.label)} · ${escapeHtml(asset.ticker)}' not in APP
+    assert '<option value="${escapeHtml(asset.key||asset.ticker)}">${escapeHtml(asset.label)}</option>' in APP
