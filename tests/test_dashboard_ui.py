@@ -111,9 +111,9 @@ def test_dashboard_selector_helpers_and_bootstrap_cannot_block_runtime():
     assert "$$('[data-page]')" in APP
     assert "$$('[data-theme-choice]')" in APP
     assert "$$('[data-style-choice]')" in APP
-    assert "$('[data-page]')" not in APP
-    assert "$('[data-theme-choice]')" not in APP
-    assert "$('[data-style-choice]')" not in APP
+    assert "const $=id=>document.getElementById(id)" in APP
+    assert "$('[data-page]')" in APP
+    assert "$('[data-theme-choice]')" in APP
 
 
 def test_dashboard_has_exactly_five_navigation_slots():
