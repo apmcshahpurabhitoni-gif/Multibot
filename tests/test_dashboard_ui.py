@@ -94,3 +94,11 @@ def test_dashboard_contract_exposes_directional_signal_summary():
     assert 'signal_summary' in source
     assert 'stale_directional' in source
     assert 'fresh_directional' in source
+
+
+def test_dashboard_runtime_keeps_core_functions_after_ui_cleanup():
+    required = ["function loadDashboard", "function bindEvents", "function bindEvent", "function renderHistory", "function renderCalendar", "function renderTools", "function applyAppearanceControls", "$$(\'[data-page]\')"]
+    for token in required:
+        assert token in APP
+    assert APP.index("function bindEvents") < APP.index("loadDashboard();")
+
