@@ -11,8 +11,18 @@ from calendar_store import CalendarStore
 
 IST = ZoneInfo("Asia/Kolkata")
 FF_TZ = ZoneInfo("America/New_York")
-CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
-NEXT_WEEK_URL = "https://nfs.faireconomy.media/ff_calendar_nextweek.json"
+# Forex Factory publishes the same weekly export through two hostnames.
+# The primary host can return 429 for shared cloud IPs, so the CDN hostname
+# is an explicit fallback rather than treating one temporary upstream block
+# as a calendar outage.
+CALENDAR_URLS = (
+    "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+    "https://cdn-nfs.faireconomy.media/ff_calendar_thisweek.json",
+)
+NEXT_WEEK_URLS = (
+    "https://nfs.faireconomy.media/ff_calendar_nextweek.json",
+    "https://cdn-nfs.faireconomy.media/ff_calendar_nextweek.json",
+)
 FOREX_FACTORY_CALENDAR = "https://www.forexfactory.com/calendar"
 IMPACTS = ("High", "Medium", "Low", "Holiday")
 
@@ -28,13 +38,13 @@ class CalendarService:
     def _week_start(day: date) -> date:
         return day - timedelta(days=day.weekday())
 
-    def _feed_url(self, target: date) -> tuple[str, str] | None:
+    def _feed_url(self, target: date) -> tuple[str, tuple[str, ...]] | None:
         current_week = self._week_start(datetime.now(IST).date())
         target_week = self._week_start(target)
         if target_week == current_week:
-            return "thisweek", CALENDAR_URL
+            return "thisweek", CALENDAR_URLS
         if target_week == current_week + timedelta(days=7):
-            return "nextweek", NEXT_WEEK_URL
+            return "nextweek", NEXT_WEEK_URLS
         return None
 
     @staticmethod
@@ -63,7 +73,7 @@ class CalendarService:
             events.append({"id": f"{raw_date}|{currency}|{title}", "date": local_dt.date().isoformat(), "time": local_dt.strftime("%H:%M"), "datetime": local_dt.isoformat(), "currency": currency, "impact": impact, "title": title, "actual": str(item.get("actual") or "").strip(), "forecast": str(item.get("forecast") or "").strip(), "previous": str(item.get("previous") or "").strip(), "source": "Forex Factory", "url": FOREX_FACTORY_CALENDAR})
         return sorted(events, key=lambda item: item["datetime"])
 
-    def _load_feed(self, feed_key: str, feed_url: str) -> tuple[list[dict], str, str]:
+    def _load_feed(self, feed_key: str, feed_urls: tuple[str, ...]) -> tuple[list[dict], str, str]:
         cached, fetched_at = self.store.load_for_today(feed_key)
         if cached is not None:
             return cached, fetched_at or "", "CACHED"
@@ -78,20 +88,32 @@ class CalendarService:
                 return stale, stale_at or attempted_at, f"STALE_CACHE: {error}"
             raise RuntimeError(f"Forex Factory feed unavailable today: {error}")
 
-        try:
-            req = urllib.request.Request(feed_url, headers={"User-Agent": "Mavis-MULTIBOT2/1.1 economic-calendar", "Accept": "application/json,text/plain;q=0.9,*/*;q=0.8"})
-            with urllib.request.urlopen(req, timeout=10) as response:
-                raw = response.read().decode("utf-8", errors="replace")
-            events = self._normalise(json.loads(raw))
-            fetched_at = self.store.save_today(feed_key, events)
-            return events, fetched_at, "FETCHED_TODAY"
-        except Exception as exc:
-            error = f"{type(exc).__name__}: {exc}"
-            attempted_at = self.store.save_attempt(feed_key, error)
-            stale, fetched_at = self.store.load_latest(feed_key)
-            if stale is not None:
-                return stale, fetched_at or attempted_at, f"STALE_CACHE: {error}"
-            raise RuntimeError(f"Forex Factory feed unavailable: {error}") from exc
+        errors: list[str] = []
+        for index, feed_url in enumerate(feed_urls):
+            try:
+                req = urllib.request.Request(
+                    feed_url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; Mavis-MULTIBOT2/3.2 economic-calendar)",
+                        "Accept": "application/json,text/plain;q=0.9,*/*;q=0.8",
+                        "Cache-Control": "no-cache",
+                    },
+                )
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    raw = response.read().decode("utf-8", errors="replace")
+                events = self._normalise(json.loads(raw))
+                fetched_at = self.store.save_today(feed_key, events)
+                source = "FETCHED_TODAY" if index == 0 else "FETCHED_TODAY_FALLBACK"
+                return events, fetched_at, source
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: {exc}")
+
+        error = " | ".join(errors)
+        attempted_at = self.store.save_attempt(feed_key, error)
+        stale, fetched_at = self.store.load_latest(feed_key)
+        if stale is not None:
+            return stale, fetched_at or attempted_at, f"STALE_CACHE: {error}"
+        raise RuntimeError(f"Forex Factory feed unavailable: {error}")
 
     def get(self, *, target_date: str | None = None, impacts: set[str] | None = None, force: bool = False) -> dict:
         """Return calendar data. force only refreshes the UI; it never bypasses the daily cache."""
@@ -100,9 +122,13 @@ class CalendarService:
         feed = self._feed_url(target)
         if feed is None:
             return {"status": "OUT_OF_RANGE", "source": "Forex Factory", "date": target.isoformat(), "fetched_at": datetime.now(timezone.utc).isoformat(), "items": [], "counts": {impact.lower(): 0 for impact in IMPACTS}, "message": "Forex Factory supplies a rolling current/next week feed; choose a date in that range.", "calendar_url": FOREX_FACTORY_CALENDAR}
-        feed_key, feed_url = feed
+        feed_key, feed_urls = feed
         try:
-            events, fetched_at, load_status = self._load_feed(feed_key, feed_url)
+            # The service can be called simultaneously by dashboard polling and
+            # refresh actions. Serialize the first fetch so both requests share
+            # one upstream download and one persisted cache entry.
+            with self._lock:
+                events, fetched_at, load_status = self._load_feed(feed_key, feed_urls)
         except Exception as exc:
             return {"status": "OFFLINE", "source": "Forex Factory", "date": target.isoformat(), "fetched_at": datetime.now(timezone.utc).isoformat(), "items": [], "counts": {impact.lower(): 0 for impact in IMPACTS}, "message": str(exc), "calendar_url": FOREX_FACTORY_CALENDAR}
         selected = [event for event in events if event["date"] == target.isoformat()]
@@ -110,7 +136,7 @@ class CalendarService:
         selected_impacts = {item.title() for item in (impacts or {"All"})}
         if "All" not in selected_impacts:
             selected = [event for event in selected if event["impact"] in selected_impacts]
-        status = "ONLINE" if load_status == "FETCHED_TODAY" else ("CACHED" if load_status == "CACHED" else "STALE_CACHE")
+        status = "ONLINE" if load_status.startswith("FETCHED_TODAY") else ("CACHED" if load_status == "CACHED" else "STALE_CACHE")
         return {"status": status, "source": "Forex Factory", "date": target.isoformat(), "fetched_at": fetched_at, "items": selected, "counts": all_counts, "message": f"{len(selected)} events for {target.strftime('%d %b %Y')} · {load_status}", "calendar_url": f"{FOREX_FACTORY_CALENDAR}?day={target.strftime('%b').lower()}{target.day}.{target.year}"}
 
     def refresh(self, *, target_date: str | None = None, impacts: set[str] | None = None) -> dict:
