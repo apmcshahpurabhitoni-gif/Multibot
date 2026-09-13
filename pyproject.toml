@@ -22,3 +22,6 @@ py-modules = ["main","config","market_data","candles","trading","telegram","back
 
 [tool.setuptools.packages.find]
 include = ["strategies*"]
+
+[tool.poetry]
+package-mode = false
