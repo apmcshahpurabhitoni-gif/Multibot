@@ -102,3 +102,15 @@ def test_dashboard_runtime_keeps_core_functions_after_ui_cleanup():
         assert token in APP
     assert APP.index("function bindEvents") < APP.index("loadDashboard();")
 
+
+
+def test_dashboard_selector_helpers_and_bootstrap_cannot_block_runtime():
+    assert "function bootstrapDashboard()" in APP
+    assert "initAppearance();bindEvents();" in APP
+    assert "loadDashboard();" in APP
+    assert "$$('[data-page]')" in APP
+    assert "$$('[data-theme-choice]')" in APP
+    assert "$$('[data-style-choice]')" in APP
+    assert "$('[data-page]')" not in APP
+    assert "$('[data-theme-choice]')" not in APP
+    assert "$('[data-style-choice]')" not in APP
