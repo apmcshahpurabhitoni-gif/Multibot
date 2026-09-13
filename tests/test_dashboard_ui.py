@@ -147,3 +147,18 @@ def test_dashboard_keeps_backtest_primary_chart_as_equity_curve():
 def test_dashboard_mobile_navigation_is_compact():
     assert 'min-height:48px' in CSS
     assert 'grid-template-columns:repeat(5' in CSS
+
+
+def test_dashboard_backtest_metrics_and_trades_are_bounded_and_separated():
+    source=(ROOT / "app.js").read_text(encoding="utf-8")
+    assert "formatBacktestMetric" in source
+    assert "Completed trades" in source
+    assert "backtest-trade-row" in source
+    assert "Number.isFinite(n)" in source
+
+
+def test_backtest_ratio_metrics_are_bounded():
+    source=(ROOT / "backtest.py").read_text(encoding="utf-8")
+    assert "def _bounded_ratio" in source
+    assert "return 10.0 if mean>0 else 0.0" in source
+    assert "risk_adjusted_performance" in source
