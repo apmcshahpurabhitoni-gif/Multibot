@@ -442,13 +442,13 @@ The CI pipeline also installs the package, compiles all Python modules, imports 
 
 ## 🤖 Want another AI to understand the entire project?
 
-Give it **`AI_REBUILD_SPEC.md` first**.
+Give it **`AI_CONTEXT.md` first**, then `AI_REBUILD_SPEC.md` for deeper reconstruction details.
 
 That document is intentionally much more detailed than this README and is the canonical reconstruction guide.
 
 For strategy-only work, give it:
 
-> `AI_REBUILD_SPEC.md` + `STRATEGY_DEVELOPER_GUIDE.md`
+> `AI_CONTEXT.md` + `AI_REBUILD_SPEC.md` + `STRATEGY_DEVELOPER_GUIDE.md`
 
 ---
 
