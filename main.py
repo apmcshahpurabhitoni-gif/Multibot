@@ -122,7 +122,12 @@ def _backtest_payload(strategy,symbol,period):
         daily.setdefault(d,{"buy":0,"sell":0,"total":0})
         if sig.direction=="BUY": daily[d]["buy"]+=1; daily[d]["total"]+=1
         elif sig.direction=="SELL": daily[d]["sell"]+=1; daily[d]["total"]+=1
-    signals=[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"reason":x.reason,"entry":x.entry} for x in result.signals if x.is_directional][-200:]
+    signals=[{
+        "timestamp":x.timestamp.isoformat(),"direction":x.direction,"reason":x.reason,
+        "entry":x.entry,"stop_loss":x.stop_loss,"take_profit":x.take_profit,
+        "symbol":x.symbol,"strategy":x.strategy,"strategy_version":x.version,
+        "timeframe":x.timeframe,"source":"BACKTEST"
+    } for x in result.signals if x.is_directional][-200:]
     directional = [sig for sig in result.signals if sig.is_directional]
     buy_signals = sum(sig.direction == "BUY" for sig in directional)
     sell_signals = sum(sig.direction == "SELL" for sig in directional)
@@ -167,7 +172,7 @@ def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
-def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
+def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json; charset=utf-8"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _sweep_diagnostic_payload(*, period="30d"):
     """Run the real Sweep V2 data -> prepare -> signal path without dispatching or sending."""
     ensure_runtime()

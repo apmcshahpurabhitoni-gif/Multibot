@@ -115,6 +115,30 @@ Delivery can be fresh, stale, duplicate-limited, reminder-pending, rejected by a
 
 Dashboard and Telegram consume canonical data. They must not duplicate strategy calculations.
 
+## Dashboard and UI data contract
+
+The dashboard has five destinations only: Home, Signals, History, Calendar and Tools.
+
+Semantic ownership is locked:
+- Signals = persisted runtime BUY/SELL lifecycle events.
+- History = completed paper trades only.
+- Backtest trades = simulated completed trades for the selected test only.
+- Backtest signals = BUY/SELL signals generated during the selected test only.
+
+Do not mix runtime and backtest arrays. Do not rename diagnostic lifecycle records as actionable opportunities.
+
+Signal contract:
+- strategy/version, symbol, direction, timestamp, timeframe and reason are identity/context.
+- entry, stop_loss and take_profit are canonical levels.
+- has_trade_levels and actionable are explicit presentation facts.
+- freshness and pipeline_status describe lifecycle, not profitability.
+
+Old historical rows may lack levels. Render them as diagnostic/non-actionable records; never display fake dashes as an actionable trade setup.
+
+API readers must validate HTTP status, response body and JSON before rendering. Backtest failures must hide failed results instead of leaving stale results underneath.
+
+Scrollable data panels are a shared UI primitive. Backtest trades/signals use bounded internal scrolling and mobile content always reserves bottom-navigation safe-area space.
+
 ## Backtesting
 
 backtest.py is research infrastructure, not the live dispatcher.

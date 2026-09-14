@@ -29,10 +29,18 @@ def dashboard_signal(event, send_state=None, delivery=None, now=None):
     freshness, age_hours = signal_status(signal, now=current)
     age=max(0,int(age_hours*60))
     out=dict(event)
+    metadata=dict(out.get("metadata") or {})
+    # Support rows written before levels were promoted to canonical event metadata.
+    for key in ("entry", "stop_loss", "take_profit"):
+        if out.get(key) is None and key in metadata:
+            out[key]=metadata.get(key)
     out["freshness"]=freshness
     out["age_minutes"]=age
     out["send_count"]=int((send_state or {}).get("send_count",0))
     out["first_sent_at"]=(send_state or {}).get("first_sent_at")
     out["last_sent_at"]=(send_state or {}).get("last_sent_at")
     out["delivery"]=delivery
+    levels=(out.get("entry"),out.get("stop_loss"),out.get("take_profit"))
+    out["has_trade_levels"]=all(value is not None for value in levels)
+    out["actionable"]=bool(out["has_trade_levels"] and freshness=="FRESH" and str(out.get("pipeline_status","")).upper() not in {"STALE","ERROR","NO_TRADE_PLAN","ACCOUNT_LIMIT","DUPLICATE_LIMIT"})
     return out

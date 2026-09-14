@@ -10,7 +10,8 @@ from trading import AccountState, PaperTrade
 def signal_to_dict(s):
     if isinstance(s, dict):
         event=dict(s); return dashboard_signal(event,event.get("send_state"),event.get("delivery"))
-    return {"strategy":s.strategy,"strategy_version":s.version,"symbol":s.symbol,"signal":s.direction,"timestamp":s.timestamp.isoformat(),"timeframe":s.timeframe,"reason":s.reason,"entry":s.entry,"stop_loss":s.stop_loss,"take_profit":s.take_profit,"metadata":s.metadata}
+    event={"strategy":s.strategy,"strategy_version":s.version,"version":s.version,"symbol":s.symbol,"signal":s.direction,"direction":s.direction,"timestamp":s.timestamp.isoformat(),"timeframe":s.timeframe,"reason":s.reason,"entry":s.entry,"stop_loss":s.stop_loss,"take_profit":s.take_profit,"metadata":s.metadata}
+    return dashboard_signal(event)
 def trade_to_dict(t):
     if isinstance(t, dict): return dict(t)
     p=t.plan; return {"status":t.status,"plan":{"strategy":p.strategy,"strategy_version":p.strategy_version,"side":p.side,"signal_timestamp":p.signal_timestamp.isoformat(),"timeframe":p.timeframe,"entry":p.entry,"stop_loss":p.stop_loss,"take_profit":p.take_profit,"risk_per_unit":p.risk_per_unit,"trailing_policy":p.trailing_policy},"quantity":t.quantity,"planned_risk":t.planned_risk,"exit_price":t.exit_price,"exit_timestamp":t.exit_timestamp.isoformat() if t.exit_timestamp else None,"exit_reason":t.exit_reason}

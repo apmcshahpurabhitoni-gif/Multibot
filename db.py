@@ -131,6 +131,14 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
         """Create or update the single canonical lifecycle row for a signal identity."""
         ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
+        # Persist the canonical signal levels with the lifecycle event.  The dashboard,
+        # Telegram and future consumers must read the same signal facts rather than
+        # reconstructing them from strategy-specific metadata.
+        metadata.update({
+            "entry": getattr(signal,"entry",None),
+            "stop_loss": getattr(signal,"stop_loss",None),
+            "take_profit": getattr(signal,"take_profit",None),
+        })
         with self._connect() as c:
             existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
             if existing:
@@ -240,7 +248,11 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             try: metadata=json.loads(r["metadata"] or "{}")
             except Exception: metadata={}
             item={k:r[k] for k in ("signal_id","signal_key","strategy","version","symbol","direction","timestamp","timeframe","reason","pipeline_status","created_at","updated_at")}
-            item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata; item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"]); out.append(item)
+            item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata
+            # Flatten canonical levels for the dashboard contract while retaining the
+            # full metadata payload for diagnostics and backward compatibility.
+            item["entry"]=metadata.get("entry"); item["stop_loss"]=metadata.get("stop_loss"); item["take_profit"]=metadata.get("take_profit")
+            item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"]); out.append(item)
         return out
 
     def record_signal_send(self,key,sent_at,reminder_due_at=None,message_text=None,metadata=None):

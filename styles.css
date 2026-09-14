@@ -519,3 +519,32 @@ select,
     width:44px;
   }
 }
+
+
+/* === PONYTAIL FINAL CONSISTENCY CONTRACT === */
+/* These declarations intentionally come last: older merge-era rules must not unbound runtime lists. */
+.backtest-results .backtest-trades,
+.backtest-results [data-backtest-trades],
+.backtest-trades{
+  max-height:560px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.backtest-signal-list{
+  max-height:420px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.backtest-trade-row,.backtest-signal-list>div,.signal-card,.trade-card{min-width:0;}
+.backtest-trade-row b,.backtest-trade-row small,.backtest-signal-list small,.signal-card small{overflow-wrap:anywhere;}
+.signal-card.incomplete{border-left-color:var(--warning);}
+.signal-card.incomplete .signal-side{color:var(--warning);}
+@media(max-width:680px){
+  .app{padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important;}
+  .backtest-results .backtest-trades,.backtest-trades{max-height:420px !important;}
+  .backtest-signal-list{max-height:340px !important;}
+}
