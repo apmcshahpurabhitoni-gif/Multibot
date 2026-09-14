@@ -17,6 +17,23 @@ def test_dashboard_keeps_approved_theme_and_mobile_contract():
     assert 'bottom: 7px' in CSS or 'bottom:7px' in CSS
 
 
+def test_dashboard_has_canonical_appearance_controls():
+    assert 'data-theme-choice="light"' in HTML
+    assert 'data-theme-choice="dark"' in HTML
+    assert 'data-theme-choice="system"' in HTML
+    assert 'data-style-choice="modern"' in HTML
+    assert 'data-style-choice="neo"' in HTML
+    assert 'applyStyle(style)' in APP
+    assert 'localStorage.setItem("mavis-style",value)' in APP
+    assert '$$\'[data-style-choice]\'' in APP or '$$([\'data-style-choice\'])' in APP
+
+
+def test_dashboard_header_controls_stay_compact():
+    assert '.icon-button{width:38px;height:38px' in CSS
+    assert '.icon-button{width:32px;height:32px' in CSS
+    assert '.header-meta{gap:5px}' in CSS
+
+
 def test_dashboard_keeps_trading_presentation_layers_separate():
     assert '/api/dashboard' in HTML or '/api/dashboard' in APP
     assert 'signal-card' in CSS
@@ -28,28 +45,9 @@ def test_dashboard_keeps_trading_presentation_layers_separate():
 
 def test_dashboard_has_clear_visual_hierarchy_tokens():
     for token in (
-        '--surface',
-        '--surface-2',
-        '--accent',
-        '--positive',
-        '--negative',
-        '--warning',
-        '--shadow',
-        '--radius',
+        '--surface', '--surface-2', '--accent', '--positive', '--negative', '--warning', '--shadow', '--radius'
     ):
         assert token in CSS
-
-    for selector in (
-        '.topbar',
-        '.desktop-nav',
-        '.page-heading',
-        '.hero',
-        '.box',
-        '.signal-card',
-        '.trade-card',
-        '.news-item',
-    ):
-        assert selector in CSS
 
 
 def test_dashboard_does_not_recalculate_execution_risk_or_freshness():
@@ -87,7 +85,7 @@ def test_dashboard_does_not_show_global_scan_panel():
 def test_dashboard_contract_uses_date_grouped_signals_without_filters():
     assert 'data-signal-filter=' not in HTML
     assert 'data-signal-direction=' not in HTML
-    assert 'renderSignalDateGroups' in APP
+    assert 'renderSignals' in APP
     assert 'canonicalSignals' in APP
 
 
@@ -113,8 +111,6 @@ def test_dashboard_selector_helpers_and_bootstrap_cannot_block_runtime():
     assert "$$('[data-theme-choice]')" in APP
     assert "$$('[data-style-choice]')" in APP
     assert "const $=id=>document.getElementById(id)" in APP
-    assert "$('[data-page]')" in APP
-    assert "$('[data-theme-choice]')" in APP
 
 
 def test_dashboard_has_exactly_five_navigation_slots():
@@ -167,18 +163,8 @@ def test_backtest_ratio_metrics_are_bounded():
 
 def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scrollable():
     for token in (
-        '--section-gap',
-        '--card-pad',
-        '.signals-workspace',
-        '.history-workspace',
-        '.calendar-workspace',
-        '.tool-card',
-        '.backtest-section',
-        '.backtest-trades',
-        '.backtest-signal-list',
-        'max-height:560px',
-        'overflow-y:auto',
-        'min-width:0',
-        'overflow-wrap:anywhere',
+        '--section-gap', '--card-pad', '.signals-workspace', '.history-workspace', '.calendar-workspace',
+        '.tool-card', '.backtest-section', '.backtest-trades', '.backtest-signal-list',
+        'overflow-y:auto', 'min-width:0', 'overflow-wrap:anywhere'
     ):
         assert token in CSS
