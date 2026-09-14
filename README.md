@@ -4,7 +4,7 @@
 >
 > **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Supabase · Dashboard · Strategy Lab**
 
-[![Version](https://img.shields.io/badge/version-3.1.0-111827?style=for-the-badge)](.)
+[![Version](https://img.shields.io/badge/version-3.2.5-111827?style=for-the-badge)](.)
 [![Mode](https://img.shields.io/badge/mode-PAPER-16a34a?style=for-the-badge)](.)
 [![Provider](https://img.shields.io/badge/data-Yahoo%20Finance-7c3aed?style=for-the-badge)](.)
 [![Python](https://img.shields.io/badge/python-3.11%2B-2563eb?style=for-the-badge)](.)
@@ -23,45 +23,23 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 ---
 
-## 🚀 What's new in v3.2.0?
+## 🆕 What's New — v3.2.5
 
-### 🧩 Plug-and-play strategies
+**Single source of truth:** `release_notes.py`
 
-Strategies are now discovered automatically from `strategies/`. The core runtime does not need a new `if/elif` branch every time a strategy is added.
+Dashboard and Telegram consume the same canonical release highlights. `WHATS_NEW.md` and this section are checked for drift.
 
-### 🧠 Adaptive Trend Momentum
-
-TrendPulse has been retired. **Adaptive Trend Momentum** is now the BTC-USD + Gold strategy and uses daily candles with:
-
-- 📈 EMA 20 / EMA 50 trend relationship
-- 🏃 40-day momentum
-- 🧱 20-day Donchian breakout
-- 🌡️ ATR 14
-- 🔎 volatility filter
-- 🟢 LONG / 🔴 SHORT / ⚪ NO SIGNAL
-- 🛑 ATR-based initial stop
-- 🎯 fixed reward/risk target
-- 🪢 optional ATR trailing-stop policy
-
-### 🔎 Sweep V2 preserved
-
-Sweep V2 remains available under the same strategy contract and retains its strict two-sided sweep + final-close classification model and canonical schedules.
-
-### 📊 Strategy Lab foundation
-
-Backtesting now exposes:
-
-**Return · Max Drawdown · Sharpe · Sortino · Win Rate · Profit Factor · Number of Trades · Average Trade · Losing Streak · Exposure · Risk-Adjusted Performance**
-
-and a transparent **0–100 Strategy Rating**.
-
-### ⭐ Versioned experiments
-
-Backtest results and signal metadata carry strategy version and parameter snapshots so historical decisions remain explainable.
-
-### 🤖 AI reconstruction documentation
-
-`AI_REBUILD_SPEC.md` describes the architecture, contracts, locked rules, data flow, failure behavior and implementation requirements in enough detail for another AI/developer to reconstruct the project.
+- 🎨 Shared ponytail UI system now keeps Home, Signals, History, Calendar and Tools visually consistent.
+- 📈 Home and Backtest use real equity curves for account and strategy performance instead of misleading bar summaries.
+- 🧪 Backtest results are separated into overview, equity curve, performance, completed trades and detected opportunities.
+- 🛡️ Backtest ratios are numerically bounded and non-finite metric values are safely handled before reaching the UI.
+- 📋 Completed backtest trades now expose timestamp, side, entry, exit, P/L and bars held as real backend data.
+- 🗂️ Signals and History date groups use consistent spacing and borders so headings and dates are never hidden or clipped.
+- 📱 Mobile navigation and page cards were reduced for less visual clutter while preserving the five existing destinations.
+- 💾 Production market-data cache now verifies Supabase health and reuses persistent Yahoo candles across restarts.
+- 📡 Yahoo rate-limit backoff is isolated per symbol and cached data is reused during backoff when available.
+- 🧹 Runtime artifacts such as `__pycache__`, `.pyc` files and local state databases are excluded from merge history.
+- 📚 Release information now has one canonical source shared by Dashboard, Telegram and generated repository documentation.
 
 ---
 
@@ -464,13 +442,13 @@ The CI pipeline also installs the package, compiles all Python modules, imports 
 
 ## 🤖 Want another AI to understand the entire project?
 
-Give it **`AI_REBUILD_SPEC.md` first**.
+Give it **`AI_CONTEXT.md` first**, then `AI_REBUILD_SPEC.md` for deeper reconstruction details.
 
 That document is intentionally much more detailed than this README and is the canonical reconstruction guide.
 
 For strategy-only work, give it:
 
-> `AI_REBUILD_SPEC.md` + `STRATEGY_DEVELOPER_GUIDE.md`
+> `AI_CONTEXT.md` + `AI_REBUILD_SPEC.md` + `STRATEGY_DEVELOPER_GUIDE.md`
 
 ---
 

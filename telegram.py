@@ -7,6 +7,7 @@ import pandas as pd
 from strategies import Signal
 from trading import PaperTrade
 from config import LIVE_ASSET_MAP
+from release_notes import telegram_whats_new
 BR="━━━━━━━━━━━━━━━━━━━━━━"; BR2="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 DASHBOARD_URL=os.getenv("DASHBOARD_URL","https://multibot2-t74l.onrender.com/dashboard")
 class TelegramConfigurationError(RuntimeError): pass
@@ -42,7 +43,8 @@ def build_trade_fields(trade:PaperTrade):
 def signal_rejection_message(*,strategy,symbol,reason,detail=""):
     labels={"STALE_SIGNAL":"⏳ Signal is older than the 1-hour freshness limit.","DUPLICATE_SIGNAL_LIMIT":"🔁 Signal reached its two-send limit.","REMINDER_PENDING":"🔔 Initial signal already exists; reminder workflow owns the second send.","ACCOUNT_DAILY_LIMIT":"🛑 Account daily limit reached.","NO_DIRECTIONAL_SIGNAL":"💤 No BUY/SELL signal was produced."}; return TelegramMessage("MSG-SIGNAL-REJECTED-V1",f"⚠️ *SIGNAL NOT SENT*\n{BR}\n🧠 *Strategy:* `{strategy}`\n🪙 *Asset:* `{symbol}`\n📝 {labels.get(reason,detail or reason)}\n{BR2}")
 def trade_closed_message(trade,live,pnl,balance,is_long,hit_tp): return TelegramMessage("MSG-TRADE-CLOSED-V1",f"{'🟢' if pnl>=0 else '🔴'} *TRADE CLOSED*\n{BR}\n🧠 `{trade.plan.strategy}` · `{trade.plan.strategy_version}`\n🪙 `{trade.plan.entry}` → `{trade.exit_price}`\n💰 P&L: `₹{pnl:,.2f}`\n💼 Balance: `₹{balance:,.2f}`\n{BR2}")
-def msg_start(): return f"🤖 *MULTIBOT2 ONLINE*\n{BR}\n🧩 Plug-and-play strategy engine\n📡 Yahoo Finance\n🧪 PAPER ONLY\n📊 {len(LIVE_ASSET_MAP)} locked assets\n🌐 {DASHBOARD_URL}\n{BR2}"
+def msg_start(): return f"🤖 *MULTIBOT2 ONLINE*\n{BR}\n🧩 Plug-and-play strategy engine\n📡 Yahoo Finance\n🧪 PAPER ONLY\n📊 {len(LIVE_ASSET_MAP)} locked assets\n🆕 Latest release: `/whatsnew`\n🌐 {DASHBOARD_URL}\n{BR2}"
+def msg_whats_new(): return telegram_whats_new()
 def msg_scan_started(): return f"🔍 *SCAN STARTED*\n{BR}\n🧩 Running discovered strategy plug-ins\n📊 {len(LIVE_ASSET_MAP)} locked live assets\n⏳ Please wait...\n{BR2}"
 def msg_scan_result(found,checked): return f"🔎 *SCAN COMPLETE*\n{BR}\n📊 Evaluations: `{checked}`\n🎯 New signals: `{found}`\n{BR2}"
 def msg_balance(accounts): return f"💰 *ACCOUNT BALANCE*\n{BR}\n"+"\n".join(f"🏢 `{a.name}` · ₹{a.balance:,.2f} · {a.remaining_trades} trades left" for a in accounts.values())+f"\n{BR2}"
@@ -61,4 +63,4 @@ def send_message(message,config):
     data=parse.urlencode({"chat_id":config.chat_id,"text":message.text,"parse_mode":"Markdown"}).encode(); req=request.Request(f"https://api.telegram.org/bot{config.bot_token}/sendMessage",data=data,method="POST",headers={"Content-Type":"application/x-www-form-urlencoded"})
     with request.urlopen(req,timeout=15) as response:
         if response.status!=200: raise RuntimeError(f"Telegram API request failed: HTTP {response.status}")
-__all__=["TelegramConfig","TelegramMessage","TelegramConfigurationError","TelegramTemplateError","signal_message_type","render_signal_message","send_message","signal_rejection_message","trade_closed_message","msg_start","msg_scan_started","msg_scan_result","msg_balance","msg_summary","msg_risk","msg_stats","msg_weekly","msg_test","msg_news_pause","msg_news_refresh","msg_backtest","msg_error","reminder_message","build_trade_fields"]
+__all__=["TelegramConfig","TelegramMessage","TelegramConfigurationError","TelegramTemplateError","signal_message_type","render_signal_message","send_message","signal_rejection_message","trade_closed_message","msg_start","msg_whats_new","msg_scan_started","msg_scan_result","msg_balance","msg_summary","msg_risk","msg_stats","msg_weekly","msg_test","msg_news_pause","msg_news_refresh","msg_backtest","msg_error","reminder_message","build_trade_fields"]
