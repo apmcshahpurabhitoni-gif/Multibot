@@ -71,6 +71,7 @@ def test_dashboard_uses_canonical_calendar_and_history_placement():
     assert 'page-trades' not in HTML
     assert 'state.activePage==="calendar"' in APP
 
+
 def test_dashboard_resolves_friendly_names_and_canonical_signal_presentation():
     assert 'function assetLabel' in APP
     assert 'function strategyLabel' in APP
@@ -89,6 +90,7 @@ def test_dashboard_contract_uses_date_grouped_signals_without_filters():
     assert 'renderSignalDateGroups' in APP
     assert 'canonicalSignals' in APP
 
+
 def test_dashboard_contract_exposes_directional_signal_summary():
     source=(ROOT / "dashboard.py").read_text(encoding="utf-8")
     assert 'signal_summary' in source
@@ -101,7 +103,6 @@ def test_dashboard_runtime_keeps_core_functions_after_ui_cleanup():
     for token in required:
         assert token in APP
     assert APP.index("function bindEvents") < APP.index("loadDashboard();")
-
 
 
 def test_dashboard_selector_helpers_and_bootstrap_cannot_block_runtime():
@@ -161,7 +162,8 @@ def test_backtest_ratio_metrics_are_bounded():
     source=(ROOT / "backtest.py").read_text(encoding="utf-8")
     assert "def _bounded_ratio" in source
     assert "return 10.0 if mean>0 else 0.0" in source
-    assert "risk_adjusted_performance" in source\n
+    assert "risk_adjusted_performance" in source
+
 
 def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scrollable():
     for token in (
