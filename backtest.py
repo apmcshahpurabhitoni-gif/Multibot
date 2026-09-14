@@ -22,16 +22,24 @@ class BacktestResult:
     strategy: str; strategy_version: str; symbol: str; starting_account: float
     signals: tuple[Signal,...]; trades: tuple[BacktestTrade,...]; metrics: BacktestMetrics; parameters: dict
 
+def _bounded_ratio(value, limit=10.0):
+    if not math.isfinite(value): return limit if value>0 else -limit
+    return float(max(-limit,min(limit,value)))
+
 def _annualized_sharpe(returns):
-    if len(returns)<2 or returns.std(ddof=1)==0: return 0.0
-    return float(returns.mean()/returns.std(ddof=1)*math.sqrt(252))
+    if len(returns)<2: return 0.0
+    deviation=float(returns.std(ddof=1))
+    if not math.isfinite(deviation) or deviation<=1e-12: return 0.0
+    return _bounded_ratio(float(returns.mean()/deviation*math.sqrt(252)))
 
 def _sortino(returns):
     if len(returns)<2: return 0.0
+    mean=float(returns.mean())
     downside=returns[returns<0]
-    if len(downside)==0: return float("inf") if returns.mean()>0 else 0.0
-    d=downside.std(ddof=1) if len(downside)>1 else abs(float(downside.iloc[0]))
-    return float(returns.mean()/d*math.sqrt(252)) if d else 0.0
+    if len(downside)==0: return 10.0 if mean>0 else 0.0
+    d=float(downside.std(ddof=1)) if len(downside)>1 else abs(float(downside.iloc[0]))
+    if not math.isfinite(d) or d<=1e-12: return 10.0 if mean>0 else 0.0
+    return _bounded_ratio(float(mean/d*math.sqrt(252)))
 
 def score_metrics(metrics_raw):
     # Transparent bounded component score. Extremes are capped to avoid one metric dominating.
@@ -86,7 +94,7 @@ def backtest_strategy(strategy, symbol, candles, *, account=None, parameters=Non
     for x in pnls: streak=streak+1 if x<0 else 0; max_streak=max(max_streak,streak)
     exposure=min(100,exposure_bars/max(1,len(candles))*100)
     raw={"return_pct":(equity/ACCOUNT_SIZE_INR-1)*100,"max_drawdown_pct":max_dd,"sharpe":_annualized_sharpe(returns),"sortino":_sortino(returns),"win_rate_pct":win_rate,"profit_factor":pf,"number_of_trades":len(trades),"average_trade":avg,"max_losing_streak":max_streak,"exposure_pct":exposure}
-    raw["risk_adjusted_performance"]=max(0,raw["sharpe"])*max(0,raw["sortino"])
+    raw["risk_adjusted_performance"]=min(100.0,max(0,raw["sharpe"])*max(0,raw["sortino"]))
     rating,label,breakdown=score_metrics(raw)
     metrics=BacktestMetrics(raw["return_pct"],raw["max_drawdown_pct"],raw["sharpe"],raw["sortino"],raw["win_rate_pct"],raw["profit_factor"],raw["number_of_trades"],raw["average_trade"],raw["max_losing_streak"],raw["exposure_pct"],raw["risk_adjusted_performance"],rating,label,breakdown)
     return BacktestResult(strategy.manifest.name,strategy.manifest.version,symbol,ACCOUNT_SIZE_INR,tuple(signals),tuple(trades),metrics,parameters or strategy.validate_config({}))

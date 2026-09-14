@@ -128,7 +128,12 @@ def _backtest_payload(strategy,symbol,period):
     sell_signals = sum(sig.direction == "SELL" for sig in directional)
     trades_taken = int(m.number_of_trades)
     planned_risk = float(trades_taken * RISK_PER_TRADE_INR)
-    return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"buy_signals":buy_signals,"sell_signals":sell_signals,"trades_taken":trades_taken,"planned_risk":planned_risk,"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"generated_at":now().isoformat()}
+    equity = float(result.starting_account)
+    equity_curve = [{"timestamp": frame.index[0].isoformat() if len(frame) else now().isoformat(), "equity": equity}]
+    for trade in result.trades:
+        equity += float(trade.pnl)
+        equity_curve.append({"timestamp": trade.timestamp.isoformat(), "equity": round(equity, 2)})
+    return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"buy_signals":buy_signals,"sell_signals":sell_signals,"trades_taken":trades_taken,"planned_risk":planned_risk,"equity_curve":equity_curve,"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"trades":[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"entry":x.entry,"exit":x.exit,"pnl":x.pnl,"bars_held":x.bars_held} for x in result.trades][-200:],"generated_at":now().isoformat()}
 def _scan_snapshot():
     """Return one dashboard contract with aggregate and per-strategy scan state."""
     with LOCK:
