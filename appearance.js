@@ -1,11 +1,22 @@
 "use strict";
 
-// Presentation-only bridge for the existing appearance system.
-// app.js owns the canonical theme/style state and persistence.
+// Appearance controls deliberately stay independent from page/runtime logic.
+// app.js remains the owner of initial state; this binds the style controls
+// directly so they cannot fail because of a non-global function dependency.
 document.addEventListener("DOMContentLoaded",()=>{
+  const root=document.documentElement;
+  const sync=()=>{
+    document.querySelectorAll("[data-style-choice]").forEach(button=>{
+      button.classList.toggle("active",button.dataset.styleChoice===root.dataset.style);
+    });
+  };
   document.querySelectorAll("[data-style-choice]").forEach(button=>{
     button.addEventListener("click",()=>{
-      if(typeof window.applyStyle==="function") window.applyStyle(button.dataset.styleChoice);
+      const style=button.dataset.styleChoice==="neo"?"neo":"modern";
+      root.dataset.style=style;
+      localStorage.setItem("mavis-style",style);
+      sync();
     });
   });
+  sync();
 });
