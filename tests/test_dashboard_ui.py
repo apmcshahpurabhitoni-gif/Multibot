@@ -161,4 +161,22 @@ def test_backtest_ratio_metrics_are_bounded():
     source=(ROOT / "backtest.py").read_text(encoding="utf-8")
     assert "def _bounded_ratio" in source
     assert "return 10.0 if mean>0 else 0.0" in source
-    assert "risk_adjusted_performance" in source
+    assert "risk_adjusted_performance" in source\n
+
+def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scrollable():
+    for token in (
+        '--section-gap',
+        '--card-pad',
+        '.signals-workspace',
+        '.history-workspace',
+        '.calendar-workspace',
+        '.tool-card',
+        '.backtest-section',
+        '.backtest-trades',
+        '.backtest-signal-list',
+        'max-height:560px',
+        'overflow-y:auto',
+        'min-width:0',
+        'overflow-wrap:anywhere',
+    ):
+        assert token in CSS
