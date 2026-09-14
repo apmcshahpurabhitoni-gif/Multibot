@@ -1,9 +1,13 @@
 """Verify release documentation mirrors the canonical release source."""
 from __future__ import annotations
 from pathlib import Path
-from release_notes import APP_VERSION, RELEASE_HIGHLIGHTS
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from release_notes import APP_VERSION, RELEASE_HIGHLIGHTS
+
 
 def expected_block() -> str:
     return "\n".join(f"- {item}" for item in RELEASE_HIGHLIGHTS)
