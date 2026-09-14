@@ -38,7 +38,7 @@ Dashboard and Telegram consume the same canonical release highlights. `WHATS_NEW
 - 📱 Mobile navigation and page cards were reduced for less visual clutter while preserving the five existing destinations.
 - 💾 Production market-data cache now verifies Supabase health and reuses persistent Yahoo candles across restarts.
 - 📡 Yahoo rate-limit backoff is isolated per symbol and cached data is reused during backoff when available.
-- 🧹 Runtime artifacts such as `__pycache__`, `.pyc` files and local state databases are excluded from merge history.
+- 🧹 Runtime artifacts such as __pycache__, .pyc files and local state databases are excluded from merge history.
 - 📚 Release information now has one canonical source shared by Dashboard, Telegram and generated repository documentation.
 
 ---
@@ -464,4 +464,4 @@ For strategy-only work, give it:
 🎨 Presentation separated from trading logic
 ```
 
-**MULTIBOT2 v3.2.0 — built to add strategies without rebuilding the bot.** 🚀
+**MULTIBOT2 v3.2.5 — modular paper trading with canonical market data, professional research UI and a single release source.** 🚀
