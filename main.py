@@ -12,7 +12,7 @@ from news import NewsService
 from reminders import ReminderService
 from strategy_service import StrategyService
 from strategies import discover_strategies
-from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_stats, msg_summary, msg_test, msg_weekly, send_message
+from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
 from trading import AccountState
 from trade_monitor import TradeMonitor
 from strategy_scheduler import StrategyScheduler
@@ -256,6 +256,7 @@ def _handle_command(chat_id,cmd):
     global NEWS_PAUSE_ENABLED
     try:
         if cmd in ("/start","/menu"): _send_chat(chat_id,msg_start())
+        elif cmd=="/whatsnew": _send_chat(chat_id,msg_whats_new())
         elif cmd in ("/check","/scan"): _send_chat(chat_id,msg_scan_started()); results=run_all_cycles(send=True,force=True); _send_chat(chat_id,msg_scan_result(sum(r.sent for r in results),sum(len(st.manifest.assets) for st in REGISTRY.all())))
         elif cmd=="/balance": _send_chat(chat_id,msg_balance(ACCOUNTS))
         elif cmd=="/summary": _send_chat(chat_id,msg_summary(DB.load_trades("OPEN"),DB.load_trades("CLOSED")))
