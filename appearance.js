@@ -38,18 +38,8 @@
       button.addEventListener("click",()=>applyStyle(button.dataset.styleChoice));
     });
 
-    // Theme choices are optional and can be injected by this bridge. Header
-    // themeToggle remains exclusively owned by app.js, preventing double flips.
-    document.querySelectorAll("[data-theme-choice]").forEach(button=>{
-      if(button.dataset.appearanceBound==="true")return;
-      button.dataset.appearanceBound="true";
-      button.addEventListener("click",()=>{
-        const theme=button.dataset.themeChoice==="dark"?"dark":"light";
-        if(typeof window.applyTheme==="function")window.applyTheme(theme);
-        else{root.dataset.theme=theme;storage.setItem("mavis-theme",theme);sync();}
-      });
-    });
-
+    // Theme choice state is synchronized here; click ownership stays with the
+    // main runtime controller so a single user action cannot be applied twice.
     sync();
   };
 
