@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS signal_events(signal_id TEXT PRIMARY KEY,signal_key T
 CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signal_id TEXT NOT NULL,channel TEXT NOT NULL,status TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT,message_type TEXT,metadata TEXT);
 CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS market_data_cache(cache_key TEXT PRIMARY KEY,symbol TEXT NOT NULL,period TEXT NOT NULL,interval TEXT NOT NULL,validate_hourly INTEGER NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
--- Canonical signal identity: one lifecycle row per signal_key, updated as it moves through the pipeline.
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
@@ -49,10 +48,8 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             with request.urlopen(request.Request(url,data=body,headers=headers,method=method),timeout=10) as response:
                 raw=response.read().decode(); return json.loads(raw) if raw else True
         except error.HTTPError as exc:
-            try:
-                detail=exc.read().decode("utf-8","replace").strip()
-            except Exception:
-                detail=""
+            try: detail=exc.read().decode("utf-8","replace").strip()
+            except Exception: detail=""
             suffix=f" | response: {detail}" if detail else ""
             raise DatabaseError(f"Supabase {method} {table} failed: HTTP {exc.code} {exc.reason}{suffix}") from exc
         except (error.URLError,TimeoutError,ValueError) as exc:
@@ -62,19 +59,66 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         if self.supabase_enabled and result is None: raise DatabaseError(f"Supabase persistence failed during {operation}")
 
     def _restore_from_supabase_if_needed(self):
-        # Local runtime cache is restored only for legacy account/trade/send tables.
         if not self.supabase_enabled:return
-        with self._connect() as c:
-            if any(c.execute(f"SELECT 1 FROM {t} LIMIT 1").fetchone() for t in ("accounts","trades","signals")): return
-        self._restore_accounts(); self._restore_trades(); self._restore_signals()
+        # Restore each durable domain independently. The old implementation returned
+        # as soon as accounts/trades/signals contained one row, which meant signal_events
+        # disappeared after a fresh deployment even though they were stored remotely.
+        self._restore_accounts_if_needed()
+        self._restore_trades_if_needed()
+        self._restore_signals_if_needed()
+        self._restore_signal_events_if_needed()
+        self._restore_deliveries_if_needed()
 
-    def _restore_accounts(self):
+    def _restore_accounts_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM accounts LIMIT 1").fetchone(): return
         rows=self._supabase_request("GET","accounts",params="select=*") or []
         with self._connect() as c:
             for r in rows:
                 if not r.get("name"):continue
-                c.execute("INSERT OR REPLACE INTO accounts VALUES(?,?,?,?,?,?)",(r["name"],float(r.get("starting_balance",100000) or 100000),float(r.get("balance",100000) or 100000),int(r.get("daily_trades",r.get("trades_today",0)) or 0),float(r.get("planned_risk_used",0) or 0),str(r.get("last_reset_date",r.get("reset_date","")) or "")))
+                c.execute("INSERT OR IGNORE INTO accounts VALUES(?,?,?,?,?,?)",(r["name"],float(r.get("starting_balance",100000) or 100000),float(r.get("balance",100000) or 100000),int(r.get("daily_trades",r.get("trades_today",0)) or 0),float(r.get("planned_risk_used",0) or 0),str(r.get("last_reset_date",r.get("reset_date","")) or "")))
             c.commit()
+
+    def _restore_trades_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM trades LIMIT 1").fetchone(): return
+        self._restore_trades()
+
+    def _restore_signals_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM signals LIMIT 1").fetchone(): return
+        self._restore_signals()
+
+    def _restore_signal_events_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM signal_events LIMIT 1").fetchone(): return
+        rows=self._supabase_request("GET","signal_events",params="select=*") or []
+        with self._connect() as c:
+            for r in rows:
+                sid=str(r.get("signal_id","") or ""); key=str(r.get("signal_key","") or "")
+                if not sid or not key: continue
+                metadata=r.get("metadata") or {}
+                if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
+                c.execute("INSERT OR IGNORE INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(
+                    sid,key,str(r.get("strategy","")),str(r.get("version","")),str(r.get("symbol","")),str(r.get("direction","NO_SIGNAL")),
+                    str(r.get("timestamp","")),str(r.get("timeframe","")),str(r.get("reason","")),str(r.get("pipeline_status","GENERATED")),
+                    metadata,str(r.get("created_at") or r.get("timestamp") or ""),str(r.get("updated_at") or r.get("created_at") or r.get("timestamp") or "")))
+            c.commit()
+
+    def _restore_deliveries_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM deliveries LIMIT 1").fetchone(): return
+        rows=self._supabase_request("GET","signal_deliveries",params="select=*&order=attempted_at.asc") or []
+        with self._connect() as c:
+            for r in rows:
+                metadata=r.get("metadata") or {}
+                if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
+                c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(
+                    str(r.get("signal_id","")),str(r.get("channel","")),str(r.get("status","")),str(r.get("attempted_at") or ""),r.get("error"),r.get("message_type"),metadata))
+            c.commit()
+
+    def _restore_accounts(self):
+        self._restore_accounts_if_needed()
 
     def _restore_trades(self):
         for table,status in (("active_trades","OPEN"),("closed_trades","CLOSED")):
@@ -129,34 +173,22 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         return [json.loads(x["payload"]) for x in rows]
 
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
-        """Create or update the single canonical lifecycle row for a signal identity."""
         ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
-        # Persist the canonical signal levels with the lifecycle event.  The dashboard,
-        # Telegram and future consumers must read the same signal facts rather than
-        # reconstructing them from strategy-specific metadata.
-        metadata.update({
-            "entry": getattr(signal,"entry",None),
-            "stop_loss": getattr(signal,"stop_loss",None),
-            "take_profit": getattr(signal,"take_profit",None),
-        })
+        metadata.update({"entry":getattr(signal,"entry",None),"stop_loss":getattr(signal,"stop_loss",None),"take_profit":getattr(signal,"take_profit",None)})
         with self._connect() as c:
             existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
-            if existing:
-                signal_id=str(existing["signal_id"])
+            if existing: signal_id=str(existing["signal_id"])
         remote_existing=None
         if self.supabase_enabled and not existing:
             rows=self._supabase_request("GET","signal_events",params=parse.urlencode({"signal_key":f"eq.{signal_key}","select":"signal_id,created_at"})) or []
             remote_existing=rows[0] if rows else None
-            if remote_existing:
-                signal_id=str(remote_existing["signal_id"])
+            if remote_existing: signal_id=str(remote_existing["signal_id"])
         created_at=(existing["created_at"] if existing else (remote_existing.get("created_at") if remote_existing else ts))
         with self._connect() as c:
             if existing:
-                c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",
-                    (signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key))
+                c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key))
             else:
-                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts)
-                c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
+                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts); c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
             c.commit()
         if self.supabase_enabled:
             data={"signal_id":signal_id,"signal_key":signal_key,"strategy":signal.strategy,"version":signal.version,"symbol":signal.symbol,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"timeframe":signal.timeframe,"reason":signal.reason,"pipeline_status":pipeline_status,"metadata":metadata,"created_at":created_at,"updated_at":ts}
@@ -182,9 +214,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
 
     def failed_deliveries(self,limit=20):
         with self._connect() as c:
-            rows=c.execute("""SELECT d.* FROM deliveries d
-                JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest
-                ON latest.max_id=d.id WHERE d.status='FAILED' ORDER BY d.id LIMIT ?""",(int(limit),)).fetchall()
+            rows=c.execute("""SELECT d.* FROM deliveries d JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest ON latest.max_id=d.id WHERE d.status='FAILED' ORDER BY d.id LIMIT ?""",(int(limit),)).fetchall()
         out=[]
         for r in rows:
             item=dict(r)
@@ -194,34 +224,24 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         return out
 
     def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
-        """Save cache locally first. Remote cache is best-effort and can never fail a scan."""
         row=(cache_key,symbol,period,interval,int(bool(validate_hourly)),payload,updated_at)
         with self._connect() as c:
-            c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",row)
-            c.commit()
+            c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",row); c.commit()
         if not self.supabase_enabled:return
-        try:
-            self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
-        except DatabaseError as exc:
-            logger = __import__("logging").getLogger(__name__)
-            logger.warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
+        try:self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
+        except DatabaseError as exc: __import__("logging").getLogger(__name__).warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
 
     def market_data_cache_health(self):
         if not self.supabase_enabled:return {"enabled":False,"remote":False,"reason":"SUPABASE_NOT_CONFIGURED"}
-        try:
-            self._supabase_request("GET","market_data_cache",params="select=cache_key&limit=1")
-            return {"enabled":True,"remote":True,"reason":"OK"}
-        except DatabaseError as exc:
-            return {"enabled":True,"remote":False,"reason":str(exc)}
+        try:self._supabase_request("GET","market_data_cache",params="select=cache_key&limit=1"); return {"enabled":True,"remote":True,"reason":"OK"}
+        except DatabaseError as exc:return {"enabled":True,"remote":False,"reason":str(exc)}
 
     def load_market_data_cache(self,cache_key):
         with self._connect() as c: row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
         if row:return dict(row)
         if self.supabase_enabled:
             try: rows=self._supabase_request("GET","market_data_cache",params=parse.urlencode({"cache_key":f"eq.{cache_key}","select":"*"})) or []
-            except DatabaseError as exc:
-                __import__("logging").getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc)
-                return None
+            except DatabaseError as exc: __import__("logging").getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc); return None
             if rows:
                 r=rows[0]; payload=r.get("payload") or {}
                 if not isinstance(payload,str): payload=json.dumps(payload,separators=(",",":"),default=str)
@@ -249,8 +269,6 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             except Exception: metadata={}
             item={k:r[k] for k in ("signal_id","signal_key","strategy","version","symbol","direction","timestamp","timeframe","reason","pipeline_status","created_at","updated_at")}
             item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata
-            # Flatten canonical levels for the dashboard contract while retaining the
-            # full metadata payload for diagnostics and backward compatibility.
             item["entry"]=metadata.get("entry"); item["stop_loss"]=metadata.get("stop_loss"); item["take_profit"]=metadata.get("take_profit")
             item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"]); out.append(item)
         return out
