@@ -55,7 +55,7 @@ create unique index if not exists signal_events_key_uidx on public.signal_events
 create index if not exists signal_events_timestamp_idx on public.signal_events(timestamp desc);
 create index if not exists signal_deliveries_signal_idx on public.signal_deliveries(signal_id,attempted_at desc);
 
-create table if not exists public.scan_runs(id text primary key,strategy_id text not null,started_at timestamptz not null,finished_at timestamptz,status text not null,payload jsonb not null default '{}'::jsonb);
+CREATE TABLE IF NOT EXISTS public.scan_runs(id text primary key,strategy_id text not null,started_at timestamptz not null,finished_at timestamptz,status text not null,payload jsonb not null default '{}'::jsonb);
 create index if not exists scan_runs_started_idx on public.scan_runs(started_at desc);
 
 -- Runtime-aligned durable Yahoo cache. These columns exactly match DatabaseManager.save_market_data_cache().
