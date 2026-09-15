@@ -8,10 +8,51 @@
 - ₹100,000 starting account.
 - ₹2,000 maximum risk per trade.
 - 1× leverage.
-- Exactly 19 live assets.
+- Exactly 25 live assets.
 - Supabase authoritative; SQLite fallback.
 - Signal freshness exactly 1 hour.
 - Maximum two Telegram sends per signal identity.
+
+## Live universe
+
+### NSE stocks
+
+- RELIANCE
+- BHARTIARTL
+- HDFCBANK
+- ICICIBANK
+- SBIN
+- TCS
+- BAJFINANCE
+- LT
+- LICI
+- SUNPHARMA
+- HINDUNILVR
+- INFY
+- TITAN
+- MARUTI
+- KOTAKBANK
+
+### Indices
+
+- ^NSEI
+- ^NSEBANK
+
+### Global
+
+- GC=F — Gold (XAU/USD)
+- BTC-USD — Bitcoin (BTC)
+
+### Forex
+
+- EURUSD=X — EUR/USD
+- GBPUSD=X — GBP/USD
+- AUDUSD=X — AUD/USD
+- USDJPY=X — USD/JPY
+- NZDUSD=X — NZD/USD
+- EURJPY=X — EUR/JPY
+
+All six Forex pairs are 4H Sweep assets and use the canonical global 4H schedule: 02:30, 06:30, 10:30, 14:30, 18:30, 22:30 IST.
 
 ## Strategies
 
@@ -31,7 +72,8 @@
 - Strict two-sided sweep + final-close classification.
 - BUY / SELL / NEUTRAL.
 - Market entry, sweep extreme SL, 1:2 TP.
-- Canonical schedules remain unchanged.
+- Uses the full 25-asset live universe.
+- Canonical schedules remain unchanged; Forex follows the Gold/global 4H schedule.
 
 ## Plug-in architecture
 
