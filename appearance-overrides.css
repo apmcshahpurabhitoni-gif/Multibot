@@ -1,56 +1,21 @@
-/* Final appearance contract: compact header + real Neo Brutalism. */
+/* Ponytail appearance contract: presentation only, no runtime behavior changes. */
 .topbar .header-meta{display:flex;align-items:center;flex-wrap:nowrap;gap:6px}
-.topbar .icon-button{
-  width:34px!important;height:34px!important;min-width:34px!important;
-  min-height:34px!important;padding:0!important;flex:0 0 34px;
-  border-radius:9px;line-height:1;font-size:17px
-}
+.topbar .icon-button{width:34px;height:34px;min-width:34px;min-height:34px!important;padding:0!important;flex:0 0 34px;border:2px solid var(--line-strong)!important;border-radius:3px;line-height:1;font-size:17px}
 .appearance-style-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .appearance-option{min-height:74px!important;padding:12px 14px!important}
 .appearance-option b{display:block;font-size:13px}.appearance-option small{display:block;margin-top:5px}
-html[data-style="neo"]{
-  --radius:4px;
-  --radius-sm:2px;
-  --shadow-soft:4px 4px 0 var(--line-strong);
-}
-html[data-style="neo"] .metric-card,
-html[data-style="neo"] .chart-card,
-html[data-style="neo"] .section-block,
-html[data-style="neo"] .tool-card,
-html[data-style="neo"] .signals-workspace,
-html[data-style="neo"] .history-workspace,
-html[data-style="neo"] .calendar-workspace,
-html[data-style="neo"] .appearance-option{
-  border:2px solid var(--line-strong)!important;
-  border-radius:3px!important;
-  box-shadow:4px 4px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .primary-button,
-html[data-style="neo"] .secondary-button,
-html[data-style="neo"] .icon-button{
-  border:2px solid var(--line-strong)!important;
-  border-radius:3px!important;
-  box-shadow:3px 3px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .primary-button:active,
-html[data-style="neo"] .secondary-button:active,
-html[data-style="neo"] .icon-button:active,
-html[data-style="neo"] .appearance-option:active{
-  transform:translate(2px,2px);
-  box-shadow:1px 1px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .appearance-option.active{
-  background:var(--accent-soft)!important;
-  outline:2px solid var(--accent);
-  outline-offset:-4px;
-}
-@media(max-width:560px){
-  .topbar .header-meta{gap:5px}
-  .topbar .version-badge{display:none}
-  .topbar .status-badge{min-height:28px;padding:5px 7px}
-  .topbar .icon-button{
-    width:32px!important;height:32px!important;min-width:32px!important;
-    min-height:32px!important;flex-basis:32px
-  }
-  .appearance-style-grid{grid-template-columns:1fr}
-}
+html[data-style="neo"]{--radius:4px;--radius-sm:2px;--shadow-soft:4px 4px 0 var(--line-strong)}
+html[data-style="neo"] .topbar,html[data-style="neo"] .desktop-nav,html[data-style="neo"] .mobile-nav,html[data-style="neo"] .hero,html[data-style="neo"] .metric-card,html[data-style="neo"] .chart-card,html[data-style="neo"] .section-block,html[data-style="neo"] .tool-card,html[data-style="neo"] .signals-workspace,html[data-style="neo"] .history-workspace,html[data-style="neo"] .calendar-workspace,html[data-style="neo"] .appearance-option,html[data-style="neo"] .backtest-results,html[data-style="neo"] .backtest-chart-panel,html[data-style="neo"] .box,html[data-style="neo"] .signal-card,html[data-style="neo"] .trade-card,html[data-style="neo"] .news-item,html[data-style="neo"] .news-health{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .primary-button,html[data-style="neo"] .secondary-button,html[data-style="neo"] .icon-button,html[data-style="neo"] .text-button,html[data-style="neo"] .nav-button,html[data-style="neo"] .filter-button,html[data-style="neo"] .impact-filter,html[data-style="neo"] .expand-button,html[data-style="neo"] .settings-toggle{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:3px 3px 0 var(--line-strong)!important}
+html[data-style="neo"] .text-button{padding:7px 9px;background:var(--surface)!important}
+html[data-style="neo"] .nav-button.active,html[data-style="neo"] .filter-button.active,html[data-style="neo"] .impact-filter.active{background:var(--accent)!important;color:var(--bg)!important;border-color:var(--line-strong)!important}
+html[data-style="neo"] .primary-button{background:var(--accent)!important;color:var(--bg)!important}
+html[data-style="neo"] .appearance-option.active,html[data-style="neo"] .settings-toggle.active{background:var(--accent-soft)!important;outline:2px solid var(--accent);outline-offset:-4px}
+html[data-style="neo"] .primary-button:hover,html[data-style="neo"] .secondary-button:hover,html[data-style="neo"] .icon-button:hover,html[data-style="neo"] .text-button:hover,html[data-style="neo"] .nav-button:hover,html[data-style="neo"] .filter-button:hover,html[data-style="neo"] .impact-filter:hover,html[data-style="neo"] .expand-button:hover,html[data-style="neo"] .settings-toggle:hover,html[data-style="neo"] .appearance-option:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .primary-button:active,html[data-style="neo"] .secondary-button:active,html[data-style="neo"] .icon-button:active,html[data-style="neo"] .text-button:active,html[data-style="neo"] .nav-button:active,html[data-style="neo"] .filter-button:active,html[data-style="neo"] .impact-filter:active,html[data-style="neo"] .expand-button:active,html[data-style="neo"] .settings-toggle:active,html[data-style="neo"] .appearance-option:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important}
+html[data-style="neo"] input,html[data-style="neo"] select{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:2px 2px 0 var(--line-strong)!important;background:var(--surface)!important}
+html[data-style="neo"] .metric-card strong,html[data-style="neo"] .tool-card h2,html[data-style="neo"] .section-block h2,html[data-style="neo"] .page-heading h1{font-weight:950}
+html[data-style="neo"] [data-style-choice],html[data-style="neo"] [data-theme-choice],html[data-style="neo"] button{cursor:pointer}
+html[data-reduce-motion="on"] *,html[data-reduce-motion="on"] *::before,html[data-reduce-motion="on"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+html[data-compact="on"] .section-block,html[data-compact="on"] .tool-card{padding:14px!important}
+@media(max-width:560px){.topbar .header-meta{gap:5px}.topbar .version-badge{display:none}.topbar .status-badge{min-height:28px;padding:5px 7px}.topbar .icon-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px}.appearance-style-grid{grid-template-columns:1fr}}
