@@ -36,6 +36,7 @@ DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_even
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
 CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempted_at DESC);
+CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
 """); c.commit()
 
     def _supabase_request(self,method,table,*,params="",data=None,upsert=False):
@@ -60,14 +61,12 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
 
     def _restore_from_supabase_if_needed(self):
         if not self.supabase_enabled:return
-        # Restore each durable domain independently. The old implementation returned
-        # as soon as accounts/trades/signals contained one row, which meant signal_events
-        # disappeared after a fresh deployment even though they were stored remotely.
         self._restore_accounts_if_needed()
         self._restore_trades_if_needed()
         self._restore_signals_if_needed()
         self._restore_signal_events_if_needed()
         self._restore_deliveries_if_needed()
+        self._restore_scan_runs_if_needed()
 
     def _restore_accounts_if_needed(self):
         with self._connect() as c:
@@ -99,10 +98,7 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
                 if not sid or not key: continue
                 metadata=r.get("metadata") or {}
                 if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
-                c.execute("INSERT OR IGNORE INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(
-                    sid,key,str(r.get("strategy","")),str(r.get("version","")),str(r.get("symbol","")),str(r.get("direction","NO_SIGNAL")),
-                    str(r.get("timestamp","")),str(r.get("timeframe","")),str(r.get("reason","")),str(r.get("pipeline_status","GENERATED")),
-                    metadata,str(r.get("created_at") or r.get("timestamp") or ""),str(r.get("updated_at") or r.get("created_at") or r.get("timestamp") or "")))
+                c.execute("INSERT OR IGNORE INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(sid,key,str(r.get("strategy","")),str(r.get("version","")),str(r.get("symbol","")),str(r.get("direction","NO_SIGNAL")),str(r.get("timestamp","")),str(r.get("timeframe","")),str(r.get("reason","")),str(r.get("pipeline_status","GENERATED")),metadata,str(r.get("created_at") or r.get("timestamp") or ""),str(r.get("updated_at") or r.get("created_at") or r.get("timestamp") or "")))
             c.commit()
 
     def _restore_deliveries_if_needed(self):
@@ -113,12 +109,25 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
             for r in rows:
                 metadata=r.get("metadata") or {}
                 if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
-                c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(
-                    str(r.get("signal_id","")),str(r.get("channel","")),str(r.get("status","")),str(r.get("attempted_at") or ""),r.get("error"),r.get("message_type"),metadata))
+                c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(str(r.get("signal_id","")),str(r.get("channel","")),str(r.get("status","")),str(r.get("attempted_at") or ""),r.get("error"),r.get("message_type"),metadata))
             c.commit()
 
-    def _restore_accounts(self):
-        self._restore_accounts_if_needed()
+    def _restore_scan_runs_if_needed(self):
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM scan_runs LIMIT 1").fetchone(): return
+        rows=self._supabase_request("GET","scan_runs",params="select=*&order=started_at.desc") or []
+        with self._connect() as c:
+            for r in rows:
+                run_id=str(r.get("id","") or "")
+                strategy_id=str(r.get("strategy_id","") or "")
+                started_at=str(r.get("started_at","") or "")
+                if not run_id or not strategy_id or not started_at: continue
+                payload=r.get("payload") or {}
+                if not isinstance(payload,str): payload=json.dumps(payload,default=str)
+                c.execute("INSERT OR IGNORE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,r.get("finished_at"),str(r.get("status","UNKNOWN")),payload))
+            c.commit()
+
+    def _restore_accounts(self): self._restore_accounts_if_needed()
 
     def _restore_trades(self):
         for table,status in (("active_trades","OPEN"),("closed_trades","CLOSED")):
@@ -251,7 +260,10 @@ CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempt
         return None
 
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
+        data={"id":run_id,"strategy_id":strategy_id,"started_at":started_at,"finished_at":finished_at,"status":status,"payload":payload or {}}
         with self._connect() as c:c.execute("INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))); c.commit()
+        result=self._supabase_request("POST","scan_runs",data=data,upsert=True)
+        self._require_supabase(result,"scan run")
 
     def load_scan_runs(self,limit=50):
         with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
