@@ -95,7 +95,6 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="NSE",
         asset_type="index",
         group="NSE Indices",
-        currency="INR",
         sweep_timeframe="1H",
     ),
     AssetConfig(
@@ -105,7 +104,6 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="NSE",
         asset_type="index",
         group="NSE Indices",
-        currency="INR",
         sweep_timeframe="1H",
     ),
     AssetConfig(
@@ -154,6 +152,7 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
 LIVE_ASSET_MAP: Final[dict[str, AssetConfig]] = {
     asset.symbol: asset for asset in LIVE_ASSETS
 }
+
 
 LIVE_SYMBOLS: Final[tuple[str, ...]] = tuple(
     asset.symbol for asset in LIVE_ASSETS
@@ -341,6 +340,12 @@ def validate_configuration() -> None:
 
     if LIVE_ASSET_MAP[GOLD_SYMBOL].sweep_timeframe != "4H" or LIVE_ASSET_MAP[BITCOIN_SYMBOL].sweep_timeframe != "4H":
         raise ValueError("Global Sweep must be 4H")
+
+    if LIVE_ASSET_MAP["^NSEI"].sweep_timeframe != "1H":
+        raise ValueError("NIFTY 50 Sweep must be 1H")
+
+    if LIVE_ASSET_MAP["^NSEBANK"].sweep_timeframe != "1H":
+        raise ValueError("BANK NIFTY Sweep must be 1H")
 
     for symbol in FOREX_SYMBOLS:
         if LIVE_ASSET_MAP[symbol].market != "Forex" or LIVE_ASSET_MAP[symbol].asset_type != "forex" or LIVE_ASSET_MAP[symbol].sweep_timeframe != "4H":
