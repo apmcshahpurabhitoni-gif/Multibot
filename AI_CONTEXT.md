@@ -6,7 +6,7 @@ Purpose: this is the first document an AI or developer should read before changi
 
 MULTIBOT2 (Mavis) is a modular algorithmic paper-trading research and signal system.
 
-It uses Yahoo Finance only, scans a locked 19-asset universe, discovers strategy plug-ins, produces canonical signals, enforces completion/freshness/duplicate/risk gates, manages paper trades, persists state, sends Telegram messages, serves a mobile dashboard and supports backtesting.
+It uses Yahoo Finance only, scans a locked 25-asset universe, discovers strategy plug-ins, produces canonical signals, enforces completion/freshness/duplicate/risk gates, manages paper trades, persists state, sends Telegram messages, serves a mobile dashboard and supports backtesting.
 
 It does not place live broker orders.
 
@@ -29,7 +29,7 @@ It does not place live broker orders.
 - Paper mode only.
 - Yahoo Finance is the market-data provider.
 - Signal freshness is exactly 1 hour.
-- Exactly 19 live assets.
+- Exactly 25 live assets.
 - Starting account size is ₹100,000.
 - Base risk per trade is ₹2,000.
 - Leverage is 1x.
@@ -75,7 +75,7 @@ Adding a strategy should not require strategy-specific branches in main.py, Tele
 
 Current built-ins:
 - adaptive_trend: BTC-USD and Gold daily trend/momentum strategy.
-- sweep_v2: locked 19-asset sweep classification strategy with asset-specific schedules.
+- sweep_v2: locked 25-asset sweep classification strategy with asset-specific schedules.
 
 ## Market data and cache
 
@@ -178,6 +178,8 @@ UI rules:
 - use real equity curves;
 - do not invent fake data.
 
+The dashboard universe count and asset cards are presentation of the canonical runtime universe; do not maintain a second frontend asset list.
+
 ## Calendar
 
 news.py provides cache-first economic-calendar behavior centered on Forex Factory data.
@@ -258,7 +260,7 @@ signal_gate.py: freshness/duplicate gate
 signal_lifecycle.py: canonical lifecycle formatting
 backtest.py: research and metrics
 dashboard.py: dashboard payload
-dashboard.html: dashboard shell
+ dashboard.html: dashboard shell
 app.js: frontend rendering
 styles.css: shared UI system
 yahoo_provider.py: Yahoo provider/cache integration
@@ -267,7 +269,7 @@ db.py: Supabase/SQLite persistence
 telegram.py: Telegram adapter/messages
 news.py: economic calendar service
 calendar_store.py: durable calendar cache
-schema.sql: persistence schema
+schema.sql: persistence/cache schema
 tests/: regression contracts
 
 ## Final AI instruction
