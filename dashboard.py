@@ -12,11 +12,52 @@ def signal_to_dict(s):
         event=dict(s); return dashboard_signal(event,event.get("send_state"),event.get("delivery"))
     event={"strategy":s.strategy,"strategy_version":s.version,"version":s.version,"symbol":s.symbol,"signal":s.direction,"direction":s.direction,"timestamp":s.timestamp.isoformat(),"timeframe":s.timeframe,"reason":s.reason,"entry":s.entry,"stop_loss":s.stop_loss,"take_profit":s.take_profit,"metadata":s.metadata}
     return dashboard_signal(event)
+
 def trade_to_dict(t):
     if isinstance(t, dict): return dict(t)
-    p=t.plan; return {"status":t.status,"plan":{"strategy":p.strategy,"strategy_version":p.strategy_version,"side":p.side,"signal_timestamp":p.signal_timestamp.isoformat(),"timeframe":p.timeframe,"entry":p.entry,"stop_loss":p.stop_loss,"take_profit":p.take_profit,"risk_per_unit":p.risk_per_unit,"trailing_policy":p.trailing_policy},"quantity":t.quantity,"planned_risk":t.planned_risk,"exit_price":t.exit_price,"exit_timestamp":t.exit_timestamp.isoformat() if t.exit_timestamp else None,"exit_reason":t.exit_reason}
+    p=t.plan
+    return {
+        "id":getattr(t,"id",None),
+        "status":t.status,
+        "symbol":getattr(t,"symbol",None) or getattr(p,"symbol",None),
+        "label":getattr(t,"label",None),
+        "market":getattr(t,"market",None),
+        "asset_type":getattr(t,"asset_type",None),
+        "group":getattr(t,"group",None),
+        "account":getattr(t,"account",None),
+        "strategy":p.strategy,
+        "strategy_version":p.strategy_version,
+        "type":p.side,
+        "entry":p.entry,
+        "sl":p.stop_loss,
+        "tp":p.take_profit,
+        "qty":t.quantity,
+        "planned_risk":t.planned_risk,
+        "signal_ts":p.signal_timestamp.isoformat() if p.signal_timestamp else None,
+        "opened_at":getattr(t,"opened_at",None).isoformat() if getattr(t,"opened_at",None) else None,
+        "exit_price":t.exit_price,
+        "exit_timestamp":t.exit_timestamp.isoformat() if t.exit_timestamp else None,
+        "closed_at":getattr(t,"closed_at",None).isoformat() if getattr(t,"closed_at",None) else None,
+        "pnl":getattr(t,"pnl",None),
+        "result":getattr(t,"result",None),
+        "exit_reason":t.exit_reason,
+        "plan":{
+            "strategy":p.strategy,
+            "strategy_version":p.strategy_version,
+            "side":p.side,
+            "signal_timestamp":p.signal_timestamp.isoformat(),
+            "timeframe":p.timeframe,
+            "entry":p.entry,
+            "stop_loss":p.stop_loss,
+            "take_profit":p.take_profit,
+            "risk_per_unit":p.risk_per_unit,
+            "trailing_policy":p.trailing_policy,
+        },
+    }
+
 def account_to_dict(a: AccountState):
     return {"name":a.name,"starting_balance":a.starting_balance,"balance":a.balance,"planned_risk_used":a.planned_risk_used,"daily_trade_limit":a.daily_trade_limit,"max_daily_planned_risk":a.max_daily_planned_risk,"trades_today":a.trades_today,"remaining_trades":a.remaining_trades,"remaining_planned_risk":a.remaining_planned_risk}
+
 def build_dashboard_snapshot(*,version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=(),signals=(),trades=(),scan=None,health=None,strategies=()):
     sr=[signal_to_dict(x) for x in signals]; tr=[trade_to_dict(x) for x in trades]; ar=[account_to_dict(x) for x in accounts]
     directional=[x for x in sr if str(x.get("signal",x.get("direction",""))).upper() in {"BUY","SELL"}]
@@ -29,5 +70,8 @@ def build_dashboard_snapshot(*,version=APP_VERSION,whats_new=WHAT_IS_NEW,account
     catalog=[]
     for st in strategies:
         catalog.append({"id":st.manifest.id,"name":st.manifest.name,"version":st.manifest.version,"description":st.manifest.description,"assets":list(st.manifest.assets),"timeframes":list(st.manifest.timeframes),"schedule":st.manifest.schedule,"account":st.manifest.account,"capabilities":list(st.manifest.capabilities),"parameters":st.manifest.parameters})
-    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":pd.Timestamp.now(tz=IST_TIMEZONE).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS)},"universe":{"count":len(LIVE_ASSETS),"symbols":list(LIVE_SYMBOLS),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in LIVE_ASSETS]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(ACCOUNT_NAMES),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"scan_history":(scan or {}).get("history",[]),"health":health or {},"counts":{"signals":len(sr),"directional_signals":len(directional),"fresh_directional":len(fresh_directional),"stale_directional":len(stale_directional),"trades":len(tr),"open_trades":sum(str(x.get("status","")).upper()=="OPEN" for x in tr),"closed_trades":sum(str(x.get("status","")).upper()=="CLOSED" for x in tr)},"signal_summary":{"total_directional":len(directional),"fresh":len(fresh_directional),"stale":len(stale_directional),"delivery":delivery_counts,"latest":directional[0] if directional else None}}
+    open_trades=[x for x in tr if str(x.get("status","")).upper()=="OPEN"]
+    closed_trades=[x for x in tr if str(x.get("status","")).upper()=="CLOSED"]
+    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":pd.Timestamp.now(tz=IST_TIMEZONE).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS)},"universe":{"count":len(LIVE_ASSETS),"symbols":list(LIVE_SYMBOLS),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in LIVE_ASSETS]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(ACCOUNT_NAMES),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"scan_history":(scan or {}).get("history",[]),"health":health or {},"counts":{"signals":len(sr),"directional_signals":len(directional),"fresh_directional":len(fresh_directional),"stale_directional":len(stale_directional),"trades":len(tr),"open_trades":len(open_trades),"closed_trades":len(closed_trades)},"signal_summary":{"total_directional":len(directional),"fresh":len(fresh_directional),"stale":len(stale_directional),"delivery":delivery_counts,"latest":directional[0] if directional else None}}
+
 def empty_dashboard_snapshot(): return build_dashboard_snapshot()

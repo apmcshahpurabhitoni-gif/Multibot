@@ -1,57 +1,59 @@
 "use strict";
 
-// Presentation-only controller. Runtime, trading, backtest and API state stay
-// owned by app.js and the server.
-document.addEventListener("DOMContentLoaded",()=>{
+// Presentation-only bridge. app.js owns the existing header/theme/settings
+// controls; this file owns interface-style buttons and keeps the visual state
+// synchronized without registering duplicate click handlers.
+(function initAppearanceBridge(){
   const root=document.documentElement;
   const storage=window.localStorage;
-  const validTheme=value=>value==="dark"?"dark":"light";
   const validStyle=value=>value==="neo"?"neo":"modern";
-  const applyTheme=theme=>{root.dataset.theme=validTheme(theme);storage.setItem("mavis-theme",root.dataset.theme);sync();};
-  const applyStyle=style=>{root.dataset.style=validStyle(style);storage.setItem("mavis-style",root.dataset.style);sync();};
+
   const sync=()=>{
-    document.querySelectorAll("[data-theme-choice]").forEach(button=>{
-      const active=button.dataset.themeChoice===root.dataset.theme;
-      button.classList.toggle("active",active);
-      button.setAttribute("aria-pressed",String(active));
-    });
     document.querySelectorAll("[data-style-choice]").forEach(button=>{
       const active=button.dataset.styleChoice===root.dataset.style;
       button.classList.toggle("active",active);
       button.setAttribute("aria-pressed",String(active));
     });
-    document.querySelectorAll("[data-setting-state]").forEach(button=>{
-      const active=storage.getItem(`mavis-${button.dataset.settingState}`)==="true";
+    document.querySelectorAll("[data-theme-choice]").forEach(button=>{
+      const active=button.dataset.themeChoice===root.dataset.theme;
       button.classList.toggle("active",active);
       button.setAttribute("aria-pressed",String(active));
     });
   };
 
-  const savedTheme=storage.getItem("mavis-theme");
-  const savedStyle=storage.getItem("mavis-style");
-  if(savedTheme)root.dataset.theme=validTheme(savedTheme);
-  if(savedStyle)root.dataset.style=validStyle(savedStyle);
+  const applyStyle=style=>{
+    const value=validStyle(style);
+    root.dataset.style=value;
+    storage.setItem("mavis-style",value);
+    sync();
+  };
 
-  document.querySelectorAll("[data-theme-choice]").forEach(button=>button.addEventListener("click",()=>applyTheme(button.dataset.themeChoice)));
-  document.querySelectorAll("[data-style-choice]").forEach(button=>button.addEventListener("click",()=>applyStyle(button.dataset.styleChoice)));
+  const bind=()=>{
+    const savedStyle=storage.getItem("mavis-style");
+    if(savedStyle)root.dataset.style=validStyle(savedStyle);
 
-  const themeToggle=document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click",()=>applyTheme(root.dataset.theme==="dark"?"light":"dark"));
-
-  [["compactModeToggle","compact"],["reduceMotionToggle","reduce-motion"]].forEach(([id,key])=>{
-    const button=document.getElementById(id);
-    if(!button)return;
-    button.dataset.settingState=key;
-    button.addEventListener("click",()=>{
-      const next=storage.getItem(`mavis-${key}`)!=="true";
-      storage.setItem(`mavis-${key}`,String(next));
-      root.dataset[key]=next?"on":"off";
-      sync();
+    document.querySelectorAll("[data-style-choice]").forEach(button=>{
+      if(button.dataset.appearanceBound==="true")return;
+      button.dataset.appearanceBound="true";
+      button.addEventListener("click",()=>applyStyle(button.dataset.styleChoice));
     });
-  });
 
-  // Compatibility hook for the existing appearance bridge/tests. It remains
-  // presentation-only and never changes application/runtime state.
+    // Theme choices are optional and can be injected by this bridge. Header
+    // themeToggle remains exclusively owned by app.js, preventing double flips.
+    document.querySelectorAll("[data-theme-choice]").forEach(button=>{
+      if(button.dataset.appearanceBound==="true")return;
+      button.dataset.appearanceBound="true";
+      button.addEventListener("click",()=>{
+        const theme=button.dataset.themeChoice==="dark"?"dark":"light";
+        if(typeof window.applyTheme==="function")window.applyTheme(theme);
+        else{root.dataset.theme=theme;storage.setItem("mavis-theme",theme);sync();}
+      });
+    });
+
+    sync();
+  };
+
   window.applyStyle=applyStyle;
-  sync();
-});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});
+  else bind();
+})();
