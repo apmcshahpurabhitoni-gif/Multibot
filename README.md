@@ -17,7 +17,7 @@ MULTIBOT2 is a **paper-trading research and signal engine** designed around one 
 
 > 🧩 **Strategies should be replaceable. Core trading safety should not be.**
 
-The system scans a locked 19-asset universe using Yahoo Finance, evaluates independently discoverable strategy plug-ins, validates signals, applies freshness and duplicate controls, sizes trades using the locked risk model, persists state, sends Telegram notifications, and exposes operational data to the dashboard.
+The system scans a locked 25-asset universe using Yahoo Finance, evaluates independently discoverable strategy plug-ins, validates signals, applies freshness and duplicate controls, sizes trades using the locked risk model, persists state, sends Telegram notifications, and exposes operational data to the dashboard.
 
 It is deliberately **paper only**. It does not place live broker orders.
 
@@ -137,7 +137,7 @@ See `STRATEGY_DEVELOPER_GUIDE.md` for the exact workflow.
 | Strategy | Assets | Timeframe | Main job |
 |---|---|---|---|
 | 🧠 Adaptive Trend Momentum | BTC-USD, GC=F | 1D | Trend + momentum + breakout |
-| 🔎 Sweep V2 | 19-asset universe | Asset/schedule-defined | Liquidity sweep classification |
+| 🔎 Sweep V2 | 25-asset universe | Asset/schedule-defined | Liquidity sweep classification |
 
 Strategies are identified by stable IDs such as `adaptive_trend` and `sweep_v2`, while human-readable names and versions are carried separately.
 
@@ -296,7 +296,7 @@ This lets you answer:
 
 ## 🌐 Live universe
 
-Exactly **19 live assets** are configured:
+Exactly **25 live assets** are configured:
 
 ### 🇮🇳 NSE stocks
 
@@ -310,7 +310,13 @@ Exactly **19 live assets** are configured:
 
 `GC=F · BTC-USD`
 
-The universe is intentionally locked.
+### 💱 Forex
+
+`EURUSD=X · GBPUSD=X · AUDUSD=X · USDJPY=X · NZDUSD=X · EURJPY=X`
+
+All six Forex pairs are 4H Sweep assets and use the canonical global 4H schedule: **02:30 · 06:30 · 10:30 · 14:30 · 18:30 · 22:30 IST**.
+
+The universe is intentionally locked to this 25-asset list.
 
 ---
 
@@ -333,6 +339,8 @@ Sweep V2 remains a separate plug-in, but it uses the same core lifecycle.
 **Bitcoin:** 01:30 · 05:30 · 09:30 · 13:30 · 17:30 · 21:30 IST
 
 **Gold:** 02:30 · 06:30 · 10:30 · 14:30 · 18:30 · 22:30 IST
+
+**Forex:** 02:30 · 06:30 · 10:30 · 14:30 · 18:30 · 22:30 IST
 
 **NIFTY / BANK NIFTY:** 09:15 · 10:15 · 11:15 · 12:15 · 13:15 · 14:15 IST
 
