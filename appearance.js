@@ -46,8 +46,8 @@
 
     // Delegate style clicks so the controls remain live even if another
     // renderer replaces their DOM nodes after this bridge initializes.
-    if(!document.documentElement.dataset.appearanceStyleBound){
-      document.documentElement.dataset.appearanceStyleBound="true";
+    if(!root.dataset.appearanceBound){
+      root.dataset.appearanceBound="true";
       document.addEventListener("click",event=>{
         const button=event.target.closest("[data-style-choice]");
         if(!button)return;
