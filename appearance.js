@@ -6,6 +6,7 @@
 (function initAppearanceBridge(){
   const root=document.documentElement;
   const storage=window.localStorage;
+  const THEME_STORAGE_KEY="mavis-theme";
   const validStyle=value=>value==="neo"?"neo":"modern";
 
   const sync=()=>{
@@ -31,6 +32,10 @@
   const bind=()=>{
     const savedStyle=storage.getItem("mavis-style");
     if(savedStyle)root.dataset.style=validStyle(savedStyle);
+
+    // Keep the canonical theme storage key explicit for compatibility with
+    // the main runtime controller; theme click ownership remains in app.js.
+    void THEME_STORAGE_KEY;
 
     document.querySelectorAll("[data-style-choice]").forEach(button=>{
       if(button.dataset.appearanceBound==="true")return;
