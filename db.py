@@ -1,6 +1,6 @@
 """Durable runtime state and canonical signal lifecycle."""
 from __future__ import annotations
-import json, os, sqlite3
+import json, os, sqlite3, logging
 from datetime import datetime, timezone
 from urllib import error, parse, request
 
@@ -59,6 +59,11 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def _require_supabase(self,result,operation):
         if self.supabase_enabled and result is None: raise DatabaseError(f"Supabase persistence failed during {operation}")
 
+    @staticmethod
+    def _is_missing_scan_runs(exc):
+        text=str(exc)
+        return "scan_runs" in text and "PGRST205" in text
+
     def _restore_from_supabase_if_needed(self):
         if not self.supabase_enabled:return
         self._restore_accounts_if_needed()
@@ -115,7 +120,13 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def _restore_scan_runs_if_needed(self):
         with self._connect() as c:
             if c.execute("SELECT 1 FROM scan_runs LIMIT 1").fetchone(): return
-        rows=self._supabase_request("GET","scan_runs",params="select=*&order=started_at.desc") or []
+        try:
+            rows=self._supabase_request("GET","scan_runs",params="select=*&order=started_at.desc") or []
+        except DatabaseError as exc:
+            if self._is_missing_scan_runs(exc):
+                logging.getLogger(__name__).warning("Supabase scan history restore skipped: public.scan_runs is not available; using local scan history")
+                return
+            raise
         with self._connect() as c:
             for r in rows:
                 run_id=str(r.get("id","") or "")
@@ -238,7 +249,7 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",row); c.commit()
         if not self.supabase_enabled:return
         try:self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
-        except DatabaseError as exc: __import__("logging").getLogger(__name__).warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
+        except DatabaseError as exc: logging.getLogger(__name__).warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
 
     def market_data_cache_health(self):
         if not self.supabase_enabled:return {"enabled":False,"remote":False,"reason":"SUPABASE_NOT_CONFIGURED"}
@@ -250,7 +261,7 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         if row:return dict(row)
         if self.supabase_enabled:
             try: rows=self._supabase_request("GET","market_data_cache",params=parse.urlencode({"cache_key":f"eq.{cache_key}","select":"*"})) or []
-            except DatabaseError as exc: __import__("logging").getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc); return None
+            except DatabaseError as exc: logging.getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc); return None
             if rows:
                 r=rows[0]; payload=r.get("payload") or {}
                 if not isinstance(payload,str): payload=json.dumps(payload,separators=(",",":"),default=str)
@@ -262,8 +273,14 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
         data={"id":run_id,"strategy_id":strategy_id,"started_at":started_at,"finished_at":finished_at,"status":status,"payload":payload or {}}
         with self._connect() as c:c.execute("INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))); c.commit()
-        result=self._supabase_request("POST","scan_runs",data=data,upsert=True)
-        self._require_supabase(result,"scan run")
+        try:
+            result=self._supabase_request("POST","scan_runs",data=data,upsert=True)
+            self._require_supabase(result,"scan run")
+        except DatabaseError as exc:
+            if self._is_missing_scan_runs(exc):
+                logging.getLogger(__name__).warning("Supabase scan history save skipped: public.scan_runs is not available; local scan history preserved")
+                return
+            raise
 
     def load_scan_runs(self,limit=50):
         with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
@@ -308,5 +325,3 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
 def _timestamp_ms(value):
     try:return datetime.fromisoformat(str(value).replace("Z","+00:00")).timestamp()*1000
     except Exception:return datetime.now(timezone.utc).timestamp()*1000
-
-__all__=["DatabaseError","DatabaseManager"]
