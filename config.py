@@ -6,7 +6,6 @@ import os
 from dataclasses import dataclass
 from typing import Final
 
-
 from release_notes import APP_VERSION, RELEASE_HIGHLIGHTS
 
 # Backwards-compatible exports. The canonical source is release_notes.py.
@@ -52,6 +51,16 @@ NIFTY_SYMBOLS: Final[tuple[str, ...]] = (
 GOLD_SYMBOL: Final[str] = "GC=F"
 BITCOIN_SYMBOL: Final[str] = "BTC-USD"
 
+# Approved Forex universe.
+FOREX_SYMBOLS: Final[tuple[str, ...]] = (
+    "EURUSD=X",
+    "GBPUSD=X",
+    "AUDUSD=X",
+    "USDJPY=X",
+    "NZDUSD=X",
+    "EURJPY=X",
+)
+
 
 @dataclass(frozen=True)
 class AssetConfig:
@@ -62,7 +71,6 @@ class AssetConfig:
     asset_type: str
     group: str = "NSE Stocks"
     currency: str = "INR"
-
     sweep_timeframe: str = "4H"
 
 
@@ -89,7 +97,6 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         market="NSE",
         asset_type="index",
         group="NSE Indices",
-        currency="INR",
         sweep_timeframe="1H",
     ),
     AssetConfig(
@@ -121,13 +128,72 @@ LIVE_ASSETS: tuple[AssetConfig, ...] = tuple(
         currency="USD",
         sweep_timeframe="4H",
     ),
+    AssetConfig(
+        symbol="EURUSD=X",
+        label="EUR/USD",
+        yahoo_symbol="EURUSD=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="USD",
+        sweep_timeframe="4H",
+    ),
+    AssetConfig(
+        symbol="GBPUSD=X",
+        label="GBP/USD",
+        yahoo_symbol="GBPUSD=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="USD",
+        sweep_timeframe="4H",
+    ),
+    AssetConfig(
+        symbol="AUDUSD=X",
+        label="AUD/USD",
+        yahoo_symbol="AUDUSD=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="USD",
+        sweep_timeframe="4H",
+    ),
+    AssetConfig(
+        symbol="USDJPY=X",
+        label="USD/JPY",
+        yahoo_symbol="USDJPY=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="JPY",
+        sweep_timeframe="4H",
+    ),
+    AssetConfig(
+        symbol="NZDUSD=X",
+        label="NZD/USD",
+        yahoo_symbol="NZDUSD=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="USD",
+        sweep_timeframe="4H",
+    ),
+    AssetConfig(
+        symbol="EURJPY=X",
+        label="EUR/JPY",
+        yahoo_symbol="EURJPY=X",
+        market="Forex",
+        asset_type="forex",
+        group="Global Markets",
+        currency="JPY",
+        sweep_timeframe="4H",
+    ),
 )
 
 
 LIVE_ASSET_MAP: Final[dict[str, AssetConfig]] = {
     asset.symbol: asset for asset in LIVE_ASSETS
 }
-
 
 LIVE_SYMBOLS: Final[tuple[str, ...]] = tuple(
     asset.symbol for asset in LIVE_ASSETS
@@ -138,21 +204,16 @@ LIVE_SYMBOLS: Final[tuple[str, ...]] = tuple(
 # SWEEP SCHEDULES
 # ---------------------------------------------------------------------------
 
-BTC_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (
-    1, 5, 9, 13, 17, 21
-)
+BTC_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (1, 5, 9, 13, 17, 21)
 
-GOLD_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (
-    2, 6, 10, 14, 18, 22
-)
+GOLD_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (2, 6, 10, 14, 18, 22)
 
-NSE_INDEX_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (
-    9, 10, 11, 12, 13, 14
-)
+FOREX_SWEEP_HOURS_IST: Final[tuple[int, ...]] = GOLD_SWEEP_HOURS_IST
+
+NSE_INDEX_SWEEP_HOURS_IST: Final[tuple[int, ...]] = (9, 10, 11, 12, 13, 14)
 
 SWEEP_MINUTE_NSE: Final[int] = 15
 SWEEP_MINUTE_GLOBAL: Final[int] = 30
-
 
 
 # ---------------------------------------------------------------------------
@@ -229,9 +290,7 @@ class Settings:
             raise ValueError("TIMEZONE must be Asia/Kolkata")
 
         if provider != MARKET_DATA_PROVIDER:
-            raise ValueError(
-                "MARKET_DATA_PROVIDER must be yahoo"
-            )
+            raise ValueError("MARKET_DATA_PROVIDER must be yahoo")
 
         return cls(
             timezone=timezone,
@@ -240,20 +299,10 @@ class Settings:
             market_data_provider=provider,
             telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
-            dashboard_api_url=os.getenv(
-                "DASHBOARD_API_URL",
-                "/api/dashboard",
-            ),
-            db_path=os.getenv(
-                "BOT_STATE_DB_PATH",
-                "multibot2_state.db",
-            ),
-            scan_interval_seconds=int(
-                os.getenv("SCAN_INTERVAL_SECONDS", "300")
-            ),
-            monitor_interval_seconds=int(
-                os.getenv("MONITOR_INTERVAL_SECONDS", "20")
-            ),
+            dashboard_api_url=os.getenv("DASHBOARD_API_URL", "/api/dashboard"),
+            db_path=os.getenv("BOT_STATE_DB_PATH", "multibot2_state.db"),
+            scan_interval_seconds=int(os.getenv("SCAN_INTERVAL_SECONDS", "300")),
+            monitor_interval_seconds=int(os.getenv("MONITOR_INTERVAL_SECONDS", "20")),
         )
 
 
@@ -262,34 +311,25 @@ settings = Settings.from_env()
 
 def get_asset(symbol: str) -> AssetConfig:
     normalized = symbol.strip().upper()
-
     try:
         return LIVE_ASSET_MAP[normalized]
     except KeyError as exc:
-        raise ValueError(
-            f"Unknown MULTIBOT2 live asset: {normalized}"
-        ) from exc
+        raise ValueError(f"Unknown MULTIBOT2 live asset: {normalized}") from exc
 
 
 def validate_configuration() -> None:
     if len(NSE_15_SYMBOLS) != 15:
         raise ValueError("NSE stock universe must contain 15 assets")
 
-    if len(LIVE_ASSETS) != 19:
+    if len(LIVE_ASSETS) != 25:
         raise ValueError(
-            f"Live universe must contain exactly 19 assets; "
-            f"found {len(LIVE_ASSETS)}"
+            f"Live universe must contain exactly 25 assets; found {len(LIVE_ASSETS)}"
         )
 
-    if len(set(LIVE_SYMBOLS)) != 19:
-        raise ValueError(
-            "Live universe contains duplicate symbols"
-        )
+    if len(set(LIVE_SYMBOLS)) != 25:
+        raise ValueError("Live universe contains duplicate symbols")
 
-    if set(NIFTY_SYMBOLS) != {
-        "^NSEI",
-        "^NSEBANK",
-    }:
+    if set(NIFTY_SYMBOLS) != {"^NSEI", "^NSEBANK"}:
         raise ValueError("NIFTY index configuration is invalid")
 
     if GOLD_SYMBOL not in LIVE_ASSET_MAP:
@@ -297,6 +337,9 @@ def validate_configuration() -> None:
 
     if BITCOIN_SYMBOL not in LIVE_ASSET_MAP:
         raise ValueError("Bitcoin is missing from live universe")
+
+    if set(FOREX_SYMBOLS) - set(LIVE_ASSET_MAP):
+        raise ValueError("Approved Forex universe is missing an asset")
 
     if set(LIVE_ASSET_MAP) != set(LIVE_SYMBOLS):
         raise ValueError("Live asset metadata must cover all live assets")
@@ -311,12 +354,10 @@ def validate_configuration() -> None:
     if LIVE_ASSET_MAP[GOLD_SYMBOL].sweep_timeframe != "4H" or LIVE_ASSET_MAP[BITCOIN_SYMBOL].sweep_timeframe != "4H":
         raise ValueError("Global Sweep must be 4H")
 
-    if LIVE_ASSET_MAP["^NSEI"].sweep_timeframe != "1H":
-        raise ValueError("NIFTY 50 Sweep must be 1H")
-
-    if LIVE_ASSET_MAP["^NSEBANK"].sweep_timeframe != "1H":
-        raise ValueError("BANK NIFTY Sweep must be 1H")
-
+    for symbol in FOREX_SYMBOLS:
+        asset = LIVE_ASSET_MAP[symbol]
+        if asset.market != "Forex" or asset.asset_type != "forex" or asset.sweep_timeframe != "4H":
+            raise ValueError(f"{symbol} Forex configuration is invalid")
 
     if ACCOUNT_SIZE_INR != 100_000:
         raise ValueError("Account size was changed")
@@ -331,19 +372,12 @@ def validate_configuration() -> None:
         raise ValueError("Leverage must remain 1x")
 
     if settings.freshness_hours != 1:
-        raise ValueError(
-            "Signal freshness must remain 1 hour"
-        )
+        raise ValueError("Signal freshness must remain 1 hour")
 
     if set(ACCOUNT_TRADE_LIMITS) != set(ACCOUNT_NAMES):
         raise ValueError("Account configuration mismatch")
 
-    if tuple(ACCOUNT_TRADE_LIMITS.values()) != (
-        20,
-        5,
-        3,
-        3,
-    ):
+    if tuple(ACCOUNT_TRADE_LIMITS.values()) != (20, 5, 3, 3):
         raise ValueError("Account limits were changed")
 
 
