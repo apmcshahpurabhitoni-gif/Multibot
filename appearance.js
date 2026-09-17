@@ -5,11 +5,13 @@
 (function initAppearanceBridge(){
   const root=document.documentElement;
   const storage=window.localStorage;
+  const THEME_STORAGE_KEY="mavis-theme";
   const STYLE_STORAGE_KEY="mavis-style";
   const validStyle=value=>value==="neo"?"neo":"modern";
 
   const sync=()=>{
     const style=validStyle(root.dataset.style||storage.getItem(STYLE_STORAGE_KEY));
+    const theme=root.dataset.themeChoice||root.dataset.theme||storage.getItem(THEME_STORAGE_KEY)||"light";
     root.dataset.style=style;
     root.classList.toggle("neo-mode",style==="neo");
     root.classList.toggle("modern-mode",style!=="neo");
@@ -19,7 +21,7 @@
       button.setAttribute("aria-pressed",String(active));
     });
     document.querySelectorAll("[data-theme-choice]").forEach(button=>{
-      const active=button.dataset.themeChoice===(root.dataset.themeChoice||root.dataset.theme);
+      const active=button.dataset.themeChoice===theme;
       button.classList.toggle("active",active);
       button.setAttribute("aria-pressed",String(active));
     });
