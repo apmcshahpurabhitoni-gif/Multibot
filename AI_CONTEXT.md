@@ -76,6 +76,9 @@ Adding a strategy should not require strategy-specific branches in main.py, Tele
 Current built-ins:
 - adaptive_trend: BTC-USD and Gold daily trend/momentum strategy.
 - sweep_v2: locked 25-asset sweep classification strategy with asset-specific schedules.
+- engulfing_66_sma: live-universe 1H engulfing entries around a 66-period SMA with ATR, slope, confirmation and cooldown filters.
+
+`completed_candle` is a generic strategy schedule. The scheduler derives its polling interval from the strategy's single declared timeframe; it is not a strategy-specific branch.
 
 ## Market data and cache
 
@@ -254,6 +257,7 @@ release_notes.py: single release/What's New source
 strategy_service.py: shared strategy lifecycle
 strategy_engine.py: strategy evaluation boundary
 strategies/: plug-in registry and implementations
+strategy_scheduler.py: generic manifest schedule polling
 trading.py: account/trade primitives
 trade_monitor.py: paper trade monitoring
 signal_gate.py: freshness/duplicate gate
