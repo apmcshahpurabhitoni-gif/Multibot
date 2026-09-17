@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from backtest import backtest_strategy
 from strategies import discover_strategies
 
 
@@ -24,3 +25,23 @@ def test_adaptive_trend_produces_canonical_signal():
     assert signal.strategy == strategy.manifest.name
     assert signal.version == strategy.manifest.version
     assert signal.timeframe == "1D"
+
+
+def test_all_backtest_capable_plugins_use_common_engine():
+    index = pd.date_range("2026-01-01", periods=140, freq="h", tz="Asia/Kolkata")
+    close = pd.Series(np.linspace(100, 180, len(index)), index=index)
+    frame = pd.DataFrame(
+        {"open": close - 1, "high": close + 2, "low": close - 2, "close": close},
+        index=index,
+    )
+    for strategy in discover_strategies().all():
+        if "backtest" not in strategy.manifest.capabilities:
+            continue
+        symbol = strategy.manifest.assets[0]
+        if symbol not in {"BTC-USD", "GC=F"}:
+            continue
+        result = backtest_strategy(strategy, symbol, frame)
+        assert result.strategy == strategy.manifest.name
+        assert result.strategy_version == strategy.manifest.version
+        assert result.symbol == symbol
+        assert isinstance(result.trades, tuple)
