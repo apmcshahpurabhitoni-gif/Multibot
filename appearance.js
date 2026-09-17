@@ -1,12 +1,10 @@
 "use strict";
 
-// Presentation-only bridge. app.js owns the theme controls; this file owns
-// interface-style state so Neo/Modern remains reliable even after dashboard
-// renders or other UI listeners run.
+// Presentation-only bridge. This file owns interface-style state so Neo/Modern
+// remains reliable even after dashboard renders or other UI listeners run.
 (function initAppearanceBridge(){
   const root=document.documentElement;
   const storage=window.localStorage;
-  const THEME_STORAGE_KEY="mavis-theme";
   const STYLE_STORAGE_KEY="mavis-style";
   const validStyle=value=>value==="neo"?"neo":"modern";
 
@@ -40,18 +38,15 @@
     const savedStyle=storage.getItem(STYLE_STORAGE_KEY);
     if(savedStyle)root.dataset.style=validStyle(savedStyle);
 
-    // Keep the canonical theme storage key explicit for compatibility with
-    // the main runtime controller; theme click ownership remains in app.js.
-    void THEME_STORAGE_KEY;
-
-    // Delegate style clicks so the controls remain live even if another
-    // renderer replaces their DOM nodes after this bridge initializes.
+    // appearance.js is the single active owner for interface-style clicks.
+    // Stop the legacy app.js style listener before it can run a second write.
     if(!root.dataset.appearanceBound){
       root.dataset.appearanceBound="true";
       document.addEventListener("click",event=>{
         const button=event.target.closest("[data-style-choice]");
         if(!button)return;
         event.preventDefault();
+        event.stopImmediatePropagation();
         applyStyle(button.dataset.styleChoice);
       },true);
     }
