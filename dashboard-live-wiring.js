@@ -6,6 +6,8 @@
 (function(){
   const escapeHtml=value=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   const money=value=>Number.isFinite(Number(value))?`₹${Number(value).toLocaleString("en-IN",{minimumFractionDigits:0,maximumFractionDigits:2})}`:"—";
+  const pnl=value=>{const n=Number(value);if(!Number.isFinite(n))return "—";return `${n>=0?"+":"−"}${money(Math.abs(n))}`;};
+  const pnlClass=value=>{const n=Number(value);return Number.isFinite(n)?n>0?"positive":n<0?"negative":"":"";};
   const time=value=>{if(!value)return "—";const d=new Date(value);return Number.isNaN(d.getTime())?"—":new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}).format(d);};
   const render=data=>{
     const openEl=document.getElementById("historyOpenTrades");
@@ -19,7 +21,8 @@
         const side=String(t.type||t.plan?.side||"").toUpperCase();
         const label=t.label||t.symbol||"Unknown asset";
         const strategy=t.strategy||t.plan?.strategy||"Strategy";
-        return `<article class="live-trade-row"><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(strategy)} · ${escapeHtml(side)} · Opened ${escapeHtml(time(t.opened_at||t.signal_ts))}</small></div><div><span>Entry</span><b>${money(t.entry||t.plan?.entry)}</b></div><div><span>Risk</span><b>${money(t.planned_risk||t.plan?.planned_risk)}</b></div><strong class="live-open-badge">OPEN</strong></article>`;
+        const livePnl=t.pnl??t.live_pnl??t.unrealized_pnl;
+        return `<article class="live-trade-row"><div><strong>${escapeHtml(label)}</strong><small>${escapeHtml(strategy)} · ${escapeHtml(side)} · Opened ${escapeHtml(time(t.opened_at||t.signal_ts))}</small></div><div><span>Entry</span><b>${money(t.entry||t.plan?.entry)}</b></div><div><span>Risk</span><b>${money(t.planned_risk||t.plan?.planned_risk)}</b></div><div><span>Live P/L</span><b class="${pnlClass(livePnl)}">${pnl(livePnl)}</b></div><strong class="live-open-badge">OPEN</strong></article>`;
       }).join(""):"<div class=\"empty-state\"><span>◈</span><strong>No open paper trades</strong><small>When a trade is accepted by the runtime it appears here with entry, risk and open timestamp.</small></div>";
     }
     if(scanEl){
