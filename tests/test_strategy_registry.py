@@ -1,3 +1,4 @@
+from config import LIVE_SYMBOLS
 from strategies import discover_strategies
 
 
@@ -15,7 +16,7 @@ def test_adaptive_trend_only_supports_global_assets():
 def test_engulfing_66_sma_is_available_for_live_universe():
     registry = discover_strategies()
     strategy = registry.get("engulfing_66_sma")
-    assert set(strategy.manifest.assets) == set(strategy.manifest.assets)
+    assert set(strategy.manifest.assets) == set(LIVE_SYMBOLS)
     assert strategy.manifest.timeframes == ("1h",)
     assert strategy.manifest.schedule == "completed_candle"
     assert "signal" in strategy.manifest.capabilities
