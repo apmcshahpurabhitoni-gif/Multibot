@@ -192,3 +192,58 @@ html[data-style="neo"] .signal-card .signal-side,html.neo-mode .signal-card .sig
  .signal-card .expand-content{padding:0 10px 11px}
 }
 @media(max-width:360px){.signal-card .detail-grid{grid-template-columns:1fr}}
+
+
+/* History — operational audit hierarchy. */
+.history-ledger-heading{align-items:flex-end}
+.history-refresh{display:inline-flex;align-items:center;gap:8px}
+.history-refresh svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.history-overview-strip{display:grid;grid-template-columns:minmax(0,1fr) minmax(460px,1.35fr);gap:18px;align-items:stretch;padding:14px 16px;margin-bottom:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-soft)}
+.history-overview-strip>div:first-child{display:grid;align-content:center;gap:4px;padding-right:8px}
+.history-overview-strip strong{font-size:12px}
+.history-overview-strip small{max-width:620px;color:var(--muted);font-size:8px;line-height:1.5}
+.history-overview-strip .history-summary-grid{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.history-overview-strip .metric-card{min-height:92px;padding:12px}
+.history-workspace{overflow:hidden}
+.history-workspace-heading{padding-bottom:10px}
+.history-workspace-heading>div{display:flex;align-items:baseline;gap:9px}
+.history-workspace-heading strong{font-size:10px}
+.history-primary-workspace{margin-bottom:12px}
+.history-section-note{padding:0 1px 10px;color:var(--muted);font-size:8px;line-height:1.45}
+.history-date-list{display:grid;gap:10px}
+.history-date-group{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.history-date-group.is-open{box-shadow:var(--shadow-soft)}
+.history-date-toggle{min-height:54px}
+.history-date-rows{border-top:1px solid var(--line)}
+.history-live-list{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.history-live-list:has(.empty-state){min-height:70px}
+.live-trade-row,.scan-history-row{background:var(--surface)}
+.live-trade-row{grid-template-columns:minmax(0,1.6fr) minmax(90px,.65fr) minmax(90px,.65fr) auto auto}
+.live-trade-row .live-open-badge{justify-self:end}
+.scan-history-row{grid-template-columns:minmax(0,1.2fr) auto minmax(300px,1fr)}
+.scan-history-row .history-scan-metrics{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.scan-history-row .history-scan-metrics span{padding:5px 7px;border:1px solid var(--line);font-size:7px;font-weight:900;color:var(--muted);white-space:nowrap}
+.scan-history-row .history-scan-status{color:var(--accent);font-weight:950}
+html[data-style="neo"] .history-overview-strip,html.neo-mode .history-overview-strip,
+html[data-style="neo"] .history-date-group,html.neo-mode .history-date-group,
+html[data-style="neo"] .history-live-list,html.neo-mode .history-live-list{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .history-overview-strip .metric-card,html.neo-mode .history-overview-strip .metric-card{border:2px solid var(--line-strong)!important;box-shadow:3px 3px 0 var(--line-strong)!important}
+html[data-style="neo"] .scan-history-row .history-scan-metrics span,html.neo-mode .scan-history-row .history-scan-metrics span{border:2px solid var(--line-strong)}
+@media(max-width:900px){
+ .history-overview-strip{grid-template-columns:1fr}
+ .history-overview-strip .history-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .scan-history-row{grid-template-columns:minmax(0,1fr) auto}
+ .scan-history-row .history-scan-metrics{grid-column:1/-1;justify-content:flex-start}
+}
+@media(max-width:680px){
+ .history-overview-strip{padding:12px}
+ .history-overview-strip .history-summary-grid{grid-template-columns:1fr}
+ .history-overview-strip .metric-card{min-height:78px}
+ .history-live-list{border-radius:var(--radius-sm)}
+ .live-trade-row{grid-template-columns:1fr 1fr;padding:12px}
+ .live-trade-row>div:first-child{grid-column:1/-1}
+ .live-trade-row .live-open-badge{justify-self:start}
+ .scan-history-row{grid-template-columns:1fr;padding:11px 12px}
+ .scan-history-row>span{justify-self:start}
+ .scan-history-row .history-scan-metrics{gap:5px}
+}
