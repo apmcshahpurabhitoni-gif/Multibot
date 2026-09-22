@@ -337,3 +337,76 @@ button:disabled{cursor:not-allowed}
  .calendar-ledger-status{grid-template-columns:1fr}
  .calendar-feed-source{justify-items:start}
 }
+
+
+/* Tools — Pro Max system workspace. */
+.tools-heading{align-items:flex-end}
+.tools-layout{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;align-items:start}
+.tools-layout .tool-card{grid-column:span 6;min-width:0}
+.tools-layout .tools-appearance,.tools-layout .tool-backtest{grid-column:span 6}
+.tools-layout .tool-universe,.tools-layout .tool-accounts,.tools-layout .tool-rules,.tools-layout .tool-runtime,.tools-layout .tool-release{grid-column:span 4}
+.tools-layout .tool-card{padding:16px}
+.tools-layout .section-heading{min-width:0}
+.tools-layout .section-heading h2{font-size:12px}
+.tools-layout .section-heading p{max-width:620px}
+.tool-tag{flex:none;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--surface-2);font-size:7px;font-weight:950;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.settings-group{padding-top:14px;margin-top:14px;border-top:1px solid var(--line)}
+.settings-label{display:block;margin-bottom:8px;font-size:7px;font-weight:950;letter-spacing:.10em;text-transform:uppercase;color:var(--muted)}
+.theme-choice-grid,.appearance-style-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.appearance-option{min-height:58px!important;text-align:left}
+.accent-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+.accent-option{display:grid;justify-items:center;gap:5px;padding:8px 4px!important;min-height:58px!important;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.accent-option i{width:20px;height:20px;border-radius:50%;background:var(--accent-swatch,var(--accent));border:2px solid var(--surface);outline:1px solid var(--line)}
+.accent-option span{font-size:7px;font-weight:850}
+.accent-option[data-accent-choice="emerald"]{--accent-swatch:#08a875}.accent-option[data-accent-choice="blue"]{--accent-swatch:#1683ff}.accent-option[data-accent-choice="violet"]{--accent-swatch:#7c4dff}.accent-option[data-accent-choice="amber"]{--accent-swatch:#d99000}.accent-option[data-accent-choice="coral"]{--accent-swatch:#f0645a}.accent-option[data-accent-choice="pink"]{--accent-swatch:#e84b9b}
+.settings-toggle-list{display:grid;gap:7px}
+.settings-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:10px 11px!important}
+.settings-toggle span{display:grid;gap:3px}
+.settings-toggle b{font-size:8px}
+.settings-toggle small{font-size:7px;color:var(--muted)}
+.settings-toggle i{width:30px;height:18px;border:1px solid var(--line-strong);border-radius:99px;position:relative;flex:none}
+.settings-toggle i:after{content:"";position:absolute;top:3px;left:3px;width:10px;height:10px;border-radius:50%;background:var(--muted);transition:transform .16s ease,background .16s ease}
+.settings-toggle.is-active i:after{transform:translateX(12px);background:var(--accent)}
+.backtest-controls{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-top:14px}
+.backtest-controls label{display:grid;gap:5px;font-size:7px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.backtest-controls select{width:100%;min-width:0}
+.backtest-controls .primary-button{min-height:40px}
+.backtest-status{margin-top:10px;padding:9px 10px;border:1px dashed var(--line-strong);border-radius:var(--radius-sm);font-size:8px;color:var(--muted)}
+.universe-grid,.account-grid,.diagnostic-grid{min-width:0}
+.universe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+.universe-grid>*{min-width:0}
+.account-grid{display:grid;gap:7px;margin-top:12px}
+.rule-list{display:grid;gap:0;margin-top:12px;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+.rule-list>div{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr);gap:12px;padding:9px 10px;border-bottom:1px solid var(--line)}
+.rule-list>div:last-child{border-bottom:0}
+.rule-list b{font-size:8px}
+.rule-list span{font-size:7px;line-height:1.4;color:var(--muted)}
+.diagnostic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}
+.schedule-inline{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.schedule-inline span{padding:8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2)}
+.schedule-inline b,.schedule-inline small{display:block}.schedule-inline b{font-size:8px}.schedule-inline small{margin-top:2px;font-size:6px;color:var(--muted)}
+.whats-new{display:grid;gap:6px;margin:12px 0 0;padding-left:15px}.whats-new li{font-size:8px;line-height:1.45}
+html[data-style="neo"] .tools-layout .tool-card,html.neo-mode .tools-layout .tool-card{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .tool-tag,html.neo-mode .tool-tag,
+html[data-style="neo"] .accent-option,html.neo-mode .accent-option,
+html[data-style="neo"] .settings-toggle,html.neo-mode .settings-toggle,
+html[data-style="neo"] .backtest-status,html.neo-mode .backtest-status,
+html[data-style="neo"] .rule-list,html.neo-mode .rule-list,
+html[data-style="neo"] .rule-list>div,html.neo-mode .rule-list>div,
+html[data-style="neo"] .schedule-inline span,html.neo-mode .schedule-inline span{border:2px solid var(--line-strong)!important;border-radius:3px}
+html[data-style="neo"] .tools-layout .tool-card .primary-button,html.neo-mode .tools-layout .tool-card .primary-button{box-shadow:3px 3px 0 var(--line-strong)}
+@media(max-width:1050px){
+ .tools-layout .tool-card,.tools-layout .tools-appearance,.tools-layout .tool-backtest,.tools-layout .tool-universe,.tools-layout .tool-accounts,.tools-layout .tool-rules,.tools-layout .tool-runtime,.tools-layout .tool-release{grid-column:span 6}
+ .accent-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .backtest-controls{grid-template-columns:1fr 1fr}
+ .backtest-controls .primary-button{width:100%}
+}
+@media(max-width:680px){
+ .tools-layout{grid-template-columns:1fr;gap:10px}
+ .tools-layout .tool-card,.tools-layout .tools-appearance,.tools-layout .tool-backtest,.tools-layout .tool-universe,.tools-layout .tool-accounts,.tools-layout .tool-rules,.tools-layout .tool-runtime,.tools-layout .tool-release{grid-column:1}
+ .tools-layout .tool-card{padding:13px}
+ .backtest-controls{grid-template-columns:1fr}
+ .accent-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .rule-list>div{grid-template-columns:1fr;gap:4px}
+ .schedule-inline{grid-template-columns:repeat(2,1fr)}
+}
