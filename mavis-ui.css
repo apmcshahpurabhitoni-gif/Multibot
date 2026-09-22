@@ -1001,3 +1001,191 @@ html[data-style="neo"] .hero-kicker{
     flex-direction:column;
   }
 }
+
+
+/* Signals — complete workspace presentation. */
+html[data-style="modern"] .signals-heading{
+  align-items:flex-end;
+}
+html[data-style="modern"] .signals-heading .secondary-button{
+  flex:0 0 auto;
+}
+html[data-style="modern"] .signals-workspace{
+  overflow:hidden;
+}
+html[data-style="modern"] .signals-date-list{
+  display:grid;
+  gap:8px;
+}
+html[data-style="modern"] .signal-date-group{
+  overflow:hidden;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface);
+}
+html[data-style="modern"] .signal-date-group + .signal-date-group{
+  margin-top:8px;
+}
+html[data-style="modern"] .signal-date-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background:var(--mavis-surface-2);
+  color:var(--mavis-text);
+  border:0;
+  border-bottom:1px solid var(--mavis-line);
+  text-align:left;
+  cursor:pointer;
+}
+html[data-style="modern"] .signal-date-toggle:hover{
+  background:var(--mavis-accent-soft);
+}
+html[data-style="modern"] .signal-date-toggle > span{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+html[data-style="modern"] .signal-date-toggle .date-count{
+  min-width:24px;
+  min-height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  color:var(--mavis-accent);
+  font-size:7px;
+  font-weight:950;
+}
+html[data-style="modern"] .signal-date-toggle .chevron{
+  color:var(--mavis-muted);
+  transition:transform .18s ease;
+}
+html[data-style="modern"] .signal-date-group.is-collapsed .chevron{
+  transform:rotate(-90deg);
+}
+html[data-style="modern"] .signal-date-group.is-collapsed .date-signal-list{
+  display:none;
+}
+html[data-style="modern"] .date-signal-list{
+  display:grid;
+  gap:7px;
+  padding:7px;
+}
+html[data-style="modern"] .date-signal-list .signal-card{
+  margin:0;
+}
+html[data-style="modern"] .signal-card{
+  min-width:0;
+  overflow:hidden;
+}
+html[data-style="modern"] .signal-card .card-main{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+}
+html[data-style="modern"] .signal-card .signal-leading{
+  min-width:0;
+}
+html[data-style="modern"] .signal-card .signal-leading > div{
+  min-width:0;
+}
+html[data-style="modern"] .signal-card .signal-leading strong,
+html[data-style="modern"] .signal-card .signal-leading small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html[data-style="modern"] .signal-card .signal-side{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+html[data-style="modern"] .signal-card .signal-side .freshness{
+  font-weight:950;
+}
+html[data-style="modern"] .signal-card .signal-side .freshness.fresh,
+html[data-style="modern"] .signal-card .signal-side .freshness.FRESH{
+  color:var(--mavis-positive);
+  background:color-mix(in srgb,var(--mavis-positive) 10%,transparent);
+}
+html[data-style="modern"] .signal-card .signal-side .freshness.stale,
+html[data-style="modern"] .signal-card .signal-side .freshness.STALE{
+  color:var(--mavis-warning);
+  background:color-mix(in srgb,var(--mavis-warning) 10%,transparent);
+}
+html[data-style="modern"] .signal-card .direction-icon.buy,
+html[data-style="modern"] .signal-card .direction-icon.BUY{
+  color:var(--mavis-positive);
+  background:color-mix(in srgb,var(--mavis-positive) 10%,transparent);
+}
+html[data-style="modern"] .signal-card .direction-icon.sell,
+html[data-style="modern"] .signal-card .direction-icon.SELL{
+  color:var(--mavis-negative);
+  background:color-mix(in srgb,var(--mavis-negative) 10%,transparent);
+}
+html[data-style="modern"] .signal-card .expand-button:hover{
+  background:var(--mavis-accent-soft);
+}
+html[data-style="modern"] .signal-card .detail-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+html[data-style="modern"] .signal-card .reason{
+  margin-top:6px;
+}
+html[data-style="modern"] .signals-workspace > .empty-state{
+  margin:7px;
+}
+html[data-style="modern"] .signals-workspace.loading{
+  opacity:.75;
+}
+html[data-style="modern"] .signals-heading .eyebrow,
+html[data-style="modern"] .signals-heading h1,
+html[data-style="modern"] .signals-heading p{
+  max-width:720px;
+}
+html[data-style="neo"] .signal-date-group{
+  border:2px solid var(--line-strong)!important;
+  border-radius:3px!important;
+  box-shadow:4px 4px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] .signal-date-toggle{
+  border-bottom:2px solid var(--line-strong)!important;
+}
+html[data-style="neo"] .signal-card .direction-icon.buy,
+html[data-style="neo"] .signal-card .direction-icon.BUY{
+  color:var(--positive);
+}
+html[data-style="neo"] .signal-card .direction-icon.sell,
+html[data-style="neo"] .signal-card .direction-icon.SELL{
+  color:var(--negative);
+}
+@media(max-width:680px){
+  html[data-style="modern"] .signals-heading{
+    align-items:stretch;
+  }
+  html[data-style="modern"] .signals-heading .secondary-button{
+    width:100%;
+  }
+  html[data-style="modern"] .signal-card .card-main{
+    grid-template-columns:1fr;
+  }
+  html[data-style="modern"] .signal-card .signal-side{
+    justify-content:flex-start;
+  }
+  html[data-style="modern"] .signal-card .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:430px){
+  html[data-style="modern"] .signal-card .detail-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
