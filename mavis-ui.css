@@ -1330,3 +1330,164 @@ html[data-style="neo"] .history-date-toggle{
     min-width:0;
   }
 }
+
+
+/* Calendar — complete agenda workspace. */
+html[data-style="modern"] .calendar-heading{
+  align-items:flex-end;
+}
+html[data-style="modern"] .calendar-heading .secondary-button{
+  flex:0 0 auto;
+}
+html[data-style="modern"] .calendar-workspace{
+  overflow:hidden;
+}
+html[data-style="modern"] .calendar-agenda-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 13px;
+  border-bottom:1px solid var(--mavis-line);
+}
+html[data-style="modern"] .calendar-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  padding:9px;
+}
+html[data-style="modern"] .calendar-summary-grid .metric-card{
+  box-shadow:none;
+}
+html[data-style="modern"] .calendar-agenda-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:11px 13px;
+  border-top:1px solid var(--mavis-line);
+  border-bottom:1px solid var(--mavis-line);
+}
+html[data-style="modern"] .calendar-date-list{
+  display:grid;
+  gap:8px;
+  padding:8px;
+}
+html[data-style="modern"] .calendar-date-group{
+  overflow:hidden;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface);
+}
+html[data-style="modern"] .calendar-date-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background:var(--mavis-surface-2);
+  color:var(--mavis-text);
+  border:0;
+  border-bottom:1px solid var(--mavis-line);
+  text-align:left;
+}
+html[data-style="modern"] .calendar-date-toggle > span{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+html[data-style="modern"] .calendar-date-toggle .date-count{
+  min-width:24px;
+  min-height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  color:var(--mavis-accent);
+  font-size:7px;
+  font-weight:950;
+}
+html[data-style="modern"] .calendar-date-group.is-collapsed .calendar-date-items{
+  display:none;
+}
+html[data-style="modern"] .calendar-date-toggle .chevron{
+  color:var(--mavis-muted);
+  transition:transform .18s ease;
+}
+html[data-style="modern"] .calendar-date-group.is-collapsed .chevron{
+  transform:rotate(-90deg);
+}
+html[data-style="modern"] .calendar-date-items{
+  display:grid;
+  gap:6px;
+  padding:7px;
+}
+html[data-style="modern"] .calendar-item{
+  min-width:0;
+  border:1px solid var(--mavis-line);
+  background:var(--mavis-surface);
+}
+html[data-style="modern"] .calendar-item:hover{
+  background:var(--mavis-surface-2);
+}
+html[data-style="modern"] .calendar-time{
+  color:var(--mavis-accent);
+}
+html[data-style="modern"] .calendar-event{
+  min-width:0;
+}
+html[data-style="modern"] .calendar-event>strong,
+html[data-style="modern"] .calendar-event>small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+html[data-style="modern"] .calendar-event>small{
+  color:var(--mavis-muted);
+}
+html[data-style="modern"] .impact-summary.high strong{
+  color:var(--mavis-negative);
+}
+html[data-style="modern"] .impact-summary.medium strong{
+  color:var(--mavis-warning);
+}
+html[data-style="modern"] .impact-summary.low strong{
+  color:var(--mavis-muted);
+}
+html[data-style="modern"] .calendar-status{
+  min-width:0;
+  color:var(--mavis-muted);
+  font-size:8px;
+}
+html[data-style="modern"] .calendar-status strong{
+  color:var(--mavis-text);
+}
+html[data-style="neo"] .calendar-date-group{
+  border:2px solid var(--line-strong)!important;
+  border-radius:3px!important;
+  box-shadow:4px 4px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] .calendar-date-toggle{
+  border-bottom:2px solid var(--line-strong)!important;
+}
+@media(max-width:680px){
+  html[data-style="modern"] .calendar-heading{
+    align-items:stretch;
+  }
+  html[data-style="modern"] .calendar-heading .secondary-button{
+    width:100%;
+  }
+  html[data-style="modern"] .calendar-summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  html[data-style="modern"] .calendar-agenda-status{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+@media(max-width:430px){
+  html[data-style="modern"] .calendar-summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
