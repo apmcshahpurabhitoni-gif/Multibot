@@ -182,3 +182,74 @@ def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scr
         'overflow-wrap:anywhere',
     ):
         assert token in CSS
+
+
+def test_calendar_uses_market_intelligence_agenda_hierarchy():
+    html=HTML
+    css=CSS
+    for token in (
+        'calendar-ledger-status',
+        'calendar-feed-main',
+        'calendar-feed-source',
+        'calendar-summary-grid',
+        'calendar-agenda-header',
+        'calendar-date-list',
+        'calendar-date-group',
+        'calendar-date-events',
+        'calendar-details',
+    ):
+        assert token in html or token in css
+    assert 'calendarRefreshButton' in html
+    assert 'calendarItems' in html
+    assert 'Forex Factory' in html
+
+
+def test_pro_max_design_foundations_are_present():
+    css=CSS
+    for token in (
+        '--space-1',
+        '--space-6',
+        '--font-sans',
+        '--text-xs',
+        '--text-2xl',
+        '--touch-target',
+        '--focus-ring',
+        'prefers-reduced-motion:reduce',
+    ):
+        assert token in css
+
+
+def test_tools_workspace_uses_pro_max_information_hierarchy():
+    html=HTML
+    css=CSS
+    for token in (
+        'tools-layout',
+        'tools-appearance',
+        'tool-backtest',
+        'tool-universe',
+        'tool-accounts',
+        'tool-rules',
+        'tool-runtime',
+        'tool-release',
+        'accent-picker',
+        'backtest-controls',
+    ):
+        assert token in html or token in css
+    assert 'data-theme-choice="light"' in html
+    assert 'data-style-choice="neo"' in html
+    assert 'data-accent-choice="emerald"' in html
+    assert 'id="runBacktestButton"' in html
+
+
+def test_whole_dashboard_uses_one_geometry_contract():
+    css = CSS
+    assert '--section-gap:20px' in css
+    assert '--card-pad:18px' in css
+    assert '--control-height:40px' in css
+    assert '--touch-target:44px' in css
+    assert '.home-grid-primary>*' in css
+    assert '.signals-workspace' in css
+    assert '.history-workspace' in css
+    assert '.calendar-workspace' in css
+    assert '.tools-layout' in css
+    assert 'prefers-reduced-motion:reduce' in css
