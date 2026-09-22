@@ -26,7 +26,20 @@
       }).join(""):"<div class=\"empty-state\"><span>◈</span><strong>No open paper trades</strong><small>When a trade is accepted by the runtime it appears here with entry, risk and open timestamp.</small></div>";
     }
     if(scanEl){
-      scanEl.innerHTML=scans.length?scans.slice(0,20).map(r=>{const p=r.payload||{};return `<article class="scan-history-row"><div><strong>${escapeHtml(r.strategy_id||"Strategy")}</strong><small>${escapeHtml(time(r.finished_at||r.started_at))}</small></div><span>${escapeHtml(r.status||"—")}</span><small>${Number(p.checked||0)} checked · ${Number(p.directional||0)} directional · ${Number(p.sent||0)} sent · ${Number(p.errors||0)} errors</small></article>`;}).join(""):"<div class=\"empty-state\"><span>◇</span><strong>No scan history yet</strong><small>Completed runtime scans will appear here.</small></div>";
+      if(!scans.length){
+        scanEl.innerHTML="<div class=\"empty-state\"><span>◇</span><strong>No scan history yet</strong><small>Completed runtime scans will appear here.</small></div>";
+      }else{
+        const groups=new Map();
+        scans.slice(0,50).forEach(r=>{
+          const raw=r.finished_at||r.completed_at||r.started_at||r.created_at||r.timestamp||r.run_at||r.updated_at;
+          const d=raw?new Date(raw):null;
+          const key=d&&!Number.isNaN(d.getTime())?new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(d):"unknown";
+          if(!groups.has(key))groups.set(key,[]);
+          groups.get(key).push(r);
+        });
+        const label=key=>{if(key==="unknown")return "Unknown date";const d=new Date(key+"T00:00:00");return Number.isNaN(d.getTime())?"Unknown date":new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"short",day:"2-digit",month:"short",year:"numeric"}).format(d);};
+        scanEl.innerHTML=[...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([date,rows])=>`<section class="history-date-group is-open"><button class="history-date-toggle" type="button" aria-expanded="true"><span><b>${escapeHtml(label(date))}</b><small>${rows.length} scan${rows.length===1?"":"s"}</small></span><i>⌃</i></button><div class="history-date-rows">${rows.map(r=>{const p=r.payload||{};return `<article class="history-scan-row scan-history-row"><div class="history-scan-identity"><strong>${escapeHtml(r.strategy_id||r.strategy||"Strategy")}</strong><small>${escapeHtml(time(r.finished_at||r.completed_at||r.started_at||r.created_at||r.timestamp||r.run_at||r.updated_at))}</small></div><span class="history-scan-status">${escapeHtml(r.status||"—")}</span><div class="history-scan-metrics"><span>${Number(p.checked||0)} checked</span><span>${Number(p.directional||0)} directional</span><span>${Number(p.sent||0)} sent</span><span>${Number(p.errors||0)} errors</span></div></article>`;}).join("")}</div></section>`).join("");
+      }
     }
   };
 
