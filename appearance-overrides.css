@@ -14,3 +14,11 @@ html[data-style="neo"] input,html.neo-mode input,html[data-style="neo"] select,h
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}html[data-compact="true"] .section-block,html[data-compact="true"] .tool-card{padding:14px!important}
 @media(max-width:680px){.live-trade-row{grid-template-columns:1fr 1fr;gap:8px}.live-trade-row>strong{grid-column:1/-1}.scan-history-row{grid-template-columns:1fr auto}.scan-history-row>small{grid-column:1/-1}.history-live-workspace,.history-scan-workspace{overflow:hidden}}
 @media(max-width:560px){.topbar .header-meta{gap:5px}.topbar .version-badge{display:none}.topbar .status-badge{min-height:28px;padding:5px 7px}.topbar .icon-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px}.appearance-style-grid{grid-template-columns:1fr}}
+
+
+/* Neo Brutalism control polish */
+html[data-style="neo"] .appearance-option,html[data-style="neo"] .settings-toggle{min-height:64px!important}
+html[data-style="neo"] .appearance-option b{font-size:12px!important}
+html[data-style="neo"] .appearance-option small{font-size:9px!important}
+html[data-style="neo"] .settings-label{font-weight:950;letter-spacing:.08em}
+html[data-style="neo"] .secondary-button,html[data-style="neo"] .primary-button,html[data-style="neo"] .icon-button,html[data-style="neo"] .text-button{font-weight:950}
