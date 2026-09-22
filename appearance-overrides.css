@@ -77,3 +77,40 @@ html[data-style="neo"] .accent-option:active{transform:translate(3px,3px);box-sh
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* Home — Pro Max command-center hierarchy. */
+.home-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 4px}
+.home-kpi{min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+.home-kpi strong{font-size:clamp(23px,3vw,31px)}
+.home-grid{display:grid;gap:12px}
+.home-grid-primary{grid-template-columns:minmax(0,1.7fr) minmax(300px,.9fr);align-items:start}
+.home-grid-secondary{grid-template-columns:minmax(0,.9fr) minmax(0,1.7fr);align-items:start}
+.home-panel{min-width:0}
+.home-panel .section-heading{min-height:29px}
+.home-panel .chart-card{height:100%;min-height:246px}
+.home-equity .chart-area{min-height:210px}
+.home-activity .chart-area{min-height:210px}
+.home-risk{margin-top:18px}
+.home-risk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.home-risk-grid .metric-card{box-shadow:none;background:var(--surface)}
+.home-scan-body{display:flex;align-items:center;gap:14px;min-height:116px;padding:17px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);box-shadow:var(--shadow-soft)}
+.home-scan-mark{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:18px;font-weight:950}
+.home-scan-body strong{display:block;font-size:11px}
+.home-scan-body p{margin:5px 0 0;color:var(--muted);font-size:8px;line-height:1.5}
+.home-heading{margin-bottom:13px}
+.home-hero{margin-bottom:11px}
+html[data-style="neo"] .home-scan-body{border:2px solid var(--line-strong);box-shadow:4px 4px 0 var(--line-strong)}
+html[data-style="neo"] .home-risk-grid .metric-card{box-shadow:4px 4px 0 var(--line-strong)}
+@media(max-width:900px){
+ .home-kpis{grid-template-columns:repeat(2,1fr)}
+ .home-grid-primary,.home-grid-secondary{grid-template-columns:1fr}
+ .home-risk-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:680px){
+ .home-kpis{gap:8px}
+ .home-kpi{min-height:105px}
+ .home-risk-grid{gap:8px}
+ .home-panel .chart-card{min-height:220px}
+ .home-equity .chart-area,.home-activity .chart-area{min-height:175px}
+ .home-scan-body{min-height:105px}
+}
