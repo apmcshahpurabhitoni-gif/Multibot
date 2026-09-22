@@ -40,17 +40,14 @@
     const savedStyle=storage.getItem(STYLE_STORAGE_KEY);
     if(savedStyle)root.dataset.style=validStyle(savedStyle);
 
-    // appearance.js is the single active owner for interface-style clicks.
-    // Stop the legacy app.js style listener before it can run a second write.
     if(!root.dataset.appearanceBound){
       root.dataset.appearanceBound="true";
       document.addEventListener("click",event=>{
         const button=event.target.closest("[data-style-choice]");
         if(!button)return;
         event.preventDefault();
-        event.stopImmediatePropagation();
         applyStyle(button.dataset.styleChoice);
-      },true);
+      });
     }
 
     sync();
