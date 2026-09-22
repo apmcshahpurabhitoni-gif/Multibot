@@ -32,3 +32,48 @@ html[data-style="neo"] .secondary-button,html[data-style="neo"] .primary-button,
 .accent-option:hover{transform:translateY(-1px);border-color:var(--accent)}
 .accent-option.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent)}
 @media(max-width:700px){.accent-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.accent-option span{font-size:7px}}
+
+/* UI/UX Pro Max — shared component contract: trading/fintech control center. */
+html[data-accent="emerald"]{--mavis-accent:#00a878;--mavis-accent-soft:rgba(0,168,120,.11)}
+html[data-accent="blue"]{--mavis-accent:#2563eb;--mavis-accent-soft:rgba(37,99,235,.11)}
+html[data-accent="violet"]{--mavis-accent:#7c3aed;--mavis-accent-soft:rgba(124,58,237,.11)}
+html[data-accent="amber"]{--mavis-accent:#d97706;--mavis-accent-soft:rgba(217,119,6,.12)}
+html[data-accent="coral"]{--mavis-accent:#e24a3b;--mavis-accent-soft:rgba(226,74,59,.11)}
+html[data-accent="pink"]{--mavis-accent:#db2777;--mavis-accent-soft:rgba(219,39,119,.11)}
+html[data-accent="emerald"][data-theme="dark"]{--mavis-accent:#22c997;--mavis-accent-soft:rgba(34,201,151,.14)}
+html[data-accent="blue"][data-theme="dark"]{--mavis-accent:#60a5fa;--mavis-accent-soft:rgba(96,165,250,.14)}
+html[data-accent="violet"][data-theme="dark"]{--mavis-accent:#a78bfa;--mavis-accent-soft:rgba(167,139,250,.14)}
+html[data-accent="amber"][data-theme="dark"]{--mavis-accent:#fbbf24;--mavis-accent-soft:rgba(251,191,36,.14)}
+html[data-accent="coral"][data-theme="dark"]{--mavis-accent:#fb7185;--mavis-accent-soft:rgba(251,113,133,.14)}
+html[data-accent="pink"][data-theme="dark"]{--mavis-accent:#f472b6;--mavis-accent-soft:rgba(244,114,182,.14)}
+html[data-accent]{--accent:var(--mavis-accent);--accent-soft:var(--mavis-accent-soft)}
+.icon-button svg,.nav-button svg{width:18px;height:18px;display:block;flex:0 0 18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-button svg{width:17px;height:17px;flex-basis:17px}
+.mobile-nav .nav-button svg{width:19px;height:19px;flex-basis:19px;margin-inline:auto}
+.topbar .icon-button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;flex-basis:44px!important}
+.nav-button,.primary-button,.secondary-button{min-height:44px}
+.expand-button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+.filter-button,.impact-filter{min-height:44px}
+.accent-option{min-height:56px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mavis-accent)!important;outline-offset:3px!important}
+button:disabled{cursor:not-allowed}
+button:disabled:hover{transform:none!important}
+.freshness.fresh,.trade-status.open{color:var(--positive)}
+.freshness.stale{color:var(--warning)}
+.status-badge{color:var(--positive)}
+.status-badge.offline{color:var(--negative)}
+html[data-style="modern"] .primary-button:hover,html[data-style="modern"] .secondary-button:hover,html[data-style="modern"] .expand-button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(18,36,27,.08)}
+html[data-style="neo"] .icon-button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;flex-basis:44px!important}
+html[data-style="neo"] .accent-option{min-height:44px;border:2px solid var(--line-strong);border-radius:3px;box-shadow:3px 3px 0 var(--line-strong)}
+html[data-style="neo"] .accent-option.active{outline:3px solid var(--accent);outline-offset:-6px;box-shadow:4px 4px 0 var(--line-strong)}
+html[data-style="neo"] .accent-option:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line-strong)}
+html[data-style="neo"] .accent-option:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)}
+@media(max-width:680px){
+  .mobile-nav .nav-button{min-height:54px!important;padding:5px 3px;gap:3px}
+  .mobile-nav .nav-button span{margin:0!important;font-size:7px;line-height:1.1}
+  .mobile-nav .nav-button svg{margin:0 auto 2px}
+  .topbar .icon-button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;flex-basis:44px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
