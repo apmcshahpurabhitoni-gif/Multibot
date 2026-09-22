@@ -1,0 +1,744 @@
+/* Mavis UI System — Figma-aligned visual layer
+   Purpose: visual consistency only. No trading/data logic is changed. */
+
+:root{
+  --mavis-bg:#f4f8f5;
+  --mavis-surface:#ffffff;
+  --mavis-surface-2:#eef4f0;
+  --mavis-text:#111815;
+  --mavis-muted:#66716c;
+  --mavis-line:rgba(17,24,21,.11);
+  --mavis-accent:#0aa877;
+  --mavis-accent-soft:rgba(10,168,119,.10);
+  --mavis-positive:#087d55;
+  --mavis-negative:#c62b38;
+  --mavis-warning:#a15b00;
+  --mavis-radius-sm:10px;
+  --mavis-radius:14px;
+  --mavis-gap-sm:8px;
+  --mavis-gap-md:12px;
+  --mavis-gap-lg:20px;
+}
+
+html[data-theme="dark"][data-style="modern"]{
+  --mavis-bg:#0a110d;
+  --mavis-surface:#101914;
+  --mavis-surface-2:#17241d;
+  --mavis-text:#f3f7f4;
+  --mavis-muted:#9aa9a1;
+  --mavis-line:rgba(255,255,255,.11);
+  --mavis-accent:#25d497;
+  --mavis-accent-soft:rgba(37,212,151,.12);
+  --mavis-positive:#42d69e;
+  --mavis-negative:#ff6670;
+  --mavis-warning:#f3b45d;
+}
+
+html[data-style="modern"],
+html[data-style="modern"] body{
+  background:var(--mavis-bg);
+  color:var(--mavis-text);
+}
+
+html[data-style="modern"] body{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+html[data-style="modern"] .app{
+  width:min(1240px,100%);
+  padding:18px 18px calc(104px + env(safe-area-inset-bottom));
+}
+
+html[data-style="modern"] .topbar{
+  min-height:68px;
+  padding:12px 14px;
+  border:1px solid var(--mavis-line);
+  border-radius:16px;
+  background:var(--mavis-surface);
+  box-shadow:0 12px 34px rgba(18,36,27,.055);
+}
+
+html[data-theme="dark"][data-style="modern"] .topbar{
+  box-shadow:0 18px 42px rgba(0,0,0,.24);
+}
+
+html[data-style="modern"] .brand{gap:10px}
+html[data-style="modern"] .brand-mark{
+  width:40px;
+  height:40px;
+  border-radius:11px;
+  background:var(--mavis-accent);
+  font-size:18px;
+}
+
+html[data-style="modern"] .brand-copy strong{font-size:16px}
+html[data-style="modern"] .brand-copy small{
+  margin-top:4px;
+  font-size:8px;
+  letter-spacing:.13em;
+}
+
+html[data-style="modern"] .header-meta{gap:7px}
+
+html[data-style="modern"] .version-badge,
+html[data-style="modern"] .status-badge{
+  min-height:30px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:var(--mavis-surface-2);
+  border:1px solid var(--mavis-line);
+  font-size:8px;
+  line-height:1;
+}
+
+html[data-style="modern"] .status-badge{
+  color:var(--mavis-positive);
+  background:var(--mavis-accent-soft);
+  border-color:transparent;
+}
+
+html[data-style="modern"] .status-badge i{
+  width:7px;
+  height:7px;
+  box-shadow:none;
+}
+
+html[data-style="modern"] .icon-button{
+  width:36px;
+  min-width:36px;
+  height:36px;
+  min-height:36px;
+  padding:0;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface-2);
+  box-shadow:none;
+  font-size:16px;
+  line-height:1;
+  transform:none;
+}
+
+html[data-style="modern"] .icon-button:hover{
+  transform:translateY(-1px);
+  background:var(--mavis-accent-soft);
+}
+
+html[data-style="modern"] .desktop-nav{
+  margin:11px 0 22px;
+  padding:4px;
+  gap:4px;
+  border:1px solid var(--mavis-line);
+  border-radius:14px;
+  background:var(--mavis-surface);
+  box-shadow:none;
+}
+
+html[data-style="modern"] .nav-button{
+  min-height:38px;
+  padding:8px 10px;
+  border-radius:9px;
+  font-size:9px;
+  color:var(--mavis-muted);
+}
+
+html[data-style="modern"] .nav-button.active{
+  background:var(--mavis-accent);
+  color:#fff;
+  box-shadow:none;
+}
+
+html[data-style="modern"] .connection-banner{
+  margin:8px 0;
+  padding:10px 12px;
+  border-radius:10px;
+  font-size:9px;
+}
+
+html[data-style="modern"] .page-heading{
+  margin:2px 2px 18px;
+  align-items:flex-end;
+}
+
+html[data-style="modern"] .page-heading h1{
+  font-size:clamp(30px,5vw,42px);
+  letter-spacing:-.045em;
+}
+
+html[data-style="modern"] .page-heading p{
+  margin-top:8px;
+  max-width:760px;
+  font-size:10px;
+  line-height:1.55;
+}
+
+html[data-style="modern"] .eyebrow{
+  margin-bottom:6px;
+  font-size:8px;
+  color:var(--mavis-accent);
+  letter-spacing:.14em;
+}
+
+html[data-style="modern"] .clock strong{font-size:14px}
+html[data-style="modern"] .clock{font-size:8px}
+
+html[data-style="modern"] .hero{
+  margin-bottom:12px;
+  padding:26px 24px;
+  border:1px solid var(--mavis-line);
+  border-radius:18px;
+  background:linear-gradient(135deg,var(--mavis-surface),var(--mavis-surface-2));
+  box-shadow:0 14px 38px rgba(18,36,27,.055);
+}
+
+html[data-theme="dark"][data-style="modern"] .hero{
+  background:linear-gradient(135deg,var(--mavis-surface),var(--mavis-surface-2));
+  box-shadow:0 18px 44px rgba(0,0,0,.22);
+}
+
+html[data-style="modern"] .hero h2{
+  margin:7px 0 7px;
+  font-size:clamp(24px,4vw,32px);
+  letter-spacing:-.04em;
+}
+
+html[data-style="modern"] .hero p{font-size:10px}
+html[data-style="modern"] .hero-pills{gap:6px}
+
+html[data-style="modern"] .hero-pills span,
+html[data-style="modern"] .tool-tag,
+html[data-style="modern"] .legend-chip{
+  min-height:28px;
+  padding:6px 9px;
+  background:var(--mavis-surface-2);
+  border:1px solid var(--mavis-line);
+  border-radius:999px;
+  font-size:7px;
+}
+
+html[data-style="modern"] .metric-grid{gap:9px}
+html[data-style="modern"] .metric-card{
+  min-width:0;
+  padding:14px;
+  border:1px solid var(--mavis-line);
+  border-radius:12px;
+  background:var(--mavis-surface);
+  box-shadow:0 7px 22px rgba(18,36,27,.035);
+}
+
+html[data-style="modern"] .metric-card span{
+  color:var(--mavis-muted);
+  font-size:7px;
+  letter-spacing:.08em;
+}
+
+html[data-style="modern"] .metric-card strong{
+  margin-top:6px;
+  font-size:clamp(20px,3vw,26px);
+  letter-spacing:-.035em;
+}
+
+html[data-style="modern"] .metric-card small{
+  margin-top:5px;
+  color:var(--mavis-muted);
+  font-size:8px;
+}
+
+html[data-style="modern"] .section-block{margin-top:20px}
+
+html[data-style="modern"] .section-heading{
+  margin:0 2px 9px;
+  gap:10px;
+}
+
+html[data-style="modern"] .section-heading h2{font-size:16px}
+html[data-style="modern"] .section-note{
+  margin-top:5px;
+  color:var(--mavis-muted);
+  font-size:8px;
+}
+
+html[data-style="modern"] .primary-button,
+html[data-style="modern"] .secondary-button{
+  min-height:36px;
+  padding:8px 11px;
+  border-radius:10px;
+  border:1px solid var(--mavis-line);
+  background:var(--mavis-surface);
+  color:var(--mavis-text);
+  box-shadow:none;
+  font-size:8px;
+  font-weight:900;
+  line-height:1;
+}
+
+html[data-style="modern"] .primary-button{
+  background:var(--mavis-accent);
+  border-color:var(--mavis-accent);
+  color:#fff;
+}
+
+html[data-style="modern"] .text-button{
+  color:var(--mavis-accent);
+  font-size:8px;
+}
+
+html[data-style="modern"] .box,
+html[data-style="modern"] .signal-card,
+html[data-style="modern"] .trade-card,
+html[data-style="modern"] .news-item,
+html[data-style="modern"] .tool-card,
+html[data-style="modern"] .chart-card,
+html[data-style="modern"] .backtest-results,
+html[data-style="modern"] .backtest-chart-panel,
+html[data-style="modern"] .trades-workspace,
+html[data-style="modern"] .history-workspace,
+html[data-style="modern"] .signals-workspace,
+html[data-style="modern"] .calendar-workspace{
+  border:1px solid var(--mavis-line);
+  border-radius:12px;
+  background:var(--mavis-surface);
+  box-shadow:0 7px 22px rgba(18,36,27,.035);
+}
+
+html[data-style="modern"] .chart-card{
+  padding:14px;
+}
+
+html[data-style="modern"] .chart-head{margin-bottom:8px}
+html[data-style="modern"] .chart-head strong{font-size:10px}
+html[data-style="modern"] .chart-head small{font-size:8px}
+
+html[data-style="modern"] .inline-status{
+  min-height:28px;
+  padding:6px 9px;
+  border:1px solid var(--mavis-line);
+  border-radius:999px;
+  background:var(--mavis-surface-2);
+  color:var(--mavis-muted);
+  font-size:7px;
+}
+
+html[data-style="modern"] .stack{gap:7px}
+
+html[data-style="modern"] .signal-card,
+html[data-style="modern"] .trade-card,
+html[data-style="modern"] .trade-row{
+  border-left-width:3px;
+}
+
+html[data-style="modern"] .card-main{
+  min-height:62px;
+  padding:11px 12px;
+}
+
+html[data-style="modern"] .signal-leading{gap:10px}
+html[data-style="modern"] .direction-icon{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+}
+
+html[data-style="modern"] .signal-leading strong{font-size:11px}
+html[data-style="modern"] .signal-leading small{font-size:8px}
+
+html[data-style="modern"] .signal-side,
+html[data-style="modern"] .freshness,
+html[data-style="modern"] .trade-status,
+html[data-style="modern"] .impact-pill{
+  min-height:24px;
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:7px;
+}
+
+html[data-style="modern"] .expand-button{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+  border:1px solid var(--mavis-line);
+}
+
+html[data-style="modern"] .expand-content{
+  padding:0 12px 12px;
+  border-top:1px solid var(--mavis-line);
+}
+
+html[data-style="modern"] .detail-grid{gap:6px;padding-top:10px}
+html[data-style="modern"] .detail-grid>div,
+html[data-style="modern"] .reason{
+  padding:9px;
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+}
+
+html[data-style="modern"] .detail-grid span,
+html[data-style="modern"] .reason>span{
+  font-size:7px;
+  color:var(--mavis-muted);
+}
+
+html[data-style="modern"] .detail-grid b{font-size:9px}
+
+html[data-style="modern"] .workspace-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px 13px;
+  border-bottom:1px solid var(--mavis-line);
+  background:var(--mavis-surface-2);
+}
+
+html[data-style="modern"] .workspace-heading .eyebrow{margin:0}
+html[data-style="modern"] .workspace-count{
+  color:var(--mavis-muted);
+  font-size:7px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+html[data-style="modern"] .signals-date-list,
+html[data-style="modern"] .history-date-list,
+html[data-style="modern"] .calendar-date-list,
+html[data-style="modern"] .date-trade-list{
+  padding:7px;
+}
+
+html[data-style="modern"] .signals-toolbar,
+html[data-style="modern"] .history-toolbar,
+html[data-style="modern"] .calendar-filterbar,
+html[data-style="modern"] .calendar-topbar,
+html[data-style="modern"] .calendar-agenda-status,
+html[data-style="modern"] .calendar-agenda-bar,
+html[data-style="modern"] .trades-toolbar{
+  background:var(--mavis-surface-2);
+  border-color:var(--mavis-line);
+}
+
+html[data-style="modern"] .signal-tab,
+html[data-style="modern"] .signal-filter,
+html[data-style="modern"] .history-tab,
+html[data-style="modern"] .history-filter,
+html[data-style="modern"] .trade-tab,
+html[data-style="modern"] .filter-button,
+html[data-style="modern"] .impact-filter{
+  min-height:30px;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid var(--mavis-line);
+  background:var(--mavis-surface);
+  font-size:7px;
+  font-weight:900;
+}
+
+html[data-style="modern"] .signal-tab.active,
+html[data-style="modern"] .history-tab.active,
+html[data-style="modern"] .trade-tab.active,
+html[data-style="modern"] .filter-button.active,
+html[data-style="modern"] .impact-filter.active{
+  background:var(--mavis-accent);
+  border-color:var(--mavis-accent);
+  color:#fff;
+}
+
+html[data-style="modern"] .signal-filter.active,
+html[data-style="modern"] .history-filter.active{
+  color:var(--mavis-accent);
+  background:var(--mavis-accent-soft);
+  border-color:var(--mavis-accent);
+}
+
+html[data-style="modern"] .scan-status>div,
+html[data-style="modern"] .account-grid article,
+html[data-style="modern"] .diagnostic-grid article,
+html[data-style="modern"] .schedule-grid span,
+html[data-style="modern"] .universe-grid span,
+html[data-style="modern"] .rule-list>div,
+html[data-style="modern"] .settings-toggle,
+html[data-style="modern"] .appearance-option{
+  background:var(--mavis-surface-2);
+}
+
+html[data-style="modern"] .scan-status{
+  gap:6px;
+  margin-bottom:9px;
+}
+
+html[data-style="modern"] .scan-status>div{
+  padding:10px;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+}
+
+html[data-style="modern"] .trade-row-main{
+  padding:11px;
+  gap:10px;
+}
+
+html[data-style="modern"] .trade-detail-button{
+  min-height:32px;
+  padding:7px 9px;
+  border:1px solid var(--mavis-line);
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+  font-size:7px;
+}
+
+html[data-style="modern"] .trade-date-toggle,
+html[data-style="modern"] .history-date-toggle,
+html[data-style="modern"] .signal-date-toggle,
+html[data-style="modern"] .calendar-date-toggle{
+  padding:13px 7px;
+}
+
+html[data-style="modern"] .trade-date-toggle b,
+html[data-style="modern"] .history-date-toggle b,
+html[data-style="modern"] .signal-date-toggle b,
+html[data-style="modern"] .calendar-date-toggle b{
+  font-size:10px;
+}
+
+html[data-style="modern"] .trade-date-toggle small,
+html[data-style="modern"] .history-date-toggle small,
+html[data-style="modern"] .signal-date-toggle small,
+html[data-style="modern"] .calendar-date-toggle small{
+  font-size:7px;
+  color:var(--mavis-muted);
+}
+
+html[data-style="modern"] .calendar-item{
+  box-shadow:none;
+  border-radius:10px;
+  padding:11px 12px;
+}
+
+html[data-style="modern"] .calendar-time strong{font-size:12px}
+html[data-style="modern"] .calendar-event>strong{font-size:10px}
+html[data-style="modern"] .calendar-event>small{font-size:7px}
+
+html[data-style="modern"] .settings-group{gap:8px}
+html[data-style="modern"] .settings-label{
+  color:var(--mavis-muted);
+  font-size:8px;
+}
+
+html[data-style="modern"] .appearance-style-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+html[data-style="modern"] .appearance-option{
+  min-height:68px;
+  padding:11px;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  text-align:left;
+}
+
+html[data-style="modern"] .appearance-option.active{
+  padding:10px;
+  border:2px solid var(--mavis-accent);
+  background:var(--mavis-accent-soft);
+}
+
+html[data-style="modern"] .appearance-option b{font-size:9px}
+html[data-style="modern"] .appearance-option small{
+  margin-top:4px;
+  font-size:7px;
+  line-height:1.4;
+  color:var(--mavis-muted);
+}
+
+html[data-style="modern"] .settings-toggle-list{
+  border:1px solid var(--mavis-line);
+  border-radius:12px;
+}
+
+html[data-style="modern"] .settings-toggle{
+  min-height:58px;
+  padding:12px 13px;
+  border-bottom:1px solid var(--mavis-line);
+}
+
+html[data-style="modern"] .settings-toggle b{font-size:9px}
+html[data-style="modern"] .settings-toggle small{font-size:7px;color:var(--mavis-muted)}
+html[data-style="modern"] .settings-toggle i{
+  width:34px;
+  height:20px;
+  border-radius:999px;
+  background:#bdc8c2;
+  position:relative;
+  flex:none;
+}
+html[data-style="modern"] .settings-toggle i:after{
+  content:"";
+  position:absolute;
+  width:16px;
+  height:16px;
+  left:2px;
+  top:2px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.16);
+  transition:transform .18s ease;
+}
+html[data-style="modern"] .settings-toggle.active i{background:var(--mavis-accent)}
+html[data-style="modern"] .settings-toggle.active i:after{transform:translateX(14px)}
+
+html[data-style="modern"] .backtest-controls{
+  gap:8px;
+}
+
+html[data-style="modern"] .backtest-controls label{
+  gap:5px;
+  color:var(--mavis-muted);
+  font-size:7px;
+}
+
+html[data-style="modern"] .backtest-controls select{
+  min-height:36px;
+  padding:8px 9px;
+  border:1px solid var(--mavis-line);
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+  font-size:8px;
+}
+
+html[data-style="modern"] .backtest-status{
+  margin-top:8px;
+  padding:10px 11px;
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+  font-size:7px;
+}
+
+html[data-style="modern"] .backtest-results{padding:10px}
+html[data-style="modern"] .backtest-summary{gap:6px}
+html[data-style="modern"] .backtest-summary>div{
+  padding:9px;
+  border-radius:9px;
+  background:var(--mavis-surface-2);
+}
+html[data-style="modern"] .backtest-metrics{
+  gap:8px;
+  margin-top:10px;
+}
+html[data-style="modern"] .backtest-metrics>div{
+  padding:10px;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface-2);
+}
+
+html[data-style="modern"] .empty-state{
+  min-height:120px;
+  padding:20px;
+  border:1px dashed var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface);
+}
+
+html[data-style="modern"] button:focus-visible,
+html[data-style="modern"] a:focus-visible,
+html[data-style="modern"] input:focus-visible,
+html[data-style="modern"] select:focus-visible{
+  outline:2px solid var(--mavis-accent);
+  outline-offset:2px;
+}
+
+html[data-style="modern"] .mobile-nav{
+  left:12px;
+  right:12px;
+  bottom:8px;
+  padding:4px;
+  gap:3px;
+  border:1px solid var(--mavis-line);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--mavis-surface) 96%,transparent);
+  box-shadow:0 12px 34px rgba(18,36,27,.12);
+  backdrop-filter:blur(18px);
+}
+
+html[data-theme="dark"][data-style="modern"] .mobile-nav{
+  box-shadow:0 16px 38px rgba(0,0,0,.28);
+}
+
+html[data-style="modern"] .mobile-nav .nav-button{
+  min-height:54px;
+  padding:6px 3px;
+  border-radius:10px;
+}
+
+html[data-style="modern"] .mobile-nav .nav-button.active{
+  background:var(--mavis-accent);
+}
+
+@media(max-width:900px){
+  html[data-style="modern"] .app{padding-left:14px;padding-right:14px}
+  html[data-style="modern"] .hero{padding:22px 20px}
+}
+
+@media(max-width:680px){
+  html[data-style="modern"] .app{padding:10px 10px 108px}
+  html[data-style="modern"] .topbar{padding:9px 10px;min-height:62px}
+  html[data-style="modern"] .brand-mark{width:38px;height:38px}
+  html[data-style="modern"] .brand-copy strong{font-size:15px}
+  html[data-style="modern"] .header-meta{gap:5px}
+  html[data-style="modern"] .status-badge{min-height:30px;padding:6px 8px}
+  html[data-style="modern"] .icon-button{width:34px;min-width:34px;height:34px;min-height:34px;font-size:15px}
+  html[data-style="modern"] .version-badge{display:none}
+  html[data-style="modern"] .page-heading h1{font-size:30px}
+  html[data-style="modern"] .hero{padding:18px;border-radius:14px}
+  html[data-style="modern"] .hero-pills{margin-top:12px}
+  html[data-style="modern"] .metric-grid.four{gap:7px}
+  html[data-style="modern"] .metric-card{padding:11px}
+  html[data-style="modern"] .metric-card strong{font-size:20px}
+  html[data-style="modern"] .section-block{margin-top:17px}
+  html[data-style="modern"] .workspace-heading{padding:10px 11px}
+  html[data-style="modern"] .appearance-style-grid{grid-template-columns:1fr 1fr}
+  html[data-style="modern"] .backtest-controls{grid-template-columns:1fr 1fr}
+  html[data-style="modern"] .backtest-controls .primary-button{grid-column:1 / -1;width:100%}
+}
+
+@media(max-width:430px){
+  html[data-style="modern"] .hero h2{font-size:24px}
+  html[data-style="modern"] .hero-pills span{font-size:6.5px;padding:6px 8px}
+  html[data-style="modern"] .metric-card strong{font-size:18px}
+  html[data-style="modern"] .metric-card small{display:none}
+  html[data-style="modern"] .signal-summary-grid .metric-card,
+  html[data-style="modern"] .history-summary-grid .metric-card,
+  html[data-style="modern"] .trade-summary-grid .metric-card{
+    padding:9px;
+  }
+  html[data-style="modern"] .signal-tabs,
+  html[data-style="modern"] .signal-filters,
+  html[data-style="modern"] .history-tabs,
+  html[data-style="modern"] .history-filters,
+  html[data-style="modern"] .impact-filters{
+    width:100%;
+  }
+  html[data-style="modern"] .signal-tab,
+  html[data-style="modern"] .signal-filter,
+  html[data-style="modern"] .history-tab,
+  html[data-style="modern"] .history-filter,
+  html[data-style="modern"] .impact-filter{
+    flex:1;
+    min-width:0;
+    padding:7px 6px;
+  }
+  html[data-style="modern"] .calendar-item{grid-template-columns:56px 1fr;gap:8px}
+  html[data-style="modern"] .detail-grid{grid-template-columns:1fr}
+}
+
+@media(prefers-reduced-motion:reduce){
+  html[data-style="modern"] *,
+  html[data-style="modern"] *::before,
+  html[data-style="modern"] *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
