@@ -239,3 +239,17 @@ def test_tools_workspace_uses_pro_max_information_hierarchy():
     assert 'data-style-choice="neo"' in html
     assert 'data-accent-choice="emerald"' in html
     assert 'id="runBacktestButton"' in html
+
+
+def test_whole_dashboard_uses_one_geometry_contract():
+    css = CSS
+    assert '--section-gap:20px' in css
+    assert '--card-pad:18px' in css
+    assert '--control-height:40px' in css
+    assert '--touch-target:44px' in css
+    assert '.home-grid-primary>*' in css
+    assert '.signals-workspace' in css
+    assert '.history-workspace' in css
+    assert '.calendar-workspace' in css
+    assert '.tools-layout' in css
+    assert 'prefers-reduced-motion:reduce' in css
