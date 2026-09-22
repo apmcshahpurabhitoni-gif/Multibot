@@ -1,4 +1,5 @@
 :root{
+--section-gap:20px;--card-pad:18px;--control-height:40px;--touch-target:44px;--focus-ring:3px;
 --bg:#f5f7f5;--surface:#ffffff;--surface-2:#eef3f0;--surface-3:#e2ebe6;
 --text:#101714;--muted:#68746e;--line:rgba(16,23,20,.10);--line-strong:rgba(16,23,20,.18);
 --accent:#08a875;--accent-soft:rgba(8,168,117,.10);--positive:#087d55;--negative:#c62b38;--warning:#a15b00;
