@@ -326,3 +326,14 @@ button:disabled{cursor:not-allowed}
 @media(prefers-reduced-motion:reduce){
 *,:before,:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+.calendar-ledger-status{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px}
+.calendar-feed-main,.calendar-feed-source{display:grid;gap:4px;min-width:0}
+.calendar-feed-label{font-size:7px;font-weight:950;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.calendar-feed-main .calendar-status{font-size:9px}
+.calendar-feed-source{justify-items:end}
+.calendar-feed-source .source-link{font-size:9px}
+@media(max-width:560px){
+ .calendar-ledger-status{grid-template-columns:1fr}
+ .calendar-feed-source{justify-items:start}
+}
