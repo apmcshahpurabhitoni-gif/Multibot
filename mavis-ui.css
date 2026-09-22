@@ -742,3 +742,148 @@ html[data-style="modern"] .mobile-nav .nav-button.active{
     scroll-behavior:auto!important;
   }
 }
+
+
+/* Ponytail shell completion — layout/interaction only, no runtime logic. */
+html[data-style="modern"] .topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  position:sticky;
+  top:10px;
+  z-index:20;
+}
+html[data-style="modern"] .brand{
+  min-width:0;
+  text-decoration:none;
+}
+html[data-style="modern"] .brand-copy{
+  min-width:0;
+}
+html[data-style="modern"] .brand-copy strong,
+html[data-style="modern"] .brand-copy small{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html[data-style="modern"] .header-meta{
+  margin-left:auto;
+  flex:0 0 auto;
+}
+html[data-style="modern"] .desktop-nav{
+  position:sticky;
+  top:88px;
+  z-index:19;
+}
+html[data-style="modern"] .desktop-nav .nav-button{
+  flex:1 1 0;
+  justify-content:center;
+  white-space:nowrap;
+}
+html[data-style="modern"] .page{
+  min-width:0;
+}
+html[data-style="modern"] .page[hidden]{
+  display:none!important;
+}
+html[data-style="modern"] button,
+html[data-style="modern"] select,
+html[data-style="modern"] a{
+  -webkit-tap-highlight-color:transparent;
+}
+html[data-style="modern"] button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+  transform:none!important;
+}
+html[data-style="modern"] .mobile-nav{
+  z-index:50;
+}
+html[data-style="modern"] .mobile-nav .nav-button{
+  flex:1 1 0;
+  min-width:0;
+  font-size:7px;
+}
+html[data-style="modern"] .mobile-nav .nav-button span{
+  display:block;
+  margin-bottom:3px;
+  font-size:14px;
+}
+html[data-style="modern"] .source-link{
+  color:var(--mavis-accent);
+  font-size:8px;
+  font-weight:900;
+}
+html[data-style="modern"] .connection-banner:not([hidden]){
+  border:1px solid var(--mavis-line);
+  background:var(--mavis-surface);
+  color:var(--mavis-text);
+}
+html[data-style="modern"] .connection-banner a{
+  color:var(--mavis-accent);
+}
+html[data-style="modern"] ::selection{
+  background:var(--mavis-accent);
+  color:#fff;
+}
+
+html[data-style="neo"] .topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+html[data-style="neo"] .header-meta{
+  margin-left:auto;
+}
+html[data-style="neo"] .desktop-nav{
+  display:flex;
+  gap:6px;
+}
+html[data-style="neo"] .desktop-nav .nav-button{
+  flex:1 1 0;
+  justify-content:center;
+  min-height:36px;
+  padding:7px 9px;
+}
+html[data-style="neo"] .icon-button{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  font-size:15px!important;
+}
+html[data-style="neo"] .mobile-nav .nav-button{
+  min-height:50px;
+  padding:5px 3px;
+}
+html[data-style="neo"] .mobile-nav .nav-button span{
+  display:block;
+  margin-bottom:2px;
+}
+html[data-style="neo"] button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+  transform:none!important;
+}
+
+@media(max-width:680px){
+  html[data-style="modern"] .topbar{
+    position:relative;
+    top:auto;
+  }
+  html[data-style="modern"] .desktop-nav{
+    display:none;
+  }
+  html[data-style="modern"] .page-heading{
+    gap:12px;
+  }
+  html[data-style="modern"] .page-heading .secondary-button{
+    flex:0 0 auto;
+  }
+  html[data-style="modern"] .mobile-nav{
+    display:flex;
+  }
+}
