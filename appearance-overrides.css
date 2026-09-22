@@ -410,3 +410,59 @@ html[data-style="neo"] .tools-layout .tool-card .primary-button,html.neo-mode .t
  .rule-list>div{grid-template-columns:1fr;gap:4px}
  .schedule-inline{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* ==========================================================================
+   PONYTAIL / PRO MAX — WHOLE DASHBOARD CONSISTENCY
+   One geometry contract across Home, Signals, History, Calendar and Tools.
+   Presentation-only: intentionally does not alter runtime/data behavior.
+   ========================================================================== */
+:root{
+  --section-gap:20px;
+  --card-pad:18px;
+  --control-height:40px;
+  --touch-target:44px;
+  --control-radius:var(--radius-sm);
+}
+.page{min-width:0}
+.page > * + *{margin-top:var(--section-gap)}
+.page-heading{min-width:0}
+.page-heading h1,.page-heading p,.section-heading h2,.section-heading p{overflow-wrap:anywhere}
+.section-block,.signals-workspace,.history-workspace,.calendar-workspace,.tool-card,.chart-card,.equity-card{
+  min-width:0;
+  border-radius:var(--radius);
+}
+.primary-button,.secondary-button,.icon-button,.appearance-option,.settings-toggle,select{
+  min-height:var(--control-height);
+}
+.primary-button,.secondary-button,.appearance-option,.settings-toggle,select{
+  border-radius:var(--control-radius);
+}
+.icon-button{width:var(--touch-target);min-width:var(--touch-target);min-height:var(--touch-target)}
+.topbar,.desktop-nav,.mobile-nav,.page,.home-grid,.home-kpis,.signals-workspace,.history-workspace,.calendar-workspace,.tools-layout{min-width:0}
+.home-kpis,.home-grid,.signals-overview-strip,.history-overview-strip,.calendar-summary-grid{align-items:stretch}
+.home-kpi,.home-panel,.signals-overview-strip,.history-overview-strip,.calendar-total-card,.calendar-agenda-workspace{min-width:0;overflow:hidden}
+.home-kpi strong,.home-panel h2,.signal-card strong,.trade-card strong,.calendar-item strong,.tool-card h2{overflow-wrap:anywhere}
+.home-grid-primary,.home-grid-secondary{min-width:0}
+.home-grid-primary>* ,.home-grid-secondary>*{min-width:0}
+.signal-card,.trade-card,.calendar-item{box-shadow:none}
+.signal-card,.trade-card,.calendar-item,.home-kpi,.tool-card{contain:layout paint}
+.signals-workspace,.history-workspace,.calendar-workspace{overflow:hidden}
+.signals-date-list,.history-date-list,.calendar-date-list{min-width:0}
+.backtest-controls{min-width:0}
+.backtest-controls>*{min-width:0}
+.backtest-results{min-width:0}
+.backtest-section{min-width:0}
+.backtest-trades,.backtest-signal-list{min-width:0;scrollbar-gutter:stable}
+@media(max-width:760px){
+  :root{--section-gap:16px;--card-pad:14px;--control-height:44px}
+  .app{width:100%;min-width:0}
+  .page{width:100%;min-width:0}
+  .page-heading{margin-bottom:0}
+  .home-grid,.home-grid-primary,.home-grid-secondary{grid-template-columns:minmax(0,1fr)}
+  .signals-overview-strip,.history-overview-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .calendar-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
