@@ -887,3 +887,117 @@ html[data-style="neo"] button:disabled{
     display:flex;
   }
 }
+
+
+/* Home / Command Center completion. */
+html[data-style="modern"] .overview-equity .chart-card,
+html[data-style="modern"] .overview-activity .chart-card{
+  min-height:260px;
+}
+html[data-style="modern"] .overview-risk .metric-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+html[data-style="modern"] .overview-signals .stack{
+  min-height:92px;
+}
+html[data-style="modern"] .overview-scan{
+  padding:0;
+}
+html[data-style="modern"] .overview-scan .section-heading{
+  margin-bottom:8px;
+}
+html[data-style="modern"] .overview-scan .inline-status{
+  max-width:min(520px,60%);
+  text-align:right;
+}
+html[data-style="modern"] .chart-area{
+  min-height:180px;
+  overflow:hidden;
+  border-radius:9px;
+  background:linear-gradient(180deg,var(--mavis-accent-soft),transparent 72%);
+}
+html[data-style="modern"] .equity-curve-chart{
+  min-height:210px;
+}
+html[data-style="modern"] .hero-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  color:var(--mavis-accent);
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+html[data-style="modern"] .hero-copy{
+  min-width:0;
+}
+html[data-style="modern"] .hero-pills{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+}
+html[data-style="modern"] .hero-pills span{
+  white-space:nowrap;
+}
+html[data-style="modern"] .overview-equity .chart-head,
+html[data-style="modern"] .overview-activity .chart-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+html[data-style="modern"] .overview-equity .chart-head > span,
+html[data-style="modern"] .overview-activity .chart-head > span{
+  flex:0 0 auto;
+  color:var(--mavis-accent);
+  font-weight:950;
+}
+html[data-style="modern"] .overview-equity .chart-head small,
+html[data-style="modern"] .overview-activity .chart-head small{
+  display:block;
+  margin-top:4px;
+  color:var(--mavis-muted);
+}
+html[data-style="neo"] .overview-equity .chart-card,
+html[data-style="neo"] .overview-activity .chart-card{
+  min-height:250px;
+}
+html[data-style="neo"] .hero-kicker{
+  border:2px solid var(--line-strong);
+  padding:4px 7px;
+  background:var(--accent-soft);
+}
+@media(min-width:980px){
+  html[data-style="modern"] .overview-equity,
+  html[data-style="modern"] .overview-activity{
+    width:calc(50% - 6px);
+    display:inline-block;
+    vertical-align:top;
+    margin-right:6px;
+  }
+  html[data-style="modern"] .overview-activity{
+    width:calc(50% - 6px);
+    margin-left:6px;
+    margin-right:0;
+  }
+  html[data-style="modern"] .overview-risk,
+  html[data-style="modern"] .overview-scan,
+  html[data-style="modern"] .overview-signals{
+    clear:both;
+  }
+}
+@media(max-width:680px){
+  html[data-style="modern"] .overview-risk .metric-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  html[data-style="modern"] .overview-scan .inline-status{
+    max-width:55%;
+  }
+  html[data-style="modern"] .overview-equity .chart-head,
+  html[data-style="modern"] .overview-activity .chart-head{
+    flex-direction:column;
+  }
+}
