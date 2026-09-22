@@ -271,6 +271,11 @@ class YahooProvider:
             if isinstance(frame.columns, pd.MultiIndex):
                 frame.columns = frame.columns.get_level_values(0)
 
+            # yfinance can occasionally return duplicate labels after flattening
+            # a single-ticker MultiIndex response. Keep the first occurrence so
+            # every OHLC field remains a scalar Series at the provider boundary.
+            frame = frame.loc[:, ~frame.columns.duplicated(keep="first")]
+
             required = {"Open", "High", "Low", "Close"}
             if not required.issubset(frame.columns):
                 raise YahooDataError(f"Yahoo response for {symbol} is missing OHLC columns")
@@ -282,6 +287,11 @@ class YahooProvider:
                 raise YahooDataError("Yahoo response has no DatetimeIndex")
             if frame.index.tz is None:
                 frame.index = frame.index.tz_localize("UTC")
+
+            if frame.index.has_duplicates:
+                raise YahooDataError(
+                    f"Yahoo response for {symbol} contains duplicate candle timestamps"
+                )
 
             frame.index = frame.index.tz_convert(IST_TIMEZONE)
             frame = frame.sort_index()
