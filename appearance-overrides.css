@@ -22,3 +22,13 @@ html[data-style="neo"] .appearance-option b{font-size:12px!important}
 html[data-style="neo"] .appearance-option small{font-size:9px!important}
 html[data-style="neo"] .settings-label{font-weight:950;letter-spacing:.08em}
 html[data-style="neo"] .secondary-button,html[data-style="neo"] .primary-button,html[data-style="neo"] .icon-button,html[data-style="neo"] .text-button{font-weight:950}
+
+
+/* Accent picker — shared control, with Neo-specific geometry layered above. */
+.accent-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.accent-option{min-width:0;min-height:52px;padding:7px 6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;gap:6px;font-size:8px;font-weight:900;cursor:pointer;transition:transform .14s ease,border-color .14s ease,background .14s ease,box-shadow .14s ease}
+.accent-option i{width:18px;height:18px;flex:0 0 18px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);background:var(--accent)}
+.accent-option[data-accent-choice="emerald"] i{background:#00a878}.accent-option[data-accent-choice="blue"] i{background:#2563eb}.accent-option[data-accent-choice="violet"] i{background:#7c3aed}.accent-option[data-accent-choice="amber"] i{background:#d97706}.accent-option[data-accent-choice="coral"] i{background:#e24a3b}.accent-option[data-accent-choice="pink"] i{background:#db2777}
+.accent-option:hover{transform:translateY(-1px);border-color:var(--accent)}
+.accent-option.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent)}
+@media(max-width:700px){.accent-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.accent-option span{font-size:7px}}
