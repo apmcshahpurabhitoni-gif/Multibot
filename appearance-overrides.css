@@ -114,3 +114,81 @@ html[data-style="neo"] .home-risk-grid .metric-card{box-shadow:4px 4px 0 var(--l
  .home-equity .chart-area,.home-activity .chart-area{min-height:175px}
  .home-scan-body{min-height:105px}
 }
+
+
+/* Signals — professional ledger hierarchy. Runtime semantics remain owned by app.js. */
+.signals-ledger-heading{align-items:flex-end}
+.signals-refresh{display:inline-flex;align-items:center;gap:8px}
+.signals-refresh svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.signals-overview-strip{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 18px;margin-bottom:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-soft)}
+.signals-overview-copy{min-width:0;display:grid;gap:4px}
+.signals-overview-copy strong{font-size:12px;letter-spacing:-.01em}
+.signals-overview-copy small{max-width:760px;color:var(--muted);font-size:8px;line-height:1.5}
+.signals-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:0 0 auto}
+.signals-legend span{display:inline-flex;align-items:center;gap:5px;font-size:8px;font-weight:900;color:var(--muted);white-space:nowrap}
+.legend-dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--muted)}
+.legend-dot.buy{background:var(--positive)}.legend-dot.sell{background:var(--negative)}.legend-dot.fresh{background:var(--accent)}.legend-dot.stale{background:var(--warning)}
+.signals-ledger-workspace{overflow:hidden}
+.signals-workspace-heading{padding-bottom:10px}
+.signals-workspace-heading>div{display:flex;align-items:baseline;gap:9px}
+.signals-workspace-heading strong{font-size:10px}
+.signals-date-list{display:grid;gap:10px}
+.signal-date-group{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.signal-date-group.is-open{box-shadow:var(--shadow-soft)}
+.signal-date-toggle{width:100%;min-height:54px;padding:9px 13px;border:0;background:transparent;color:var(--text);display:flex;align-items:center;justify-content:space-between;text-align:left;cursor:pointer}
+.signal-date-toggle>span{display:grid;gap:3px;min-width:0}
+.signal-date-toggle b{font-size:10px;font-weight:950}
+.signal-date-toggle small{color:var(--muted);font-size:7px;font-weight:800}
+.signal-date-toggle i{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--radius-sm);font-style:normal;font-size:14px;line-height:1;color:var(--muted)}
+.signal-date-rows{border-top:1px solid var(--line);display:grid}
+.signal-card{margin:0!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;background:var(--surface)}
+.signal-card:last-child{border-bottom:0!important}
+.signal-card .card-main{min-height:76px;padding:11px 13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;cursor:pointer}
+.signal-card .signal-leading{display:flex;align-items:center;gap:11px;min-width:0}
+.signal-card .signal-leading>div{min-width:0}
+.signal-card .signal-leading strong{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signal-card .signal-leading small{display:block;margin-top:4px;color:var(--muted);font-size:8px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signal-card .direction-icon{width:32px;height:32px;display:grid;place-items:center;flex:0 0 32px;border:1px solid var(--line);border-radius:50%;font-size:14px;font-weight:950}
+.signal-card.buy .direction-icon{color:var(--positive);background:color-mix(in srgb,var(--positive) 9%,var(--surface))}
+.signal-card.sell .direction-icon{color:var(--negative);background:color-mix(in srgb,var(--negative) 9%,var(--surface))}
+.signal-card .card-state{display:flex;align-items:center;gap:10px}
+.signal-card .signal-side{min-width:50px;padding:6px 8px;border-radius:var(--radius-sm);font-size:8px;font-weight:950;text-align:center;letter-spacing:.04em}
+.signal-card .signal-side.buy{color:var(--positive);background:color-mix(in srgb,var(--positive) 10%,var(--surface))}
+.signal-card .signal-side.sell{color:var(--negative);background:color-mix(in srgb,var(--negative) 10%,var(--surface))}
+.signal-card .expand-button{border:1px solid var(--line)!important;border-radius:var(--radius-sm)!important;box-shadow:none!important;background:var(--surface);color:var(--text)}
+.signal-card .expand-content{padding:0 13px 14px;border-top:1px dashed var(--line);background:var(--surface-2)}
+.signal-card .detail-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:13px 0 10px}
+.signal-card .detail-grid>div{min-width:0;padding:8px 9px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.signal-card .detail-grid span,.signal-card .reason>span{display:block;color:var(--muted);font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.signal-card .detail-grid b{display:block;margin-top:4px;font-size:8px;overflow-wrap:anywhere}
+.signal-card .reason{padding:10px 11px;border-left:3px solid var(--accent);background:var(--surface)}
+.signal-card .reason p{margin:5px 0 0;font-size:8px;line-height:1.5;color:var(--text)}
+.signal-card .fresh{color:var(--positive)!important}.signal-card .stale{color:var(--warning)!important}
+html[data-style="neo"] .signals-overview-strip,html.neo-mode .signals-overview-strip,
+html[data-style="neo"] .signal-date-group,html.neo-mode .signal-date-group{border:2px solid var(--line-strong)!important;border-radius:3px!important;box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .signal-date-group.is-open,html.neo-mode .signal-date-group.is-open{box-shadow:4px 4px 0 var(--line-strong)!important}
+html[data-style="neo"] .signal-date-toggle i,html.neo-mode .signal-date-toggle i,
+html[data-style="neo"] .signal-card .detail-grid>div,html.neo-mode .signal-card .detail-grid>div,
+html[data-style="neo"] .signal-card .direction-icon,html.neo-mode .signal-card .direction-icon{border:2px solid var(--line-strong)!important;border-radius:3px}
+html[data-style="neo"] .signal-card .expand-button,html.neo-mode .signal-card .expand-button{border:2px solid var(--line-strong)!important;box-shadow:2px 2px 0 var(--line-strong)!important;border-radius:3px!important}
+html[data-style="neo"] .signal-card .signal-side,html.neo-mode .signal-card .signal-side{border:2px solid var(--line-strong)}
+@media(max-width:820px){
+ .signals-overview-strip{align-items:flex-start;flex-direction:column}
+ .signals-legend{width:100%}
+ .signal-card .detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ .signals-ledger-heading{align-items:flex-start;gap:12px}
+ .signals-refresh{min-width:44px}
+ .signals-overview-strip{padding:13px}
+ .signals-legend{gap:9px}
+ .signal-date-toggle{min-height:58px}
+ .signal-card .card-main{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px}
+ .signal-card .signal-leading{gap:8px}
+ .signal-card .direction-icon{width:30px;height:30px;flex-basis:30px}
+ .signal-card .signal-leading small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .signal-card .signal-side{display:none}
+ .signal-card .detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .signal-card .expand-content{padding:0 10px 11px}
+}
+@media(max-width:360px){.signal-card .detail-grid{grid-template-columns:1fr}}
