@@ -548,3 +548,34 @@ select,
   .backtest-results .backtest-trades,.backtest-trades{max-height:420px !important;}
   .backtest-signal-list{max-height:340px !important;}
 }
+
+
+/* Accent system — shared by Modern and Neo Brutalism. */
+html[data-accent="emerald"]{--accent:#00a878;--accent-soft:rgba(0,168,120,.14);--mavis-accent:#00a878;--mavis-accent-soft:rgba(0,168,120,.14)}
+html[data-accent="blue"]{--accent:#2563eb;--accent-soft:rgba(37,99,235,.14);--mavis-accent:#2563eb;--mavis-accent-soft:rgba(37,99,235,.14)}
+html[data-accent="violet"]{--accent:#7c3aed;--accent-soft:rgba(124,58,237,.14);--mavis-accent:#7c3aed;--mavis-accent-soft:rgba(124,58,237,.14)}
+html[data-accent="amber"]{--accent:#d97706;--accent-soft:rgba(217,119,6,.16);--mavis-accent:#d97706;--mavis-accent-soft:rgba(217,119,6,.16)}
+html[data-accent="coral"]{--accent:#e24a3b;--accent-soft:rgba(226,74,59,.14);--mavis-accent:#e24a3b;--mavis-accent-soft:rgba(226,74,59,.14)}
+html[data-accent="pink"]{--accent:#db2777;--accent-soft:rgba(219,39,119,.14);--mavis-accent:#db2777;--mavis-accent-soft:rgba(219,39,119,.14)}
+html[data-theme="dark"][data-accent="emerald"]{--accent:#2ee6a6;--accent-soft:rgba(46,230,166,.16);--mavis-accent:#2ee6a6;--mavis-accent-soft:rgba(46,230,166,.16)}
+html[data-theme="dark"][data-accent="blue"]{--accent:#60a5fa;--accent-soft:rgba(96,165,250,.16);--mavis-accent:#60a5fa;--mavis-accent-soft:rgba(96,165,250,.16)}
+html[data-theme="dark"][data-accent="violet"]{--accent:#a78bfa;--accent-soft:rgba(167,139,250,.16);--mavis-accent:#a78bfa;--mavis-accent-soft:rgba(167,139,250,.16)}
+html[data-theme="dark"][data-accent="amber"]{--accent:#fbbf24;--accent-soft:rgba(251,191,36,.16);--mavis-accent:#fbbf24;--mavis-accent-soft:rgba(251,191,36,.16)}
+html[data-theme="dark"][data-accent="coral"]{--accent:#fb7185;--accent-soft:rgba(251,113,133,.16);--mavis-accent:#fb7185;--mavis-accent-soft:rgba(251,113,133,.16)}
+html[data-theme="dark"][data-accent="pink"]{--accent:#f472b6;--accent-soft:rgba(244,114,182,.16);--mavis-accent:#f472b6;--mavis-accent-soft:rgba(244,114,182,.16)}
+html[data-style="neo"]{--radius:3px;--radius-sm:2px;--shadow:5px 5px 0 var(--line-strong);--shadow-soft:3px 3px 0 var(--line-strong)}
+html[data-style="neo"][data-theme="light"]{--bg:#f5efdf;--surface:#fffaf0;--surface-2:#ebe1cd;--surface-3:#ddd0b5;--text:#111;--muted:#5b5549;--line:#111;--line-strong:#111}
+html[data-style="neo"][data-theme="dark"]{--bg:#101210;--surface:#181b18;--surface-2:#252a25;--surface-3:#303630;--text:#f4f3ed;--muted:#a9aea8;--line:#f4f3ed;--line-strong:#f4f3ed}
+html[data-style="neo"] .accent-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+html[data-style="neo"] .accent-option{border:2px solid var(--line-strong);border-radius:3px;background:var(--surface);box-shadow:3px 3px 0 var(--line-strong);min-height:58px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:8px;font-weight:950;text-transform:uppercase;letter-spacing:.05em;color:var(--text);transition:transform .12s ease,box-shadow .12s ease}
+html[data-style="neo"] .accent-option i{width:22px;height:22px;border:2px solid var(--line-strong);display:block}
+html[data-style="neo"] .accent-option[data-accent-choice="emerald"] i{background:#00a878}.accent-option[data-accent-choice="blue"] i{background:#2563eb}.accent-option[data-accent-choice="violet"] i{background:#7c3aed}.accent-option[data-accent-choice="amber"] i{background:#d97706}.accent-option[data-accent-choice="coral"] i{background:#e24a3b}.accent-option[data-accent-choice="pink"] i{background:#db2777}
+html[data-style="neo"] .accent-option.active{background:var(--accent-soft);outline:3px solid var(--accent);outline-offset:-6px}
+html[data-style="neo"] .accent-option:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line-strong)}
+html[data-style="neo"] .accent-option:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)}
+html[data-style="neo"] .primary-button,html[data-style="neo"] .nav-button.active{background:var(--accent)!important;color:#fff!important}
+html[data-style="neo"][data-theme="dark"] .primary-button,html[data-style="neo"][data-theme="dark"] .nav-button.active{color:#111!important}
+html[data-style="neo"] .brand-mark{background:var(--accent);color:#fff;border:2px solid var(--line-strong)}
+html[data-style="neo"] .hero{background:var(--surface);border:2px solid var(--line-strong);box-shadow:6px 6px 0 var(--line-strong)}
+html[data-style="neo"] .metric-card strong,html[data-style="neo"] .page-heading h1,html[data-style="neo"] .section-block h2,html[data-style="neo"] .tool-card h2{letter-spacing:-.03em}
+@media(max-width:700px){html[data-style="neo"] .accent-picker{grid-template-columns:repeat(3,minmax(0,1fr))}}
