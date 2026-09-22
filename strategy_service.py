@@ -125,8 +125,20 @@ class StrategyService:
         asset=LIVE_ASSET_MAP[symbol]
         try:
             frame=self.engine.provider.fetch(asset.yahoo_symbol,period="1d",interval="1m",validate_hourly=False)
-            return None if frame.empty else float(frame.close.iloc[-1])
-        except Exception as exc: logger.warning("Current price lookup failed for %s: %s",symbol,exc); return None
+            if frame.empty:
+                return None
+            close=frame["close"]
+            # Guard the scalar contract even for legacy/custom providers that may
+            # still hand back duplicate column labels.
+            if isinstance(close,pd.DataFrame):
+                close=close.iloc[:,0]
+            value=close.iloc[-1]
+            if isinstance(value,pd.Series):
+                value=value.iloc[0]
+            return float(value)
+        except Exception as exc:
+            logger.warning("Current price lookup failed for %s: %s",symbol,exc)
+            return None
 
     def scan_and_dispatch(self,strategy_id,*,now=None,period="30d",send=True):
         strategy=self.registry.get(strategy_id); current=self._now(now); results=[]
