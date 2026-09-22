@@ -143,14 +143,17 @@ class YahooProvider:
             self._failure_count.pop(key[0], None)
             self._backoff_until.pop(key[0], None)
         if self._database is not None:
+            # JSON does not permit IEEE NaN/Infinity values. Convert missing
+            # numeric cells to JSON null before persisting the cache payload.
+            safe_frame = frame.astype(object).where(pd.notna(frame), None)
             payload = {
-                "columns": list(frame.columns),
-                "index": [x.isoformat() for x in frame.index],
-                "data": frame.values.tolist(),
+                "columns": list(safe_frame.columns),
+                "index": [x.isoformat() for x in safe_frame.index],
+                "data": safe_frame.values.tolist(),
             }
             self._database.save_market_data_cache(
                 self._key_id(key), key[0], key[1], key[2], key[3],
-                json.dumps(payload, separators=(",", ":"), default=str),
+                json.dumps(payload, separators=(",", ":"), default=str, allow_nan=False),
                 datetime.now(timezone.utc).isoformat(),
             )
             logger.info("Yahoo persistent cache saved | symbol=%s key=%s", key[0], self._key_id(key))
