@@ -25,6 +25,7 @@ warnings.filterwarnings("ignore", message="The .*generic.* unit for NumPy timede
 DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
 REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS, enabled=NEWS_PAUSE_ENABLED)
 LAST_SCANS={}
+LAST_PING_AT=None
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
 def validate_runtime_configuration():
@@ -214,14 +215,27 @@ def web_server():
     root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css")}
     def app(env,start):
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
-        if path=="/ping": start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")]); return [b"pong"]
+        if path=="/ping":
+            global LAST_PING_AT
+            LAST_PING_AT=now().isoformat()
+            logger.info("Keepalive ping received | at=%s",LAST_PING_AT)
+            start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
+            return [b"pong"]
         if path=="/api/health":
             try:
                 ensure_runtime()
-                payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":now().isoformat(),
+                current=now()
+                keepalive_age_minutes=None
+                keepalive="UNKNOWN"
+                if LAST_PING_AT:
+                    keepalive_age_minutes=max(0,(current-pd.Timestamp(LAST_PING_AT)).total_seconds()/60)
+                    keepalive="OK" if keepalive_age_minutes <= 15 else "STALE"
+                payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":current.isoformat(),
                     "runtime":True,"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK",
                     "scheduler":not STOP.is_set(),"strategies":len(REGISTRY.all()),
-                    "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED"}
+                    "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED",
+                    "keepalive":keepalive,"last_ping_at":LAST_PING_AT,
+                    "keepalive_age_minutes":round(keepalive_age_minutes,1) if keepalive_age_minutes is not None else None}
                 return _json_response(start,payload)
             except Exception as exc:
                 return _json_response(start,{"ok":False,"status":"DEGRADED","error":str(exc),"timestamp":now().isoformat()},"503 Service Unavailable")

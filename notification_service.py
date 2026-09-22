@@ -20,17 +20,20 @@ class NotificationService:
     def deliver(self, *, signal_id, message, kind="SIGNAL", metadata=None):
         base = dict(metadata or {})
         base.update({"text": message.text, "kind": kind})
-        self.database.record_delivery(
-            signal_id, channel="telegram", status="PENDING",
-            message_type=message.message_type, metadata=base
-        )
+
+        # Delivery transport is authoritative. A telemetry/audit failure must not
+        # prevent the actual Telegram request or turn an accepted message into a
+        # false delivery failure.
         try:
-            send_message(message, self._config())
             self.database.record_delivery(
-                signal_id, channel="telegram", status="SENT",
+                signal_id, channel="telegram", status="PENDING",
                 message_type=message.message_type, metadata=base
             )
-            return True
+        except Exception as exc:
+            logger.warning("Telegram pending-delivery audit skipped for %s: %s", signal_id, exc)
+
+        try:
+            send_message(message, self._config())
         except Exception as exc:
             retry_count = int(base.get("retry_count", 0)) + 1
             status = "PERMANENT_FAILURE" if retry_count >= self.MAX_RETRIES else "FAILED"
@@ -41,12 +44,29 @@ class NotificationService:
                     pd.Timedelta(minutes=2 ** retry_count)
                 ).isoformat()
             logger.exception("Telegram delivery failed for %s", signal_id)
-            self.database.record_delivery(
-                signal_id, channel="telegram", status=status,
-                error_text=str(exc), message_type=message.message_type,
-                metadata=base
-            )
+            try:
+                self.database.record_delivery(
+                    signal_id, channel="telegram", status=status,
+                    error_text=str(exc), message_type=message.message_type,
+                    metadata=base
+                )
+            except Exception as audit_exc:
+                logger.warning("Telegram failure audit skipped for %s: %s", signal_id, audit_exc)
             return False
+
+        try:
+            self.database.record_delivery(
+                signal_id, channel="telegram", status="SENT",
+                message_type=message.message_type, metadata=base
+            )
+        except Exception as exc:
+            logger.warning("Telegram sent-delivery audit skipped for %s: %s", signal_id, exc)
+
+        logger.info(
+            "Telegram delivery accepted | signal_id=%s kind=%s message_type=%s",
+            signal_id, kind, message.message_type,
+        )
+        return True
 
     def retry_failed(self, limit=20):
         sent = 0

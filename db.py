@@ -10,6 +10,12 @@ SUPABASE_KEY=os.getenv("SUPABASE_KEY","")
 
 class DatabaseError(RuntimeError): pass
 
+
+def _optional_timestamp(value):
+    """Convert legacy empty timestamp strings to SQL NULL."""
+    return None if value in (None, "") else value
+
+
 class DatabaseManager:
     def __init__(self,path=None):
         self.path=path or DEFAULT_DB_PATH
@@ -185,7 +191,9 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             result=self._supabase_request("POST","active_trades",data=data,upsert=True); self._require_supabase(result,"open trade")
         else:
             result=self._supabase_request("DELETE","active_trades",params=parse.urlencode({"id":f"eq.{trade_id}"})); self._require_supabase(result,"active trade delete")
-            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0)),"ts_trigger":payload.get("signal_ts",""),"opened_at":payload.get("opened_at",updated_at),"time_str":payload.get("opened_at",updated_at),"exit_price":payload.get("exit_price",0),"pnl":payload.get("pnl",0),"result":payload.get("result",payload.get("exit_reason","")),"exit_reason":payload.get("exit_reason",""),"close_time":payload.get("closed_at",updated_at),"closed_at":payload.get("closed_at",updated_at)}
+            opened_at=_optional_timestamp(payload.get("opened_at")) or _optional_timestamp(updated_at)
+            closed_at=_optional_timestamp(payload.get("closed_at")) or _optional_timestamp(updated_at)
+            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0)),"ts_trigger":_optional_timestamp(payload.get("signal_ts")),"opened_at":opened_at,"time_str":opened_at,"exit_price":payload.get("exit_price",0),"pnl":payload.get("pnl",0),"result":payload.get("result",payload.get("exit_reason","")),"exit_reason":payload.get("exit_reason",""),"close_time":closed_at,"closed_at":closed_at}
             result=self._supabase_request("POST","closed_trades",data=data,upsert=True); self._require_supabase(result,"closed trade")
 
     def load_trades(self,status=None):
