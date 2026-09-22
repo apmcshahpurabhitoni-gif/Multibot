@@ -313,3 +313,16 @@ html[data-style="neo"] .calendar-item .expand-button,html.neo-mode .calendar-ite
  .calendar-event>strong{white-space:normal}
  .calendar-details{grid-template-columns:1fr}
 }
+
+
+/* UI UX Pro Max contract — Multibot product-wide foundations. */
+:root{--surface-raised:var(--surface);--control-height:40px;--touch-target:44px;--focus-ring:3px}
+button,a,select,input{cursor:pointer}
+button,a,select,input{min-height:var(--control-height)}
+.icon-button{min-width:var(--touch-target);min-height:var(--touch-target)}
+button:disabled{cursor:not-allowed}
+.page-heading h1,.section-heading h2,.chart-head strong,.home-panel h2,.history-workspace-heading h2{overflow-wrap:anywhere}
+.home-kpi,.metric-card,.tool-card,.chart-card,.signal-card,.trade-card,.calendar-date-group,.calendar-item{contain:layout paint}
+@media(prefers-reduced-motion:reduce){
+*,:before,:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
