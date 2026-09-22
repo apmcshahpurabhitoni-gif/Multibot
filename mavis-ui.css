@@ -1731,3 +1731,35 @@ html[data-style="neo"] .tool-card{
     grid-template-columns:1fr 1fr;
   }
 }
+
+
+/* === PONYTAIL REFINEMENT: operational rows stay compact and scannable === */
+.live-trade-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(90px,auto) minmax(90px,auto) auto;
+  align-items:center;
+  gap:14px;
+  padding:13px 16px;
+  border-bottom:1px solid var(--line);
+}
+.live-trade-row:last-child{border-bottom:0}
+.live-trade-row>div{min-width:0}
+.live-trade-row>div:first-child{display:grid;gap:4px}
+.live-trade-row strong{font-size:12px}
+.live-trade-row small{display:block;color:var(--muted);font-size:8px;line-height:1.4;overflow-wrap:anywhere}
+.live-trade-row>div:not(:first-child){display:grid;gap:3px}
+.live-trade-row>div:not(:first-child) span{font-size:7px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.live-trade-row>div:not(:first-child) b{font-size:10px;font-variant-numeric:tabular-nums}
+.live-open-badge{justify-self:end;padding:5px 8px;border:1px solid var(--line);font-size:7px;letter-spacing:.08em}
+.history-scan-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(180px,auto);align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.history-scan-row:last-child{border-bottom:0}
+.history-scan-identity{display:grid;gap:4px;min-width:0}.history-scan-identity small{font-size:8px;color:var(--muted)}
+.history-scan-status{padding:5px 8px;border:1px solid var(--line);font-size:7px;font-weight:900;letter-spacing:.06em}
+.history-scan-metrics{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:8px}
+@media(max-width:680px){
+  .live-trade-row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:11px 12px}
+  .live-trade-row>div:nth-child(2),.live-trade-row>div:nth-child(3){justify-self:end}
+  .live-open-badge{grid-column:2;justify-self:end}
+  .history-scan-row{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:11px 12px}
+  .history-scan-metrics{grid-column:1/-1;justify-content:flex-start}
+}
