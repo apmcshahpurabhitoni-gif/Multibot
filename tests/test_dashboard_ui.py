@@ -217,3 +217,25 @@ def test_pro_max_design_foundations_are_present():
         'prefers-reduced-motion:reduce',
     ):
         assert token in css
+
+
+def test_tools_workspace_uses_pro_max_information_hierarchy():
+    html=HTML
+    css=CSS
+    for token in (
+        'tools-layout',
+        'tools-appearance',
+        'tool-backtest',
+        'tool-universe',
+        'tool-accounts',
+        'tool-rules',
+        'tool-runtime',
+        'tool-release',
+        'accent-picker',
+        'backtest-controls',
+    ):
+        assert token in html or token in css
+    assert 'data-theme-choice="light"' in html
+    assert 'data-style-choice="neo"' in html
+    assert 'data-accent-choice="emerald"' in html
+    assert 'id="runBacktestButton"' in html
