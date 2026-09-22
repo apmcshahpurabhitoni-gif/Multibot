@@ -1189,3 +1189,144 @@ html[data-style="neo"] .signal-card .direction-icon.SELL{
     grid-template-columns:1fr 1fr;
   }
 }
+
+
+/* History — complete records workspace. */
+html[data-style="modern"] .history-heading{
+  align-items:flex-end;
+}
+html[data-style="modern"] .history-heading .secondary-button{
+  flex:0 0 auto;
+}
+html[data-style="modern"] .history-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-bottom:18px;
+}
+html[data-style="modern"] .history-workspace{
+  overflow:hidden;
+  margin-top:12px;
+}
+html[data-style="modern"] .history-date-list{
+  display:grid;
+  gap:8px;
+}
+html[data-style="modern"] .history-date-group{
+  overflow:hidden;
+  border:1px solid var(--mavis-line);
+  border-radius:10px;
+  background:var(--mavis-surface);
+}
+html[data-style="modern"] .history-date-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  background:var(--mavis-surface-2);
+  color:var(--mavis-text);
+  border:0;
+  border-bottom:1px solid var(--mavis-line);
+  text-align:left;
+}
+html[data-style="modern"] .history-date-toggle > span{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+html[data-style="modern"] .history-date-toggle .date-count{
+  min-width:24px;
+  min-height:22px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  color:var(--mavis-accent);
+  font-size:7px;
+  font-weight:950;
+}
+html[data-style="modern"] .history-date-toggle .chevron{
+  color:var(--mavis-muted);
+  transition:transform .18s ease;
+}
+html[data-style="modern"] .history-date-group.is-collapsed .chevron{
+  transform:rotate(-90deg);
+}
+html[data-style="modern"] .history-date-group.is-collapsed .date-trade-list{
+  display:none;
+}
+html[data-style="modern"] .date-trade-list{
+  display:grid;
+  gap:7px;
+}
+html[data-style="modern"] .history-workspace .trade-card{
+  overflow:hidden;
+}
+html[data-style="modern"] .history-live-list{
+  display:grid;
+  gap:0;
+}
+html[data-style="modern"] .live-trade-row,
+html[data-style="modern"] .scan-history-row{
+  min-width:0;
+  transition:background .15s ease;
+}
+html[data-style="modern"] .live-trade-row:hover,
+html[data-style="modern"] .scan-history-row:hover{
+  background:var(--mavis-surface-2);
+}
+html[data-style="modern"] .live-open-badge{
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  border-color:transparent;
+  color:var(--mavis-positive);
+}
+html[data-style="modern"] .scan-history-row>span{
+  border-radius:999px;
+  background:var(--mavis-accent-soft);
+  color:var(--mavis-accent);
+}
+html[data-style="modern"] .history-live-workspace .workspace-heading,
+html[data-style="modern"] .history-scan-workspace .workspace-heading{
+  border-bottom:1px solid var(--mavis-line);
+}
+html[data-style="modern"] .history-workspace .empty-state{
+  margin:7px;
+}
+html[data-style="modern"] .history-summary-grid .metric-card strong.positive{
+  color:var(--mavis-positive);
+}
+html[data-style="modern"] .history-summary-grid .metric-card strong.negative{
+  color:var(--mavis-negative);
+}
+html[data-style="neo"] .history-date-group{
+  border:2px solid var(--line-strong)!important;
+  border-radius:3px!important;
+  box-shadow:4px 4px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] .history-date-toggle{
+  border-bottom:2px solid var(--line-strong)!important;
+}
+@media(max-width:680px){
+  html[data-style="modern"] .history-heading{
+    align-items:stretch;
+  }
+  html[data-style="modern"] .history-heading .secondary-button{
+    width:100%;
+  }
+  html[data-style="modern"] .history-summary-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+}
+@media(max-width:430px){
+  html[data-style="modern"] .history-summary-grid{
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  html[data-style="modern"] .history-summary-grid .metric-card{
+    min-width:0;
+  }
+}
