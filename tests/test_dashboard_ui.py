@@ -182,3 +182,38 @@ def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scr
         'overflow-wrap:anywhere',
     ):
         assert token in CSS
+
+
+def test_calendar_uses_market_intelligence_agenda_hierarchy():
+    html=HTML
+    css=CSS
+    for token in (
+        'calendar-ledger-status',
+        'calendar-feed-main',
+        'calendar-feed-source',
+        'calendar-summary-grid',
+        'calendar-agenda-header',
+        'calendar-date-list',
+        'calendar-date-group',
+        'calendar-date-events',
+        'calendar-details',
+    ):
+        assert token in html or token in css
+    assert 'calendarRefreshButton' in html
+    assert 'calendarItems' in html
+    assert 'Forex Factory' in html
+
+
+def test_pro_max_design_foundations_are_present():
+    css=CSS
+    for token in (
+        '--space-1',
+        '--space-6',
+        '--font-sans',
+        '--text-xs',
+        '--text-2xl',
+        '--touch-target',
+        '--focus-ring',
+        'prefers-reduced-motion:reduce',
+    ):
+        assert token in css
