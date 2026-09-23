@@ -26,8 +26,14 @@ def dashboard_signal(event, send_state=None, delivery=None, now=None):
         str(event.get("timeframe","")),
         str(event.get("reason","")),
     )
-    freshness, age_hours = signal_status(signal, now=current)
-    age=max(0,int(age_hours*60))
+    try:
+        freshness, age_hours = signal_status(signal, now=current)
+        age=max(0,int(age_hours*60))
+    except (ValueError, TypeError, OverflowError) as exc:
+        # One malformed historical row must never 500 the entire dashboard API.
+        import logging
+        logging.getLogger(__name__).warning("Malformed signal row degraded to STALE | key=%s error=%s",event.get("signal_id") or event.get("timestamp"),exc)
+        freshness, age = "STALE", 0
     out=dict(event)
     metadata=dict(out.get("metadata") or {})
     # Support rows written before levels were promoted to canonical event metadata.

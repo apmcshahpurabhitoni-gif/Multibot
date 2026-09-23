@@ -212,7 +212,7 @@ def _sweep_diagnostic_payload(*, period="30d"):
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
 def web_server():
-    root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css")}
+    root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css")}
     def app(env,start):
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
         if path=="/ping":
@@ -241,7 +241,9 @@ def web_server():
                 return _json_response(start,{"ok":False,"status":"DEGRADED","error":str(exc),"timestamp":now().isoformat()},"503 Service Unavailable")
         if path=="/api/dashboard":
             try:return _json_response(start,snapshot())
-            except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
+            except Exception as exc:
+                logger.exception("Dashboard snapshot failed")
+                return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path=="/api/diagnostics/sweep":
             try:return _json_response(start,_sweep_diagnostic_payload(period=query.get("period",["30d"])[0]))
             except Exception as exc:

@@ -292,7 +292,12 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
 
     def load_scan_runs(self,limit=50):
         with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
-        return [{**dict(r),"payload":json.loads(r["payload"] or "{}")} for r in rows]
+        out=[]
+        for r in rows:
+            try: payload=json.loads(r["payload"] or "{}")
+            except Exception: payload={}
+            out.append({**dict(r),"payload":payload})
+        return out
 
     def delivery_status(self,signal_id):
         with self._connect() as c: row=c.execute("SELECT status,attempted_at,error,message_type FROM deliveries WHERE signal_id=? ORDER BY id DESC LIMIT 1",(signal_id,)).fetchone()
@@ -307,7 +312,11 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             item={k:r[k] for k in ("signal_id","signal_key","strategy","version","symbol","direction","timestamp","timeframe","reason","pipeline_status","created_at","updated_at")}
             item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata
             item["entry"]=metadata.get("entry"); item["stop_loss"]=metadata.get("stop_loss"); item["take_profit"]=metadata.get("take_profit")
-            item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"]); out.append(item)
+            try:
+                item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"])
+            except Exception:
+                item["delivery"]=None; item["send_state"]={"send_count":0,"first_sent_at":None,"last_sent_at":None}
+            out.append(item)
         return out
 
     def record_signal_send(self,key,sent_at,reminder_due_at=None,message_text=None,metadata=None):
