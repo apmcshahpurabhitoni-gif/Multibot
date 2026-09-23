@@ -108,6 +108,7 @@ bindEvent("signalsRefreshButton","click",loadDashboard);
 bindEvent("historyRefreshButton","click",loadDashboard);
 bindEvent("themeToggle","click",()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark"));
 $$('[data-theme-choice]').forEach(button=>button.addEventListener("click",()=>applyTheme(button.dataset.themeChoice)));
+$$('[data-style-choice]').forEach(button=>button.addEventListener("click",()=>applyStyle(button.dataset.styleChoice)));
 $$('[data-accent-choice]').forEach(button=>button.addEventListener("click",()=>applyAccent(button.dataset.accentChoice)));
 bindEvent("compactModeToggle","click",()=>{const next=localStorage.getItem("mavis-compact")!=="true";localStorage.setItem("mavis-compact",String(next));applyAppearanceControls();});
 bindEvent("reduceMotionToggle","click",()=>{const next=localStorage.getItem("mavis-reduce-motion")!=="true";localStorage.setItem("mavis-reduce-motion",String(next));applyAppearanceControls();});
