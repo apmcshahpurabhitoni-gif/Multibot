@@ -15,7 +15,7 @@
   --accent-soft:rgba(14,159,110,.12);
  --accent-softer:rgba(14,159,110,.07);
 
-  --bg:#f2f5f3;
+  --bg:#f4f5f6;
   --surface:#ffffff;
   --surface-2:#f0f4f1;
   --surface-3:#e3ebe6;
@@ -55,7 +55,7 @@ html[data-accent="cyan"]{--accent:#0e7490;--accent-strong:#155e75;--accent-fill:
 
 /* ---------- Dark theme (works with every style + accent) ------------------ */
 html[data-theme="dark"]{
-  --bg:#0a0f0d;
+  --bg:#0b0c0d;
   --surface:#121815;
   --surface-2:#1a221e;
   --surface-3:#242e29;
@@ -148,10 +148,7 @@ html[data-theme="dark"][data-style="neo"][data-accent="cyan"]{--accent:#22d3ee;-
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{
-  background:
-    radial-gradient(900px 480px at 110% -10%,var(--accent-softer),transparent 60%),
-    radial-gradient(700px 420px at -10% 110%,var(--accent-softer),transparent 55%),
-    var(--bg);
+  background:var(--bg);
   color:var(--text);
   font-family:var(--font);
   font-size:12.5px;line-height:1.45;
@@ -169,7 +166,7 @@ svg{vertical-align:middle}
 ::-webkit-scrollbar-thumb:hover{background:var(--line-strong)}
 
 /* ---------- 3. App shell / topbar ---------------------------------------- */
-.app{width:min(1280px,100%);margin:auto;padding:14px 14px 112px}
+.app{width:min(1280px,100%);margin:auto;padding:12px 14px 28px}
 .topbar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   min-height:56px;padding:9px 14px;
@@ -782,7 +779,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   main{padding-left:calc(var(--nav-w) - 12px)}
 }
 @media(max-width:900px){
-  .app{padding:12px 12px 104px}
+  .app{padding:12px 12px 20px}
   .desktop-nav{display:none}
   main{padding:14px 2px 12px}
   .hero{flex-direction:column;align-items:flex-start;padding:16px}
@@ -799,7 +796,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 }
 @media(max-width:760px){
   :root{--section-gap:9px;--grid-gap:6px;--card-pad:11px;--control-height:42px}
-  .app{width:100%;padding:10px 10px 108px}
+  .app{width:100%;padding:10px 10px 20px}
   .page-heading{gap:12px}
   .page-heading p,.section-note,.chart-head small{max-width:100%}
   .workspace-heading{min-height:52px;padding:10px 14px}
@@ -828,16 +825,15 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .version-badge{display:none}
   .header-meta{gap:6px}
   .mobile-nav{
-    position:fixed;z-index:50;left:10px;right:10px;bottom:7px;
-    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px;
-    background:color-mix(in srgb,var(--surface) 94%,transparent);
-    border:var(--border-w) solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);backdrop-filter:blur(16px);
+    position:sticky;z-index:45;top:0;
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px 8px;
+    margin:0 -10px 10px;
+    background:var(--surface);
+    border-bottom:var(--border-w) solid var(--line);
+    box-shadow:var(--shadow-soft);
   }
   .mobile-nav .nav-button{flex-direction:column;justify-content:center;gap:3px;min-height:48px;height:48px;padding:5px 2px;font-size:9px;border-radius:var(--radius-sm)}
   .mobile-nav .nav-button .nav-icon{font-size:15px;line-height:1}
-  .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
-  .mobile-nav{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom))}
   .hero{padding:10px 12px}
   .hero h2{font-size:15px}
   .section-heading h2{font-size:16px}
