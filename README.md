@@ -4,7 +4,7 @@
 >
 > **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Supabase · Dashboard · Strategy Lab**
 
-[![Version](https://img.shields.io/badge/version-3.2.6-111827?style=for-the-badge)](.)
+[![Version](https://img.shields.io/badge/version-3.2.7-111827?style=for-the-badge)](.)
 [![Mode](https://img.shields.io/badge/mode-PAPER-16a34a?style=for-the-badge)](.)
 [![Provider](https://img.shields.io/badge/data-Yahoo%20Finance-7c3aed?style=for-the-badge)](.)
 [![Python](https://img.shields.io/badge/python-3.11%2B-2563eb?style=for-the-badge)](.)
@@ -23,11 +23,12 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 ---
 
-## 🆕 What's New — v3.2.6
+## 🆕 What's New — v3.2.7
 
 **Single source of truth:** `release_notes.py`
 
-- 🎨 Final ponytail consistency pass aligns Home, Signals, History, Calendar and Tools around one shared panel and spacing system.
+- ✨ Release notes moved into a header button with a modal, freeing a full dashboard section.
+- 🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.
 - 📱 Backtest trades and generated signals are bounded, touch-scrollable panels that no longer stretch the mobile page or sit behind navigation.
 - 🧪 Backtest results are semantically separated into overview, equity curve, performance, completed trades and backtest signals.
 - 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.
@@ -471,4 +472,4 @@ For strategy-only work, give it:
 🎨 Presentation separated from trading logic
 ```
 
-**MULTIBOT2 v3.2.6 — modular paper trading with canonical market data, professional research UI and a single release source.** 🚀
+**MULTIBOT2 v3.2.7 — modular paper trading with canonical market data, professional research UI and a single release source.** 🚀
