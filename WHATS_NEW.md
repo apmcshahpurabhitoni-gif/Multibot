@@ -1,8 +1,9 @@
-# What's New — MULTIBOT2 v3.2.6
+# What's New — MULTIBOT2 v3.2.7
 
-Generated from the single canonical source: release_notes.py.
+Generated from release_notes.py.
 
-- 🎨 Final ponytail consistency pass aligns Home, Signals, History, Calendar and Tools around one shared panel and spacing system.
+- ✨ Release notes moved into a header button with a modal, freeing a full dashboard section.
+- 🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.
 - 📱 Backtest trades and generated signals are bounded, touch-scrollable panels that no longer stretch the mobile page or sit behind navigation.
 - 🧪 Backtest results are semantically separated into overview, equity curve, performance, completed trades and backtest signals.
 - 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.

@@ -26,7 +26,15 @@
 .appearance-accent-grid .appearance-option.active{outline:2px solid var(--text);outline-offset:-5px;padding:9px 11px!important}
 .appearance-accent-grid .appearance-option.active .appearance-swatch{border-color:var(--text)}
 
-/* --- Neo Brutalism interactive surface (contract selectors) --- */
+/* --- One-line appearance chips (theme / style / accent / toggles) --- */
+.chip-option{border:var(--border-w) solid var(--line);border-radius:999px;background:var(--surface-2)}
+.chip-option b{display:inline;font-size:inherit}
+.chip-option .appearance-swatch{width:12px;height:12px;border-radius:4px;border-width:2px}
+.settings-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;padding:5px 11px;min-height:30px;border:var(--border-w) solid var(--line);border-radius:999px;background:var(--surface-2);color:var(--text);font-size:10.5px;font-weight:800;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+.settings-toggle:hover{border-color:var(--accent);color:var(--accent-strong);transform:translateY(-1px)}
+.settings-toggle.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
+
+/* --- Neo Brutalism interactive surface (contract selectors) --- */ */
 html[data-style="neo"] .primary-button,
 html.neo-mode .primary-button,
 html[data-style="neo"] .secondary-button,
@@ -47,12 +55,14 @@ html[data-style="neo"] .trade-detail-button,
 html.neo-mode .trade-detail-button,
 html[data-style="neo"] .settings-toggle,
 html.neo-mode .settings-toggle,
+html[data-style="neo"] .chip-option,
+html.neo-mode .chip-option,
 html[data-style="neo"] input,
 html.neo-mode input,
 html[data-style="neo"] select,
 html.neo-mode select{
   border:2px solid var(--line-strong)!important;border-radius:7px!important;
-  box-shadow:3px 3px 0 var(--line-strong)!important;background:var(--surface);
+  box-shadow:2px 2px 0 var(--line-strong)!important;background:var(--surface);
 }
 html[data-style="neo"] .primary-button,html.neo-mode .primary-button{background:var(--accent-fill)!important;color:var(--on-accent)!important}
 html[data-style="neo"] .nav-button.active,html.neo-mode .nav-button.active,
@@ -62,7 +72,7 @@ html[data-style="neo"] .impact-filter.active,html.neo-mode .impact-filter.active
 }
 html[data-style="neo"] .appearance-option.active,html.neo-mode .appearance-option.active,
 html[data-style="neo"] .settings-toggle.active,html.neo-mode .settings-toggle.active{
-  background:var(--accent-soft)!important;outline:2px solid var(--accent);outline-offset:-5px;
+  background:var(--accent-soft)!important;outline:2px solid var(--accent);outline-offset:-3px;
 }
 html[data-style="neo"] .text-button,html.neo-mode .text-button{padding:8px 12px;background:var(--surface)!important;min-height:44px}
 html[data-style="neo"] [data-style-choice],html.neo-mode [data-style-choice],
@@ -79,8 +89,9 @@ html[data-style="neo"] .impact-filter:hover,html.neo-mode .impact-filter:hover,
 html[data-style="neo"] .expand-button:hover,html.neo-mode .expand-button:hover,
 html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-button:hover,
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
-html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover{
-  transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--line-strong)!important;
+html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
+html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover{
+  transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button:active,html.neo-mode .primary-button:active,
 html[data-style="neo"] .secondary-button:active,html.neo-mode .secondary-button:active,
@@ -92,7 +103,8 @@ html[data-style="neo"] .impact-filter:active,html.neo-mode .impact-filter:active
 html[data-style="neo"] .expand-button:active,html.neo-mode .expand-button:active,
 html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-button:active,
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
-html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active{
+html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
+html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active{
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
