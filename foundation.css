@@ -647,3 +647,105 @@ html[data-style="neo"] #page-overview .overview-equity .chart-head > span,
 html[data-style="neo"] #page-overview .overview-risk .metric-card strong{
   font-weight:800!important;
 }
+
+
+/* ---------- Signals page contract ----------------------------------------- */
+/* Keep Neo's full visual weight while giving the ledger a predictable mobile
+   hierarchy: workspace -> date group -> signal card -> expanded details. */
+#page-signals .signals-workspace{
+  min-width:0;
+}
+
+#page-signals .signals-date-list{
+  min-width:0;
+}
+
+#page-signals .signal-date-group{
+  min-width:0;
+}
+
+#page-signals .signal-date-toggle{
+  min-width:0;
+}
+
+#page-signals .signal-date-toggle > span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+#page-signals .signal-date-toggle b{
+  overflow-wrap:anywhere;
+}
+
+#page-signals .signal-date-rows .signal-card{
+  min-width:0;
+}
+
+#page-signals .signal-leading{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+#page-signals .signal-leading > div{
+  min-width:0;
+}
+
+#page-signals .signal-leading small{
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:560px){
+  #page-signals .signals-date-list{
+    padding:6px 8px 10px;
+  }
+
+  #page-signals .signal-date-toggle{
+    min-height:44px;
+    padding:8px 6px;
+  }
+
+  #page-signals .signal-date-toggle i{
+    width:32px;
+    height:32px;
+  }
+
+  #page-signals .signal-date-rows{
+    padding:7px 3px 9px;
+    gap:8px;
+  }
+
+  #page-signals .signal-date-rows .signal-card .card-main{
+    min-height:52px;
+    padding:8px 9px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading{
+    gap:9px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading strong{
+    font-size:12.5px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading small{
+    font-size:10.5px;
+    line-height:1.35;
+  }
+
+  #page-signals .signal-date-rows .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+
+  #page-signals .signal-date-rows .reason{
+    margin-top:8px;
+  }
+}
+
+/* Neo date groups/cards keep the same strong treatment as the rest of Neo. */
+html[data-style="neo"] #page-signals .signal-date-rows .signal-card{
+  border:2px solid var(--line-strong)!important;
+  border-left-width:4px!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
