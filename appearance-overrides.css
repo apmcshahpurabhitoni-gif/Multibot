@@ -715,7 +715,9 @@ html[data-reduce-motion="true"] .expand-button::before{transition:none}
   .page-heading{gap:10px!important}
   .page-heading h1{font-size:22px!important}
   .page-heading .secondary-button{flex:none!important}
-  #page-history .history-summary-grid,
+  #page-history .history-summary-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
   #page-calendar .calendar-summary-grid{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
   }
