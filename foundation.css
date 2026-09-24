@@ -390,9 +390,6 @@ html[data-reduce-motion="true"] .page.active{
     gap:8px;
   }
 
-  #page-overview .metric-card strong{
-    font-size:clamp(19px,5.4vw,24px);
-  }
 
   #page-overview .equity-card .chart-area{
     min-height:180px;
