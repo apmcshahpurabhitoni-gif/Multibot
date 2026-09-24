@@ -2850,6 +2850,69 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 }
 
 
+/* ---------- History parity freeze ----------------------------------------
+   History and Signals share the same mobile hierarchy: date group > row >
+   metadata. Keep content rails and controls stable without changing data. */
+@media(max-width:560px){
+  #page-history .history-date-rows .trade-row{
+    min-width:0;
+    border-radius:var(--radius-sm)!important;
+    box-shadow:var(--shadow-soft)!important;
+  }
+  #page-history .history-date-rows .trade-row-main{
+    min-height:56px!important;
+    padding:7px 9px!important;
+    gap:9px!important;
+  }
+  #page-history .history-date-rows .trade-row-identity{
+    gap:9px!important;
+    min-width:0;
+  }
+  #page-history .history-date-rows .trade-row-identity strong{
+    font-size:13.5px!important;
+    line-height:1.2!important;
+    font-weight:800!important;
+  }
+  #page-history .history-date-rows .trade-row-identity small{
+    margin-top:2px!important;
+    font-size:10.5px!important;
+    line-height:1.2!important;
+  }
+  #page-history .history-date-rows .trade-detail-button{
+    min-width:58px!important;
+    min-height:34px!important;
+    padding:5px 10px!important;
+    font-size:10.5px!important;
+    border-radius:8px!important;
+  }
+
+  /* Scan history is a list of runtime rows, not a second visual system. */
+  #page-history .history-scan-row{
+    min-width:0!important;
+    border-radius:var(--radius-sm)!important;
+    box-shadow:var(--shadow-soft)!important;
+  }
+  #page-history .history-scan-identity strong{
+    font-size:13.5px!important;
+    line-height:1.2!important;
+    font-weight:800!important;
+  }
+  #page-history .history-scan-identity small{
+    font-size:10.5px!important;
+    line-height:1.2!important;
+  }
+  #page-history .history-scan-status{
+    font-size:9.5px!important;
+  }
+  #page-history .history-scan-metrics span{
+    font-size:8.5px!important;
+  }
+  #page-history .history-scan-metrics b{
+    font-size:10.5px!important;
+  }
+}
+
+
 /* ---------- Signals / History visual freeze ------------------------------
    Keep the compact signal geometry. Match History's row language and use a
    stable content rail so labels/values never appear to start at arbitrary x. */
