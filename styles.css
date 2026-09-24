@@ -485,7 +485,8 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .calendar-item:hover{border-color:var(--line-strong)}
 .calendar-item.impact-high{border-left:3px solid var(--negative)}
 .calendar-item.impact-medium{border-left:3px solid var(--warning)}
-.calendar-item.impact-low,.calendar-item.impact-holiday{border-left:3px solid var(--accent)}
+.calendar-item.impact-low{border-left:3px solid var(--positive)}
+.calendar-item.impact-holiday{border-left:3px solid var(--accent)}
 .calendar-time{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding-right:13px;border-right:1px solid var(--line);min-width:0}
 .calendar-time strong{font-size:11.5px;font-variant-numeric:tabular-nums}
 .calendar-time small{color:var(--muted);font-size:10px;font-weight:800}
