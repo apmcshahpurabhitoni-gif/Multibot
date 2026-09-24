@@ -1468,3 +1468,89 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
     overflow-wrap:anywhere;
   }
 }
+
+
+/* ---------- History page contract ----------------------------------------- */
+/* Reuse the proven Signals hierarchy: workspace -> date group -> compact row.
+   No runtime/data styling belongs in the history renderer. */
+#page-history .history-summary-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--f-grid-gap);
+}
+#page-history .history-summary-grid .metric-card{
+  min-width:0;
+}
+#page-history .history-workspace{
+  overflow:visible;
+}
+#page-history .history-date-list{
+  padding:6px 12px 12px;
+}
+#page-history .history-date-group{
+  min-width:0;
+  margin:0;
+  border-bottom:0;
+}
+#page-history .history-date-rows{
+  display:grid;
+  gap:8px;
+  padding:7px 5px 9px;
+}
+#page-history .history-date-rows .trade-row{
+  min-width:0;
+}
+#page-history .history-live-list{
+  display:grid;
+  gap:8px;
+  padding:8px 12px 12px;
+}
+#page-history .history-live-list .live-trade-row,
+#page-history .history-live-list .scan-history-row{
+  min-width:0;
+  max-width:100%;
+}
+#page-history .history-scan-workspace .history-live-list{
+  padding-top:7px;
+}
+@media(max-width:760px){
+  #page-history .history-summary-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+@media(max-width:560px){
+  #page-history .history-date-list{
+    padding:6px 8px 10px;
+  }
+  #page-history .history-date-rows{
+    gap:8px;
+    padding:7px 3px 9px;
+  }
+  #page-history .history-live-list{
+    gap:8px;
+    padding:7px 8px 10px;
+  }
+  #page-history .history-live-list .live-trade-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:6px 8px;
+    padding:8px 9px;
+  }
+  #page-history .history-live-list .live-trade-row > div:first-child{
+    grid-column:1 / -1;
+  }
+  #page-history .history-live-list .live-trade-row > div:nth-child(2),
+  #page-history .history-live-list .live-trade-row > div:nth-child(3){
+    min-width:0;
+  }
+  #page-history .history-live-list .live-trade-row .live-open-badge{
+    grid-column:1;
+    justify-self:start;
+    align-self:center;
+  }
+  #page-history .history-live-list .live-trade-row .trade-detail-button{
+    grid-column:2;
+    justify-self:end;
+  }
+  #page-history .history-scan-workspace .history-live-list{
+    padding:7px 8px 10px;
+  }
+}
