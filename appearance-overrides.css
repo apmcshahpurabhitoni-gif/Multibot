@@ -34,7 +34,7 @@
 .settings-toggle:hover{border-color:var(--accent);color:var(--accent-strong);transform:translateY(-1px)}
 .settings-toggle.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 
-/* --- Neo Brutalism interactive surface (contract selectors) --- */ */
+/* --- Neo Brutalism interactive surface (contract selectors) --- */
 html[data-style="neo"] .primary-button,
 html.neo-mode .primary-button,
 html[data-style="neo"] .secondary-button,
@@ -121,4 +121,45 @@ html[data-compact="true"] .section-block,html[data-compact="true"] .tool-card{pa
   .topbar .icon-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px}
   .appearance-style-grid{grid-template-columns:1fr}
   .appearance-accent-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+
+
+/* --- Shell + compact topbar regression guard -----------------------------
+   The dashboard shell is not an interactive control. Neo Brutalism should
+   not apply an accent/ink perimeter to the whole application, and the
+   topbar utility buttons must stay compact rather than inheriting the
+   heavier Neo button treatment.
+*/
+.app{
+  border:0!important;
+  outline:0!important;
+}
+html[data-style="neo"] .app,
+html.neo-mode .app{
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
+html[data-style="neo"] .topbar .icon-button,
+html.neo-mode .topbar .icon-button{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+  flex:0 0 34px!important;
+  padding:0!important;
+  border:2px solid var(--line)!important;
+  border-radius:9px!important;
+  box-shadow:none!important;
+  transform:none;
+}
+html[data-style="neo"] .topbar .icon-button:hover,
+html.neo-mode .topbar .icon-button:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:none!important;
+}
+html[data-style="neo"] .topbar .icon-button:active,
+html.neo-mode .topbar .icon-button:active{
+  transform:none!important;
+  box-shadow:none!important;
 }
