@@ -830,3 +830,18 @@ html[data-style="neo"] #page-signals .signal-date-toggle{
   border-radius:8px!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
+
+
+/* ---------- Signals heading alignment repair ------------------------------ */
+/* Mobile page headings stack vertically. Keep the heading block on the
+   content edge; only the action stays compact. */
+@media(max-width:760px){
+  #page-signals .signals-heading{
+    align-items:flex-start!important;
+  }
+
+  #page-signals #signalsRefreshButton{
+    width:auto!important;
+    align-self:flex-start;
+  }
+}
