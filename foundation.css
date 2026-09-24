@@ -1401,3 +1401,70 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
     font-size:10px!important;
   }
 }
+
+
+/* ---------- Expanded signal details: final readability polish ------------- */
+/* Keep the compact two-column Neo layout. Only improve value fit/readability. */
+#page-overview .overview-signals .signal-card.expanded .detail-grid,
+#page-signals .signal-card.expanded .detail-grid{
+  font-size:inherit;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+#page-signals .signal-card.expanded .detail-grid>div{
+  min-height:31px;
+  padding:5px 8px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid span,
+#page-signals .signal-card.expanded .detail-grid span{
+  font-size:8.5px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b,
+#page-signals .signal-card.expanded .detail-grid b{
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+
+/* Timestamp fields are allowed to wrap instead of being clipped with "...". */
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+}
+
+/* FIRST SENT has no useful partner on the final row, so use the full width. */
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(11),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(11){
+  grid-column:1 / -1;
+  grid-template-columns:max-content minmax(0,1fr);
+  border-left:0!important;
+  border-top:1px solid var(--line)!important;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+  #page-signals .signal-card.expanded .detail-grid>div{
+    min-height:30px;
+    padding:5px 7px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid span,
+  #page-signals .signal-card.expanded .detail-grid span{
+    font-size:8.2px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid b,
+  #page-signals .signal-card.expanded .detail-grid b{
+    font-size:10.7px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
+  #page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+}
