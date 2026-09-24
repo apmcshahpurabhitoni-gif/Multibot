@@ -845,3 +845,39 @@ html[data-style="neo"] #page-signals .signal-date-toggle{
     align-self:flex-start;
   }
 }
+
+
+/* ---------- Signals mobile final geometry -------------------------------- */
+/* Keep the page heading and action on one row. The generic mobile page-heading
+   rule stacks actions for other pages, but Signals has a single compact action. */
+@media(max-width:560px){
+  #page-signals .signals-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+  }
+
+  #page-signals .signals-heading > div{
+    min-width:0;
+  }
+
+  #page-signals #signalsRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+  }
+
+  /* Fixed bottom navigation must never cover expanded signal details. */
+  #page-signals{
+    padding-bottom:104px;
+  }
+
+  #page-signals .signals-workspace{
+    margin-bottom:0;
+  }
+}
