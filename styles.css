@@ -1454,3 +1454,24 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     line-height:1.3!important;
   }
 }
+
+/* ---------- Tools: align collapsible actions with shared dashboard contract ----- */
+#page-tools .tool-collapse>.section-heading{
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+#page-tools .tool-collapse>.section-heading>div:first-child{
+  flex:1 1 auto!important;
+  min-width:0!important;
+}
+#page-tools .tool-collapse>.section-heading>.tool-tag{
+  margin-left:auto!important;
+  margin-right:0!important;
+}
+#page-tools .tool-collapse>.section-heading>.collapse-chev{
+  margin-left:0!important;
+  flex:0 0 auto!important;
+}
+#page-tools .tool-universe>.section-heading>div:first-child{
+  flex:1 1 auto!important;
+}
