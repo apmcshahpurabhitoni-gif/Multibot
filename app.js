@@ -37,7 +37,28 @@ function renderSignalDateGroups(signals){const groups=new Map();signals.forEach(
 function renderSignals(){const all=canonicalSignals(),signals=all;$("signalsResultCount").textContent=`${signals.length} signal${signals.length===1?"":"s"}`;$("signalsList").innerHTML=signals.length?renderSignalDateGroups(signals):empty("No signals yet","◇","Detected BUY and SELL signals will appear here when the runtime produces them.");}
 function historyDateKey(prefix,date){return `history-${prefix}-date:${date}`;}
 function scanDateValue(row){return row?.completed_at||row?.created_at||row?.timestamp||row?.run_at||row?.started_at||row?.updated_at;}
-function renderHistoryScanRow(row){const p=row?.payload||{},strategy=strategyLabel(row?.strategy_id||row?.strategy||"Strategy"),status=String(row?.status||"RECORDED").toUpperCase(),checked=number(p.checked,0),directional=number(p.directional,0),sent=number(p.sent,0),errors=number(p.errors,0);return `<article class="history-scan-row"><div class="history-scan-identity"><strong>${escapeHtml(strategy)}</strong><small>${escapeHtml(timestamp(scanDateValue(row)))}</small></div><span class="history-scan-status">${escapeHtml(status)}</span><div class="history-scan-metrics"><span>${checked} checked</span><span>${directional} directional</span><span>${sent} sent</span><span>${errors} errors</span></div></article>`;}
+function renderHistoryScanRow(row){
+  const p=row?.payload||{};
+  const strategy=strategyLabel(row?.strategy_id||row?.strategy||"Strategy");
+  const status=String(row?.status||"RECORDED").toUpperCase();
+  const checked=number(p.checked,0), directional=number(p.directional,0), sent=number(p.sent,0), errors=number(p.errors,0);
+  const stamp=timestamp(scanDateValue(row));
+  return `<article class="history-scan-row">
+    <div class="history-scan-head">
+      <div class="history-scan-identity">
+        <strong>${escapeHtml(strategy)}</strong>
+        <small>${escapeHtml(stamp)}</small>
+      </div>
+      <span class="history-scan-status">${escapeHtml(status)}</span>
+    </div>
+    <div class="history-scan-metrics" aria-label="Scan results">
+      <span><b>${checked}</b> checked</span>
+      <span><b>${directional}</b> directional</span>
+      <span><b>${sent}</b> sent</span>
+      <span><b>${errors}</b> errors</span>
+    </div>
+  </article>`;
+}
 function renderHistoryDateGroups(rows,kind){const groups=new Map();rows.forEach(row=>{const date=dateKey(kind==="trade"?tradeDateValue(row.trade):scanDateValue(row.scan));if(!groups.has(date))groups.set(date,[]);groups.get(date).push(row);});const ordered=[...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0])),openSet=kind==="trade"?state.historyTradeDates:state.historyScanDates;if(!state.groupInit.has(kind)){state.groupInit.add(kind);if(!openSet.size&&ordered[0])openSet.add(historyDateKey(kind,ordered[0][0]));}return ordered.map(([date,items])=>{const key=historyDateKey(kind,date),open=openSet.has(key),noun=kind==="trade"?"trade":"scan";return `<section class="history-date-group ${open?"is-open":""}"><button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(dateLabel(date))}</b><small>${items.length} ${noun}${items.length===1?"":"s"}</small></span><i aria-hidden="true" class="chev"></i></button>${open?`<div class="history-date-rows">${kind==="trade"?items.map(row=>renderTradeRow(row.trade,row.index)).join(""):items.map(row=>renderHistoryScanRow(row.scan)).join("")}</div>`:""}</section>`;}).join("");}
 function renderOpenHistoryRow(trade,index){
   const plan=trade?.plan||trade;
