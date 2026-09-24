@@ -2227,3 +2227,46 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   border-color:var(--line-strong)!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
+
+
+/* ---------- Calendar mobile composition correction ------------------------ */
+/* Keep the calendar feed header compact on phones; the source link belongs to
+   the same row as the cached/online state rather than becoming a second band. */
+@media(max-width:560px){
+  #page-calendar .page-heading .secondary-button{
+    width:auto!important;
+    align-self:flex-start;
+  }
+
+  #page-calendar .calendar-agenda-status{
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+    padding:9px 10px;
+  }
+
+  #page-calendar .calendar-source{
+    justify-self:end;
+    min-height:32px;
+    padding:5px 6px;
+  }
+
+  #page-calendar .calendar-status .inline-status{
+    width:100%;
+    min-height:34px;
+    padding:6px 8px;
+  }
+
+  #page-calendar .calendar-status .inline-status small{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+}
+
+/* The first date is the primary calendar context, so it opens by default.
+   User-controlled subsequent toggles still use the existing JS state. */
+#page-calendar .calendar-date-events{
+  min-width:0;
+}
