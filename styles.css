@@ -2164,3 +2164,72 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     line-height:17px!important;
   }
 }
+
+
+/* ---------- Tools: Markets edge alignment correction ---------------------- */
+/* Category content must sit inside the same horizontal inset as the card
+   content. Single-item categories must not show a phantom center divider. */
+#page-tools .universe-grid>.asset-category{
+  padding-left:14px!important;
+  padding-right:14px!important;
+}
+
+#page-tools .asset-category-label{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+
+#page-tools .asset-category-items{
+  width:100%!important;
+}
+
+#page-tools .asset-category-items>span{
+  padding-left:0!important;
+  padding-right:8px!important;
+}
+
+#page-tools .asset-category-items>span:nth-child(odd){
+  border-right:1px solid var(--line)!important;
+  padding-left:0!important;
+}
+
+#page-tools .asset-category-items>span:nth-child(even){
+  padding-left:14px!important;
+  padding-right:0!important;
+}
+
+#page-tools .asset-category-items:not(:has(>span:nth-child(2)))>span{
+  border-right:0!important;
+  padding-left:0!important;
+  padding-right:0!important;
+}
+
+@media(min-width:761px){
+  #page-tools .asset-category-items>span:nth-child(even){
+    padding-left:14px!important;
+  }
+  #page-tools .asset-category-items>span:not(:nth-child(4n)){
+    border-right:1px solid var(--line)!important;
+  }
+  #page-tools .asset-category-items>span:nth-child(4n){
+    padding-right:0!important;
+  }
+  #page-tools .asset-category-items:not(:has(>span:nth-child(2)))>span{
+    border-right:0!important;
+    padding-left:0!important;
+  }
+}
+
+@media(max-width:560px){
+  #page-tools .universe-grid>.asset-category{
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+  #page-tools .asset-category-items>span:nth-child(even){
+    padding-left:12px!important;
+  }
+  #page-tools .asset-category-items:not(:has(>span:nth-child(2)))>span{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+}
