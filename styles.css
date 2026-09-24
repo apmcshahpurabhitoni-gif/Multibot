@@ -933,3 +933,62 @@ html[data-style="neo"] .trade-date-group{
     min-height:42px;
   }
 }
+
+
+/* ---------- Neo date control: explicit visible depth ---------------------- */
+/* Keep the date control's depth independent from parent/card overflow and
+   make the pressed/open states visibly different from ordinary cards. */
+html[data-style="neo"] .signals-workspace .signal-date-group,
+html[data-style="neo"] .history-workspace .history-date-group,
+html[data-style="neo"] .calendar-workspace .calendar-date-group{
+  overflow:visible!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-toggle,
+html[data-style="neo"] .history-workspace .history-date-toggle,
+html[data-style="neo"] .calendar-workspace .calendar-date-toggle{
+  position:relative;
+  z-index:4!important;
+  flex:none;
+  border:2px solid var(--line-strong)!important;
+  background:var(--surface)!important;
+  box-shadow:4px 4px 0 var(--line-strong)!important;
+  transform:translate(0,0);
+  transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-toggle:hover,
+html[data-style="neo"] .history-workspace .history-date-toggle:hover,
+html[data-style="neo"] .calendar-workspace .calendar-date-toggle:hover{
+  transform:translate(-1px,-1px)!important;
+  box-shadow:4px 4px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-toggle:active,
+html[data-style="neo"] .history-workspace .history-date-toggle:active,
+html[data-style="neo"] .calendar-workspace .calendar-date-toggle:active{
+  transform:translate(4px,4px)!important;
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-group.is-open>.signal-date-toggle,
+html[data-style="neo"] .history-workspace .history-date-group.is-open>.history-date-toggle,
+html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open>.calendar-date-toggle{
+  background:var(--accent-soft)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-toggle i,
+html[data-style="neo"] .history-workspace .history-date-toggle i,
+html[data-style="neo"] .calendar-workspace .calendar-date-toggle i{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+  background:var(--surface)!important;
+}
+
+html[data-style="neo"] .signals-workspace .signal-date-group.is-open .signal-date-toggle i,
+html[data-style="neo"] .history-workspace .history-date-group.is-open .history-date-toggle i,
+html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calendar-date-toggle i{
+  box-shadow:1px 1px 0 var(--line-strong)!important;
+  background:var(--accent-soft)!important;
+}
