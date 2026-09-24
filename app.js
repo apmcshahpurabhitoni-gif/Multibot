@@ -39,7 +39,53 @@ function historyDateKey(prefix,date){return `history-${prefix}-date:${date}`;}
 function scanDateValue(row){return row?.completed_at||row?.created_at||row?.timestamp||row?.run_at||row?.started_at||row?.updated_at;}
 function renderHistoryScanRow(row){const p=row?.payload||{},strategy=strategyLabel(row?.strategy_id||row?.strategy||"Strategy"),status=String(row?.status||"RECORDED").toUpperCase(),checked=number(p.checked,0),directional=number(p.directional,0),sent=number(p.sent,0),errors=number(p.errors,0);return `<article class="history-scan-row"><div class="history-scan-identity"><strong>${escapeHtml(strategy)}</strong><small>${escapeHtml(timestamp(scanDateValue(row)))}</small></div><span class="history-scan-status">${escapeHtml(status)}</span><div class="history-scan-metrics"><span>${checked} checked</span><span>${directional} directional</span><span>${sent} sent</span><span>${errors} errors</span></div></article>`;}
 function renderHistoryDateGroups(rows,kind){const groups=new Map();rows.forEach(row=>{const date=dateKey(kind==="trade"?tradeDateValue(row.trade):scanDateValue(row.scan));if(!groups.has(date))groups.set(date,[]);groups.get(date).push(row);});const ordered=[...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0])),openSet=kind==="trade"?state.historyTradeDates:state.historyScanDates;if(!state.groupInit.has(kind)){state.groupInit.add(kind);if(!openSet.size&&ordered[0])openSet.add(historyDateKey(kind,ordered[0][0]));}return ordered.map(([date,items])=>{const key=historyDateKey(kind,date),open=openSet.has(key),noun=kind==="trade"?"trade":"scan";return `<section class="history-date-group ${open?"is-open":""}"><button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(dateLabel(date))}</b><small>${items.length} ${noun}${items.length===1?"":"s"}</small></span><i aria-hidden="true" class="chev"></i></button>${open?`<div class="history-date-rows">${kind==="trade"?items.map(row=>renderTradeRow(row.trade,row.index)).join(""):items.map(row=>renderHistoryScanRow(row.scan)).join("")}</div>`:""}</section>`;}).join("");}
-function renderHistory(){const trades=Array.isArray(state.data?.trades)?state.data.trades:[],closedRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade.status||"").toUpperCase()==="CLOSED"),closed=closedRows.map(row=>row.trade),pnlValues=closed.map(t=>Number(t.pnl)).filter(Number.isFinite),winners=pnlValues.filter(v=>v>0).length,latestDate=closedRows.map(row=>dateKey(tradeDateValue(row.trade))).filter(x=>x!=="unknown").sort().at(-1),dailyRows=latestDate?closedRows.filter(row=>dateKey(tradeDateValue(row.trade))===latestDate):[],dailyPnl=dailyRows.reduce((sum,row)=>sum+(Number(row.trade.pnl)||0),0);$("historyClosedCount").textContent=closedRows.length;$("historyDailyPnl").textContent=latestDate?inr(dailyPnl):"—";$("historyWinRate").textContent=pnlValues.length?Math.round(winners/pnlValues.length*100)+"%":"—";$("historyResultCount").textContent=closedRows.length+" trade"+(closedRows.length===1?"":"s");$("historyList").innerHTML=closedRows.length?renderHistoryDateGroups(closedRows,"trade"):empty("No completed trades","◷","Completed paper trades will appear here grouped by date.");}
+function renderOpenHistoryRow(trade,index){
+  const plan=trade?.plan||trade;
+  const side=String(plan.side||trade.type||"").toUpperCase();
+  const d=direction(side);
+  const symbol=trade.symbol||plan.symbol||"Paper trade";
+  const label=assetLabel(symbol,trade.label||plan.label);
+  const strategy=strategyLabel(plan.strategy||trade.strategy);
+  const risk=trade.planned_risk??plan.planned_risk;
+  return `<article class="live-trade-row ${d.cls}">
+    <div>
+      <strong>${escapeHtml(label)}</strong>
+      <small>${escapeHtml(strategy)} · ${escapeHtml(side||"—")} · Entry ${price(plan.entry??trade.entry)}</small>
+    </div>
+    <div><span>Risk</span><b>${inr(risk)}</b></div>
+    <div><span>Opened</span><b>${escapeHtml(timestamp(trade.opened_at||trade.created_at))}</b></div>
+    <span class="live-open-badge">OPEN</span>
+    <button class="trade-detail-button" type="button" data-trade-index="${index}" aria-label="View ${escapeHtml(label)} details">View</button>
+  </article>`;
+}
+function renderHistory(){
+  const trades=Array.isArray(state.data?.trades)?state.data.trades:[];
+  const closedRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade.status||"").toUpperCase()==="CLOSED");
+  const openRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade.status||"").toUpperCase()==="OPEN");
+  const closed=closedRows.map(row=>row.trade);
+  const pnlValues=closed.map(t=>Number(t.pnl)).filter(Number.isFinite);
+  const winners=pnlValues.filter(v=>v>0).length;
+  const latestDate=closedRows.map(row=>dateKey(tradeDateValue(row.trade))).filter(x=>x!=="unknown").sort().at(-1);
+  const dailyRows=latestDate?closedRows.filter(row=>dateKey(tradeDateValue(row.trade))===latestDate):[];
+  const dailyPnl=dailyRows.reduce((sum,row)=>sum+(Number(row.trade.pnl)||0),0);
+
+  $("historyClosedCount").textContent=closedRows.length;
+  $("historyDailyPnl").textContent=latestDate?inr(dailyPnl):"—";
+  $("historyWinRate").textContent=pnlValues.length?Math.round(winners/pnlValues.length*100)+"%":"—";
+  $("historyResultCount").textContent=closedRows.length+" trade"+(closedRows.length===1?"":"s");
+  $("historyList").innerHTML=closedRows.length?renderHistoryDateGroups(closedRows,"trade"):empty("No completed trades","◷","Completed paper trades will appear here grouped by date.");
+
+  $("historyOpenTrades").innerHTML=openRows.length
+    ?openRows.map(row=>renderOpenHistoryRow(row.trade,row.index)).join("")
+    :empty("No open positions","◌","There are no active paper trades in the current snapshot.");
+
+  const scans=Array.isArray(state.data?.scan_history)?state.data.scan_history:[];
+  const scanRows=scans.map(scan=>({scan})).filter(row=>scanDateValue(row.scan));
+  $("historyScanHistory").innerHTML=scanRows.length
+    ?renderHistoryDateGroups(scanRows,"scan")
+    :empty("No scan history","◷","Persisted runtime scans will appear here when completed runs are recorded.");
+}
+
 function calendarDayKey(day){return `calendar-day:${day}`;}
 function renderCalendar(){
   const calendar=state.calendar||{},days=Array.isArray(calendar.days)?calendar.days:[],items=Array.isArray(calendar.items)?calendar.items:[],status=String(calendar.status||"UNKNOWN").toUpperCase(),available=["ONLINE","CACHED"].includes(status),counts=calendar.counts||{};
@@ -119,7 +165,7 @@ bindEvent("reduceMotionToggle","click",()=>{const next=localStorage.getItem("mav
 bindEvent("runBacktestButton","click",runBacktest);
 bindEvent("backtestStrategy","change",()=>{state.backtest=null;renderTools();});
 bindEvent("calendarRefreshButton","click",loadCalendar);document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeTradeDrawer();closeReleaseModal();}});
-document.addEventListener("click",event=>{const releaseButton=event.target.closest("#whatsNewButton");if(releaseButton){event.preventDefault();openReleaseModal();return;}const releaseClose=event.target.closest("#releaseModalClose");if(releaseClose){event.preventDefault();closeReleaseModal();return;}if(event.target.id==="releaseModal"){closeReleaseModal();return;}const toolToggle=event.target.closest("[data-tool-toggle]");if(toolToggle){event.preventDefault();const card=toolToggle.closest("[data-tool-collapse]");if(card)card.classList.toggle("is-open");return;}const tradeTrigger=event.target.closest("[data-trade-index]");if(tradeTrigger){const trades=Array.isArray(state.data?.trades)?state.data.trades:[],trade=trades[Number(tradeTrigger.dataset.tradeIndex)];if(trade){event.preventDefault();openTradeDetail(trade);}return;}const calendarDateGroup=event.target.closest("[data-calendar-date-group]");if(calendarDateGroup){const key=calendarDateGroup.dataset.calendarDateGroup;if(state.calendarDates.has(key))state.calendarDates.delete(key);else state.calendarDates.add(key);renderSafely("calendar",renderCalendar);return;}const signalDate=event.target.closest("[data-signal-date]");if(signalDate){const key=signalDate.dataset.signalDate;if(state.signalDates.has(key))state.signalDates.delete(key);else state.signalDates.add(key);renderSafely("signals",renderSignals);return;}const historyDate=event.target.closest("[data-history-date]");if(historyDate){const kind=historyDate.dataset.historyKind;if(kind!=="trade")return;const key=historyDate.dataset.historyDate;if(state.historyTradeDates.has(key))state.historyTradeDates.delete(key);else state.historyTradeDates.add(key);renderSafely("history",renderHistory);return;}const trigger=event.target.closest("[data-expand]");if(!trigger)return;const key=trigger.dataset.expand;if(state.expanded.has(key))state.expanded.delete(key);else state.expanded.add(key);renderSafely("overview",renderOverview);renderSafely("signals",renderSignals);renderSafely("history",renderHistory);if(state.calendar)renderSafely("calendar",renderCalendar);});
+document.addEventListener("click",event=>{const releaseButton=event.target.closest("#whatsNewButton");if(releaseButton){event.preventDefault();openReleaseModal();return;}const releaseClose=event.target.closest("#releaseModalClose");if(releaseClose){event.preventDefault();closeReleaseModal();return;}if(event.target.id==="releaseModal"){closeReleaseModal();return;}const toolToggle=event.target.closest("[data-tool-toggle]");if(toolToggle){event.preventDefault();const card=toolToggle.closest("[data-tool-collapse]");if(card)card.classList.toggle("is-open");return;}const tradeTrigger=event.target.closest("[data-trade-index]");if(tradeTrigger){const trades=Array.isArray(state.data?.trades)?state.data.trades:[],trade=trades[Number(tradeTrigger.dataset.tradeIndex)];if(trade){event.preventDefault();openTradeDetail(trade);}return;}const calendarDateGroup=event.target.closest("[data-calendar-date-group]");if(calendarDateGroup){const key=calendarDateGroup.dataset.calendarDateGroup;if(state.calendarDates.has(key))state.calendarDates.delete(key);else state.calendarDates.add(key);renderSafely("calendar",renderCalendar);return;}const signalDate=event.target.closest("[data-signal-date]");if(signalDate){const key=signalDate.dataset.signalDate;if(state.signalDates.has(key))state.signalDates.delete(key);else state.signalDates.add(key);renderSafely("signals",renderSignals);return;}const historyDate=event.target.closest("[data-history-date]");if(historyDate){const kind=historyDate.dataset.historyKind;const key=historyDate.dataset.historyDate;const set=kind==="scan"?state.historyScanDates:state.historyTradeDates;if(set.has(key))set.delete(key);else set.add(key);renderSafely("history",renderHistory);return;}const trigger=event.target.closest("[data-expand]");if(!trigger)return;const key=trigger.dataset.expand;if(state.expanded.has(key))state.expanded.delete(key);else state.expanded.add(key);renderSafely("overview",renderOverview);renderSafely("signals",renderSignals);renderSafely("history",renderHistory);if(state.calendar)renderSafely("calendar",renderCalendar);});
 }
 function bootstrapDashboard(){try{initAppearance();bindEvents();const marketClock=$("marketClock");if(marketClock){marketClock.textContent=clock();setInterval(()=>{const clockEl=$("marketClock");if(clockEl)clockEl.textContent=clock();},1000);}loadDashboard();setInterval(loadDashboard,CONFIG.refreshMs);}catch(error){console.error("Dashboard bootstrap failed",error);showConnectionStatus(false,"Dashboard startup problem. Check browser console.");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootstrapDashboard,{once:true});else bootstrapDashboard();
