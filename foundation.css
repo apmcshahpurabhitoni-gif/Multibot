@@ -881,3 +881,95 @@ html[data-style="neo"] #page-signals .signal-date-toggle{
     margin-bottom:0;
   }
 }
+
+
+/* ---------- Expanded signal detail groups -------------------------------- */
+/* Two compact information surfaces instead of eleven independent cards. */
+#page-signals .detail-groups{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding-top:8px;
+}
+
+#page-signals .detail-group{
+  min-width:0;
+  padding:8px 9px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius-xs);
+}
+
+#page-signals .detail-group > div{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:baseline;
+  gap:8px;
+  padding:4px 0;
+}
+
+#page-signals .detail-group > div + div{
+  border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent);
+}
+
+#page-signals .detail-group span{
+  color:var(--muted);
+  font-size:9.5px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+
+#page-signals .detail-group b{
+  margin:0;
+  font-size:11.5px;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+
+#page-signals .detail-group b.fresh,
+#page-signals .detail-group b.stale{
+  padding:1px 5px;
+  border-radius:999px;
+  line-height:1.2;
+}
+
+#page-signals .reason{
+  margin-top:8px;
+  padding:8px 9px;
+}
+
+#page-signals .reason p{
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:560px){
+  #page-signals .detail-groups{
+    grid-template-columns:1fr;
+    gap:6px;
+    padding-top:7px;
+  }
+
+  #page-signals .detail-group{
+    padding:6px 8px;
+  }
+
+  #page-signals .detail-group > div{
+    padding:3px 0;
+  }
+
+  #page-signals .detail-group b{
+    font-size:11px;
+  }
+
+  #page-signals .reason{
+    margin-top:6px;
+  }
+}
+
+html[data-style="neo"] #page-signals .detail-group{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
