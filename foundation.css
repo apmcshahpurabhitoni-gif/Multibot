@@ -774,3 +774,59 @@ html[data-style="neo"] #page-signals .signal-date-rows .signal-card{
     max-width:30rem;
   }
 }
+
+
+/* ---------- Signals date header card -------------------------------------- */
+/* The date row is a nested information surface, not a full-width divider.
+   Give it the same contained-card language as the signal rows. */
+#page-signals .signal-date-group{
+  border-bottom:0;
+  margin:0 0 8px;
+}
+
+#page-signals .signal-date-toggle{
+  width:calc(100% - 10px);
+  min-width:0;
+  margin:6px 5px 0;
+  padding:9px 10px;
+  min-height:46px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-soft);
+}
+
+#page-signals .signal-date-group.is-open > .signal-date-toggle{
+  background:var(--accent-softer);
+  border-color:var(--line);
+  border-radius:var(--radius-sm);
+}
+
+#page-signals .signal-date-toggle i{
+  border-radius:8px;
+}
+
+#page-signals .signal-date-rows{
+  padding:7px 5px 3px;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-date-toggle{
+    width:calc(100% - 6px);
+    margin:5px 3px 0;
+    padding:8px 9px;
+    min-height:46px;
+  }
+
+  #page-signals .signal-date-rows{
+    padding:7px 3px 3px;
+  }
+}
+
+/* Neo keeps its strong personality: the date header gets the same deliberate
+   border/shadow language as the other Neo cards. */
+html[data-style="neo"] #page-signals .signal-date-toggle{
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
