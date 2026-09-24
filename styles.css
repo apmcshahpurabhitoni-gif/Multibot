@@ -788,7 +788,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .backtest-controls{grid-template-columns:1fr 1fr}
   .backtest-controls .primary-button{grid-column:1/-1;width:100%}
   .schedule-inline{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .page-heading h1{font-size:26px}
+  .page-heading h1{font-size:22px}
   .clock{display:none}
   .mobile-nav{
     position:fixed;z-index:50;left:10px;right:10px;bottom:7px;
@@ -834,7 +834,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .header-meta{gap:6px}
   .hero{padding:10px 12px}
   .hero h2{font-size:15px}
-  .section-heading h2{font-size:16px}
+  .section-heading h2{font-size:13.5px}
   .backtest-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .backtest-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .signal-date-toggle small,.history-date-toggle small,.calendar-date-toggle small{font-size:10px}
@@ -842,7 +842,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 @media(max-width:560px){
   .history-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
   .history-summary-grid .metric-card{padding:11px}
-  .history-summary-grid .metric-card strong{font-size:18px}
+  .history-summary-grid .metric-card strong{font-size:14px}
   .history-summary-grid .metric-card small{display:none}
   .hero-pills{display:grid;grid-template-columns:1fr 1fr}
   .hero-pills span:last-child{grid-column:1/-1}
