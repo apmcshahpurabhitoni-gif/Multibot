@@ -2848,3 +2848,59 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     font-size:8.5px!important;
   }
 }
+
+
+/* ---------- Signals / History visual freeze ------------------------------
+   Keep the compact signal geometry. Match History's row language and use a
+   stable content rail so labels/values never appear to start at arbitrary x. */
+@media(max-width:560px){
+  #page-signals .signal-date-rows .signal-card{
+    background:var(--surface)!important;
+    border:1px solid var(--line)!important;
+    box-shadow:var(--shadow-soft)!important;
+  }
+  #page-signals .signal-date-rows .signal-card .card-main{
+    padding:7px 9px!important;
+  }
+  #page-signals .signal-date-rows .signal-leading{
+    padding-left:0!important;
+    min-width:0!important;
+  }
+  #page-signals .signal-date-rows .signal-leading>div:last-child{
+    min-width:0!important;
+    padding-left:2px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid>div{
+    align-items:baseline!important;
+    padding:6px 9px!important;
+    gap:8px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid span{
+    width:76px!important;
+    min-width:76px!important;
+    text-align:left!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid b{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    text-align:left!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid>div:nth-child(even){
+    padding-left:9px!important;
+  }
+  #page-signals .signal-card.expanded .reason{
+    display:flex!important;
+    align-items:baseline!important;
+    gap:8px!important;
+    padding:6px 9px!important;
+  }
+  #page-signals .signal-card.expanded .reason>span{
+    width:76px!important;
+    min-width:76px!important;
+    text-align:left!important;
+  }
+  #page-signals .signal-card.expanded .reason>b{
+    flex:1 1 auto!important;
+    text-align:left!important;
+  }
+}
