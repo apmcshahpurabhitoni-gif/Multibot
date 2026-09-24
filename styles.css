@@ -2044,3 +2044,123 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     font-size:9px!important;
   }
 }
+
+
+/* ---------- Tools: Markets final compact alignment pass ------------------- */
+/* Keep the market universe dense, symmetric and aligned with the tool-card
+   edges.  Presentation only: no data or rendering logic is changed. */
+#page-tools .tool-universe>.section-heading{
+  min-height:42px!important;
+  margin-bottom:0!important;
+  padding:0!important;
+  align-items:center!important;
+}
+
+#page-tools .tool-universe>.tool-body{
+  padding:0!important;
+}
+
+#page-tools .universe-grid{
+  width:100%!important;
+  box-sizing:border-box!important;
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+#page-tools .universe-grid>.asset-category{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  padding:7px 0 6px!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+}
+
+#page-tools .universe-grid>.asset-category:first-child{
+  border-top:0!important;
+}
+
+#page-tools .asset-category-label{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0 0 4px!important;
+  padding:0!important;
+  line-height:16px!important;
+  font-size:10px!important;
+}
+
+#page-tools .asset-category-items{
+  box-sizing:border-box!important;
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,auto)!important;
+  align-items:start!important;
+  column-gap:0!important;
+  row-gap:0!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+#page-tools .asset-category-items>span{
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:5px 8px!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+  font-size:11px!important;
+  font-weight:650!important;
+  line-height:18px!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+#page-tools .asset-category-items>span:nth-child(odd){
+  border-right:1px solid var(--line)!important;
+}
+
+#page-tools .asset-category-items>span:nth-child(-n+2){
+  border-top:0!important;
+}
+
+@media(min-width:761px){
+  #page-tools .asset-category-items{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+  #page-tools .asset-category-items>span:nth-child(odd){
+    border-right:0!important;
+  }
+  #page-tools .asset-category-items>span:not(:nth-child(4n)){
+    border-right:1px solid var(--line)!important;
+  }
+  #page-tools .asset-category-items>span:nth-child(-n+4){
+    border-top:0!important;
+  }
+}
+
+@media(max-width:560px){
+  #page-tools .universe-grid>.asset-category{
+    padding:6px 0 5px!important;
+  }
+  #page-tools .asset-category-label{
+    margin-bottom:3px!important;
+    line-height:15px!important;
+  }
+  #page-tools .asset-category-items>span{
+    padding:4px 7px!important;
+    font-size:10.5px!important;
+    line-height:17px!important;
+  }
+}
