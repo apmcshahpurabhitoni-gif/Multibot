@@ -2581,3 +2581,54 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     background:transparent!important;
   }
 }
+
+
+/* ---------- Signals expanded card: compact two-column information rows ----- */
+@media(max-width:560px){
+  #page-signals .signal-date-rows .signal-card .card-main{
+    min-height:56px!important;
+    height:56px!important;
+    padding:7px 9px!important;
+  }
+  #page-signals .signal-date-rows .expand-button{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    min-height:34px!important;
+    border-radius:8px!important;
+  }
+  #page-signals .signal-date-rows .direction-icon{
+    width:26px!important;
+    height:26px!important;
+  }
+  #page-signals .signal-date-rows .signal-leading strong{
+    font-size:14px!important;
+  }
+  #page-signals .signal-date-rows .signal-leading small{
+    font-size:11px!important;
+  }
+  #page-signals .signal-card.expanded .expand-content{
+    padding:4px 6px 6px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid>div{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    column-gap:8px!important;
+    min-height:31px!important;
+    padding:4px 7px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid span{
+    margin:0!important;
+    white-space:nowrap!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid b{
+    margin:0!important;
+    text-align:right!important;
+    max-width:100%!important;
+  }
+  #page-signals .signal-card.expanded .reason{
+    margin-top:4px!important;
+    padding:5px 7px!important;
+  }
+}
