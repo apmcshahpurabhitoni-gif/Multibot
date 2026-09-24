@@ -583,3 +583,44 @@ html[data-reduce-motion="true"] .page.active{
     height:160px;
   }
 }
+
+
+/* ---------- Mobile visual repair: preserve Neo, fix text + chart geometry ---- */
+/* Keep Neo's strong borders/shadows intact. These rules only repair content
+   fitting and remove whitespace caused by inline SVG dimensions. */
+@media(max-width:560px){
+  #page-overview .metric-card span{
+    max-width:none;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    line-height:1.1;
+    letter-spacing:.06em;
+  }
+
+  #page-overview .metric-card{
+    grid-template-columns:minmax(0,1fr) max-content;
+  }
+
+  #page-overview .overview-activity .chart-area{
+    min-height:0!important;
+    height:128px!important;
+  }
+
+  #page-overview .overview-activity .chart-area svg{
+    width:100%!important;
+    height:128px!important;
+    max-height:128px!important;
+  }
+
+  #page-overview .overview-equity .equity-card .chart-area{
+    min-height:0!important;
+    height:160px!important;
+  }
+
+  #page-overview .overview-equity .equity-card .chart-area svg{
+    width:100%!important;
+    height:160px!important;
+    max-height:160px!important;
+  }
+}
