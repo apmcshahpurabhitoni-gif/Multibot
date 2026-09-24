@@ -2307,3 +2307,23 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     gap:8px;
   }
 }
+
+/* ---------- Calendar heading/action parity -------------------------------- */
+@media(max-width:560px){
+  #page-calendar .calendar-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+  }
+  #page-calendar .calendar-heading > div{min-width:0}
+  #page-calendar #calendarRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+  }
+}
