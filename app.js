@@ -122,7 +122,7 @@ function renderHistory(){
     try{
       openList.innerHTML=openRows.length
         ?openRows.map(row=>renderOpenHistoryRow(row.trade,row.index)).join("")
-        :empty("No open positions","◌","There are no active paper trades in the current snapshot.");
+        :`<div class="empty-state history-empty-state"><span>—</span><strong>No open positions</strong><small>There are no active paper trades in the current snapshot.</small></div>`;
     }catch(error){
       console.error("History open positions render failed",error);
       openList.innerHTML=empty("Open positions unavailable","!","The current paper-trade snapshot could not be rendered.");
@@ -135,7 +135,7 @@ function renderHistory(){
     try{
       scanList.innerHTML=scanRows.length
         ?renderHistoryDateGroups(scanRows,"scan")
-        :empty("No scan history","◷","Persisted runtime scans will appear here when completed runs are recorded.");
+        :`<div class="empty-state history-empty-state"><span>—</span><strong>No scan history</strong><small>Persisted runtime scans will appear here when completed runs are recorded.</small></div>`;
     }catch(error){
       console.error("History scan history render failed",error);
       scanList.innerHTML=empty("Scan history unavailable","!","The persisted scan snapshot could not be rendered.");
