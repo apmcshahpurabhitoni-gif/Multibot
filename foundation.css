@@ -2997,3 +2997,32 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     text-align:left!important;
   }
 }
+
+
+/* Signals: keep the strategy-reason row as a real label/value pair. */
+@media(max-width:560px){
+  #page-signals .signal-card.expanded .reason{
+    display:flex!important;
+    align-items:baseline!important;
+    gap:8px!important;
+    min-width:0!important;
+    margin-top:4px!important;
+    padding:6px 9px!important;
+  }
+  #page-signals .signal-card.expanded .reason>span{
+    flex:0 0 76px!important;
+    width:76px!important;
+    min-width:76px!important;
+    margin:0!important;
+    white-space:nowrap!important;
+  }
+  #page-signals .signal-card.expanded .reason>p{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    margin:0!important;
+    font-size:11px!important;
+    line-height:1.25!important;
+    color:var(--text)!important;
+    overflow-wrap:anywhere!important;
+  }
+}
