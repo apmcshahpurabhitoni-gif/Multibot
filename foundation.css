@@ -292,3 +292,87 @@ html[data-compact="true"] .page > * + *{
 html[data-reduce-motion="true"] .page.active{
   animation:none!important;
 }
+
+
+/* ---------- Home page contract -------------------------------------------- */
+/* Keep the dashboard's primary metrics stable across themes and widths. */
+#page-overview .metric-grid.four{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:var(--f-grid-gap);
+}
+
+#page-overview .metric-card{
+  min-width:0;
+  overflow:hidden;
+}
+
+#page-overview .metric-card strong{
+  display:block;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;
+}
+
+#page-overview .overview-equity .chart-card,
+#page-overview .overview-activity .chart-card{
+  min-width:0;
+  overflow:hidden;
+}
+
+#page-overview .equity-card .chart-area{
+  min-height:220px;
+}
+
+#page-overview .overview-activity .chart-area{
+  min-height:160px;
+}
+
+#page-overview .overview-scan .section-heading{
+  align-items:center;
+}
+
+#page-overview #scanSummary{
+  display:block;
+  max-width:min(100%,720px);
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+#page-overview .overview-signals .stack{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--f-card-gap);
+}
+
+#page-overview .overview-signals .empty-state{
+  grid-column:1 / -1;
+}
+
+@media(max-width:900px){
+  #page-overview .metric-grid.four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  #page-overview .overview-signals .stack{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:560px){
+  #page-overview .metric-grid.four{
+    gap:8px;
+  }
+
+  #page-overview .metric-card strong{
+    font-size:clamp(18px,6vw,28px);
+  }
+
+  #page-overview .equity-card .chart-area{
+    min-height:180px;
+  }
+
+  #page-overview .overview-activity .chart-area{
+    min-height:120px;
+  }
+}
