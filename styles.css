@@ -576,13 +576,6 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .backtest-trade-row b{font-size:12px;font-weight:800}
 .backtest-trade-row small{margin-top:4px;font-size:11px;color:var(--muted)}
 .backtest-trade-row>strong{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.backtest-signal-list{display:grid;gap:var(--space-2)}
-.backtest-signal-list>div{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
-.backtest-signal-list span{font-size:10px;font-weight:950;letter-spacing:.05em}
-.backtest-signal-list span.buy{color:var(--positive)}
-.backtest-signal-list span.sell{color:var(--negative)}
-.backtest-signal-list b{font-size:11px;font-weight:800}
-.backtest-signal-list small{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
 
 .universe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .universe-grid span{display:grid;place-items:center;padding:8px 6px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);font-size:10.5px;font-weight:800;text-align:center;min-width:0;overflow-wrap:anywhere}
@@ -830,7 +823,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 }
 
 /* ---------- 17. Scroll contract for long lists ------------------------------ */
-.backtest-trades,.backtest-signal-list{
+.backtest-trades{
   max-height:560px !important;
   overflow-y:auto !important;
   overflow-x:hidden !important;
@@ -880,7 +873,7 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .page-heading p,.section-note,.chart-head small{max-width:100%}
   .workspace-heading{min-height:52px;padding:10px 14px}
   .metric-card strong{font-size:14.5px}
-  .backtest-trades,.backtest-signal-list{max-height:480px!important}
+  .backtest-trades{max-height:480px!important}
   .backtest-trade-row{grid-template-columns:52px minmax(0,1fr)}
   .backtest-trade-row>strong{grid-column:2;justify-self:start}
   .live-trade-row{grid-template-columns:1fr 1fr;gap:9px;padding:12px 13px}
@@ -1139,20 +1132,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   justify-self:auto!important;
   font-size:11px!important;
 }
-#page-tools .backtest-signal-list{
-  max-height:480px!important;
-  gap:5px!important;
-}
-#page-tools .backtest-signal-list>div{
-  grid-template-columns:auto auto minmax(0,1fr)!important;
-  gap:6px!important;
-  padding:7px 8px!important;
-  border-radius:var(--radius-xs);
-}
-#page-tools .backtest-signal-list span,
-#page-tools .backtest-signal-list b,
-#page-tools .backtest-signal-list small{font-size:10px!important}
-#page-tools .backtest-signal-list small{line-height:1.3}
 @media(max-width:560px){
   #page-tools .backtest-controls select{min-height:38px!important}
   #page-tools .tool-backtest .primary-button{min-height:40px!important}
@@ -1583,4 +1562,31 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   #page-tools .schedule-inline span{
     padding:7px 4px!important;
   }
+}
+
+
+/* ---------- Backtest: single-surface, execution-first result contract ----- */
+#page-tools .backtest-results{
+  margin-top:8px!important;
+  padding:0!important;
+  gap:8px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#page-tools .backtest-section{
+  padding:10px!important;
+  border-radius:var(--radius-sm)!important;
+}
+#page-tools .backtest-summary>div,
+#page-tools .backtest-metrics>div{
+  border-radius:var(--radius-xs)!important;
+}
+#page-tools .backtest-trades{
+  border-radius:var(--radius-xs)!important;
+}
+@media(max-width:560px){
+  #page-tools .backtest-results{gap:7px!important}
+  #page-tools .backtest-section{padding:9px!important}
 }
