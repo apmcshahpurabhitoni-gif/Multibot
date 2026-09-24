@@ -3304,3 +3304,41 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     font-size:10px!important;
     line-height:1!important;
   }
+
+
+/* ---------- History summary: keep all three metrics on one mobile row ------ */
+/* Safe presentation-only fix: no renderer/data changes. */
+@media(max-width:560px){
+  #page-history .history-summary-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  #page-history .history-summary-grid .metric-card{
+    min-width:0!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:6px!important;
+    padding:9px 8px!important;
+  }
+  #page-history .history-summary-grid .metric-card span{
+    min-width:0!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    font-size:9px!important;
+  }
+  #page-history .history-summary-grid .metric-card strong{
+    min-width:0!important;
+    max-width:100%!important;
+    font-size:13px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    text-align:right!important;
+  }
+}
