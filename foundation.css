@@ -1963,3 +1963,75 @@ html[data-style="neo"] #page-history .history-date-toggle{
     font-size:9px;
   }
 }
+
+/* ---------- History / trade detail parity -------------------------------- */
+/* Match History's outer surface to the same contained-card contract as Signals.
+   overflow:hidden is intentional: the workspace radius must clip its header background. */
+#page-history .history-workspace{
+  overflow:hidden;
+}
+#page-history .history-workspace .workspace-heading{
+  border-top-left-radius:inherit;
+  border-top-right-radius:inherit;
+}
+
+/* Trade detail is the same information surface as an expanded Signal:
+   compact header, compact 2-column facts, no oversized modal geometry. */
+.trade-drawer{
+  box-sizing:border-box;
+  padding:18px 18px 20px;
+}
+.trade-drawer h2{
+  margin:5px 0 9px;
+  font-size:20px;
+}
+.trade-drawer .drawer-status{
+  margin-bottom:12px;
+}
+.trade-drawer .drawer-price-grid,
+.trade-drawer .drawer-details{
+  gap:7px;
+}
+.trade-drawer .drawer-price-grid>div,
+.trade-drawer .drawer-details>div{
+  padding:8px 9px;
+  border-radius:var(--radius-xs);
+}
+.trade-drawer .drawer-price-grid b,
+.trade-drawer .drawer-details b{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.25;
+}
+.trade-drawer section{
+  margin-top:16px;
+}
+.trade-drawer h3{
+  margin:0 0 8px;
+  font-size:12.5px;
+}
+@media(max-width:760px){
+  .trade-drawer{
+    height:auto;
+    max-height:88vh;
+    padding:16px 16px 18px;
+    border:var(--border-w) solid var(--line);
+    border-bottom:0;
+  }
+  .drawer-close{
+    top:10px;
+    right:10px;
+    width:36px;
+    height:36px;
+    font-size:18px;
+  }
+}
+@media(max-width:560px){
+  .trade-drawer h2{
+    font-size:19px;
+  }
+  .trade-drawer .drawer-price-grid>div,
+  .trade-drawer .drawer-details>div{
+    padding:8px;
+  }
+}
