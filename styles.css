@@ -1586,3 +1586,73 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   #page-tools .backtest-results{gap:7px!important}
   #page-tools .backtest-section{padding:9px!important}
 }
+
+
+/* ---------- Backtest: align result geometry with Signals/History ---------- */
+#page-tools .backtest-results{
+  margin-top:7px!important;
+  gap:7px!important;
+}
+#page-tools .backtest-section{
+  padding:9px!important;
+}
+#page-tools .backtest-section-heading{
+  margin-bottom:7px!important;
+  padding-bottom:7px!important;
+}
+#page-tools .backtest-summary{
+  gap:6px!important;
+}
+#page-tools .backtest-summary>div{
+  padding:7px 9px!important;
+}
+#page-tools .backtest-summary b{
+  font-size:12px!important;
+}
+#page-tools .backtest-curve-section .chart-area{
+  min-height:132px!important;
+}
+#page-tools .backtest-curve-section .chart-area svg{
+  height:132px!important;
+}
+#page-tools .backtest-curve-section .chart-head{
+  margin-bottom:4px!important;
+}
+#page-tools .backtest-curve-section .chart-head small{
+  font-size:10px!important;
+}
+#page-tools .backtest-metrics{
+  gap:6px!important;
+}
+#page-tools .backtest-metrics>div{
+  padding:7px 9px!important;
+}
+#page-tools .backtest-metrics b{
+  margin-top:3px!important;
+  font-size:15px!important;
+}
+#page-tools .backtest-trades{
+  max-height:440px!important;
+}
+#page-tools .backtest-trade-row{
+  gap:7px!important;
+  padding:7px 9px!important;
+}
+#page-tools .backtest-trade-row b{
+  font-size:11.5px!important;
+}
+#page-tools .backtest-trade-row small{
+  margin-top:2px!important;
+  font-size:10px!important;
+}
+@media(max-width:560px){
+  #page-tools .backtest-section{padding:8px!important}
+  #page-tools .backtest-summary>div,
+  #page-tools .backtest-metrics>div{padding:7px 8px!important}
+  #page-tools .backtest-curve-section .chart-area,
+  #page-tools .backtest-curve-section .chart-area svg{
+    height:124px!important;
+    min-height:124px!important;
+  }
+  #page-tools .backtest-trade-row{padding:7px 8px!important}
+}
