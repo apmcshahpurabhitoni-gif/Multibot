@@ -1554,3 +1554,28 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
     padding:7px 8px 10px;
   }
 }
+
+
+/* ---------- History final mobile geometry -------------------------------- */
+#page-history .history-summary-grid .metric-card{
+  grid-template-columns:minmax(0,1fr) minmax(64px,auto);
+  align-items:center;
+}
+#page-history .history-summary-grid .metric-card strong{
+  white-space:nowrap;
+  overflow:visible;
+  word-break:normal;
+  overflow-wrap:normal;
+  text-align:right;
+  font-size:14px!important;
+}
+@media(max-width:560px){
+  #page-history .history-summary-grid .metric-card{
+    grid-template-columns:minmax(0,1fr) minmax(66px,auto);
+    gap:7px;
+    padding-inline:9px;
+  }
+  #page-history .history-summary-grid .metric-card strong{
+    font-size:13.5px!important;
+  }
+}
