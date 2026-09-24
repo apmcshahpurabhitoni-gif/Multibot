@@ -3092,3 +3092,31 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     line-height:1.2!important;
   }
 }
+
+
+/* Signals: lock label/value start columns so every row shares the same X origin. */
+@media(max-width:560px){
+  #page-signals .signal-card.expanded .detail-grid>div{
+    grid-template-columns:90px minmax(0,1fr)!important;
+    column-gap:8px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid span{
+    width:90px!important;
+    min-width:90px!important;
+    max-width:90px!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
+    white-space:nowrap!important;
+  }
+  #page-signals .signal-card.expanded .reason{
+    grid-template-columns:105px minmax(0,1fr)!important;
+    column-gap:8px!important;
+  }
+  #page-signals .signal-card.expanded .reason>span{
+    width:105px!important;
+    min-width:105px!important;
+    max-width:105px!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+  }
+}
