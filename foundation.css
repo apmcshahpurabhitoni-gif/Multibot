@@ -1911,3 +1911,55 @@ html[data-style="neo"] #page-history .history-date-toggle{
   border-radius:8px!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
+
+/* ---------- History scan density final ------------------------------------ */
+#page-history .history-scan-workspace .history-date-rows{
+  gap:5px;
+  padding:5px 3px 7px;
+}
+#page-history .history-scan-row{
+  gap:6px;
+  padding:6px 8px;
+}
+#page-history .history-scan-head{
+  gap:5px;
+}
+#page-history .history-scan-identity strong{
+  font-size:11px;
+  line-height:1.2;
+}
+#page-history .history-scan-identity small{
+  margin-top:1px;
+  font-size:9px;
+  line-height:1.2;
+}
+#page-history .history-scan-status{
+  padding:3px 7px;
+  font-size:8px!important;
+}
+#page-history .history-scan-metrics{
+  gap:3px;
+}
+#page-history .history-scan-metrics span{
+  padding:3px 2px;
+  font-size:8px;
+  line-height:1.1;
+}
+#page-history .history-scan-metrics b{
+  font-size:9.5px;
+}
+@media(max-width:560px){
+  #page-history .history-scan-row{
+    padding:6px 7px;
+  }
+  #page-history .history-scan-metrics{
+    gap:3px;
+  }
+  #page-history .history-scan-metrics span{
+    padding:3px 1px;
+    font-size:7.5px;
+  }
+  #page-history .history-scan-metrics b{
+    font-size:9px;
+  }
+}
