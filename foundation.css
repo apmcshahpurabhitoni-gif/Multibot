@@ -532,3 +532,35 @@ html[data-reduce-motion="true"] .page.active{
     font-size:11px;
   }
 }
+/* ---------- Financial typography contract -------------------------------- */
+/* Financial values use the same compact dashboard font and weight in every theme. */
+#page-overview .metric-card{
+  grid-template-columns:minmax(0,1fr) auto;
+}
+#page-overview .metric-card strong,
+#page-overview .overview-equity .chart-head > span,
+#page-overview .overview-risk .metric-card strong,
+.history-summary-grid .metric-card strong,
+.trade-row-price b,
+.live-trade-row b,
+.drawer-price-grid b,
+.drawer-details b,
+.account-grid b{
+  font-family:var(--font);
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+}
+#page-overview .metric-card strong{
+  font-size:14px!important;
+  line-height:1.15;
+}
+#page-overview .overview-equity .chart-head > span{
+  font-size:11px;
+  line-height:1.2;
+}
+@media(max-width:760px){
+  #page-overview .metric-card strong,
+  .history-summary-grid .metric-card strong{
+    font-size:14px!important;
+  }
+}
