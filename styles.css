@@ -2170,8 +2170,12 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 /* Category content must sit inside the same horizontal inset as the card
    content. Single-item categories must not show a phantom center divider. */
 #page-tools .universe-grid>.asset-category{
-  padding-left:14px!important;
-  padding-right:14px!important;
+  box-sizing:border-box!important;
+  width:calc(100% - 28px)!important;
+  margin-left:14px!important;
+  margin-right:14px!important;
+  padding-left:0!important;
+  padding-right:0!important;
 }
 
 #page-tools .asset-category-label{
@@ -2222,8 +2226,11 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 
 @media(max-width:560px){
   #page-tools .universe-grid>.asset-category{
-    padding-left:14px!important;
-    padding-right:14px!important;
+    width:calc(100% - 28px)!important;
+    margin-left:14px!important;
+    margin-right:14px!important;
+    padding-left:0!important;
+    padding-right:0!important;
   }
   #page-tools .asset-category-items>span:nth-child(even){
     padding-left:12px!important;
