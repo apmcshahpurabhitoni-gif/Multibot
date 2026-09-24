@@ -564,3 +564,22 @@ html[data-reduce-motion="true"] .page.active{
     font-size:14px!important;
   }
 }
+/* ---------- Mobile chart density ----------------------------------------- */
+@media(max-width:560px){
+  #page-overview .overview-activity .chart-area{
+    min-height:0!important;
+    height:128px;
+  }
+  #page-overview .overview-activity .chart-area svg{
+    width:100%;
+    height:128px;
+  }
+  #page-overview .overview-equity .equity-card .chart-area{
+    min-height:160px;
+    height:160px;
+  }
+  #page-overview .overview-equity .equity-card .chart-area svg{
+    width:100%;
+    height:160px;
+  }
+}
