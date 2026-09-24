@@ -481,28 +481,26 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .source-link,.news-link{display:inline-flex;align-items:center;min-height:36px;color:var(--accent-strong);font-size:11px;font-weight:900;text-decoration:none;white-space:nowrap;padding:6px 8px;border-radius:var(--radius-xs)}
 .source-link:hover,.news-link:hover{background:var(--accent-soft)}
 .calendar-source{margin-left:auto}
-.calendar-item{display:grid;grid-template-columns:54px 1fr;gap:8px;padding:6px 9px;border:var(--border-w) solid var(--line);border-radius:var(--radius-sm);background:var(--surface);box-shadow:none;position:relative;min-width:0}
+.calendar-item{display:block;padding:8px 9px;border:var(--border-w) solid var(--line);border-radius:var(--radius-sm);background:var(--surface);box-shadow:none;position:relative;min-width:0}
 .calendar-item:hover{border-color:var(--line-strong)}
 .calendar-item.impact-high{border-left:3px solid var(--negative)}
 .calendar-item.impact-medium{border-left:3px solid var(--warning)}
 .calendar-item.impact-low{border-left:3px solid var(--positive)}
 .calendar-item.impact-holiday{border-left:3px solid var(--accent)}
-.calendar-time{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding-right:13px;border-right:1px solid var(--line);min-width:0}
-.calendar-time strong{font-size:11.5px;font-variant-numeric:tabular-nums}
-.calendar-time small{color:var(--muted);font-size:10px;font-weight:800}
 .calendar-event{min-width:0}
-.calendar-meta{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
+.calendar-meta{display:flex;align-items:center;gap:7px;min-height:32px;margin:0;flex-wrap:nowrap}
+.calendar-time-value{flex:0 0 48px;font-size:11.5px!important;font-variant-numeric:tabular-nums;line-height:1}
 .currency-code{color:var(--text);background:var(--surface-2);padding:4px 7px;border-radius:6px;font-size:10px;font-weight:900}
 .impact-pill.high{color:var(--negative);background:var(--negative-soft)}
 .impact-pill.medium{color:var(--warning);background:var(--warning-soft)}
 .impact-pill.low{color:var(--muted);background:var(--surface-2)}
 .impact-pill.holiday{color:var(--accent-strong);background:var(--accent-soft)}
 .calendar-meta .expand-button{margin-left:auto;width:32px;height:32px}
-.calendar-event>strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11.5px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
-.calendar-event>small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3;overflow-wrap:anywhere}
-.calendar-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--grid-gap);margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
-.calendar-details>div{padding:9px 10px;border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
-.calendar-details b{display:block;margin-top:4px;font-size:12px;overflow-wrap:anywhere}
+.calendar-title{display:block!important;margin:2px 40px 0 55px;font-size:11.5px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
+.calendar-details{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 0 55px;padding-top:6px;border-top:1px solid var(--line)}
+.calendar-details>span{font-size:10px;color:var(--muted);white-space:nowrap}
+.calendar-details b{font-size:11px;color:var(--text);font-weight:800}
+
 
 /* ---------- 12. Tools ------------------------------------------------------ */
 .tools-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--section-gap);align-items:start}
