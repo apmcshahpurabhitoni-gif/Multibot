@@ -1295,3 +1295,33 @@ html.neo-mode .empty-state{border-width:2px!important}
     margin-left:66px!important;
   }
 }
+
+/* ---------- Calendar final mobile cleanup ----------------------------------
+   ponytail: reuse the existing mobile-nav clearance; no JS/layout wrapper.
+   Keep the frozen Calendar geometry and fix only the remaining overlap/space.
+*/
+#page-calendar .calendar-source{
+  min-height:30px!important;
+  height:30px!important;
+}
+#page-calendar .calendar-source a,
+#page-calendar .calendar-source button{
+  min-height:26px!important;
+}
+@media(max-width:900px){
+  #page-calendar .calendar-date-list{
+    padding-bottom:calc(8px + var(--f-mobile-nav-clearance))!important;
+  }
+}
+@media(max-width:560px){
+  #page-calendar #calendarStatus{
+    min-height:40px!important;
+    height:40px!important;
+    padding:4px 8px!important;
+  }
+  #page-calendar .calendar-source{
+    min-height:30px!important;
+    height:30px!important;
+    padding:0 12px!important;
+  }
+}
