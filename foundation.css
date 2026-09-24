@@ -308,11 +308,15 @@ html[data-reduce-motion="true"] .page.active{
 
 #page-overview .metric-card strong{
   display:block;
+  min-width:0;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
   font-variant-numeric:tabular-nums;
 }
+#page-overview .metric-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+#page-overview .metric-card span{max-width:none;min-width:0}
+#page-overview .metric-card strong{text-align:right}
 
 #page-overview .overview-equity .chart-card,
 #page-overview .overview-activity .chart-card{
@@ -357,6 +361,10 @@ html[data-reduce-motion="true"] .page.active{
   #page-overview .overview-signals .stack{
     grid-template-columns:1fr;
   }
+}
+
+@media(max-width:900px){
+  #page-overview .metric-card{grid-template-columns:minmax(0,1fr) auto}
 }
 
 @media(max-width:560px){
@@ -438,10 +446,14 @@ html[data-reduce-motion="true"] .page.active{
 }
 
 #page-overview .overview-signals .detail-grid{
+  display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:6px;
   padding-top:6px;
 }
+#page-overview .overview-signals .expand-content{display:block!important;height:auto!important;overflow:visible!important}
+#page-overview .overview-signals .detail-grid>div{min-width:0;width:auto!important;max-width:none!important}
+#page-overview .overview-signals .detail-grid b.fresh,#page-overview .overview-signals .detail-grid b.stale{background:transparent!important;border:0!important;outline:0!important;box-shadow:none!important}
 
 #page-overview .overview-signals .detail-grid>div{
   padding:7px 8px;
