@@ -1475,3 +1475,112 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-universe>.section-heading>div:first-child{
   flex:1 1 auto!important;
 }
+
+
+/* ---------- Tools: unified inner-surface contract ------------------------- */
+/* One visual language for every expanded tool section: shared container,
+   compact data cells, and internal dividers instead of unrelated mini-cards. */
+#page-tools .account-grid,
+#page-tools .rule-list,
+#page-tools .diagnostic-grid,
+#page-tools .schedule-inline{
+  box-sizing:border-box!important;
+  border:1px solid var(--line)!important;
+  border-radius:var(--radius-xs)!important;
+  background:var(--surface-2)!important;
+  overflow:hidden!important;
+}
+
+#page-tools .account-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0!important;
+}
+#page-tools .account-grid article{
+  min-width:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .account-grid article:nth-child(n+3){
+  border-top:1px solid var(--line)!important;
+}
+#page-tools .account-grid article:nth-child(even){
+  border-left:1px solid var(--line)!important;
+}
+
+#page-tools .rule-list{
+  display:block!important;
+}
+#page-tools .rule-list>div{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .rule-list>div+div{
+  border-top:1px solid var(--line)!important;
+}
+
+#page-tools .diagnostic-grid{
+  gap:0!important;
+}
+#page-tools .diagnostic-grid article{
+  min-width:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .diagnostic-grid article:nth-child(n+3){
+  border-top:1px solid var(--line)!important;
+}
+#page-tools .diagnostic-grid article:nth-child(even){
+  border-left:1px solid var(--line)!important;
+}
+
+#page-tools .schedule-inline{
+  gap:0!important;
+  margin-top:8px!important;
+}
+#page-tools .schedule-inline span{
+  min-width:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .schedule-inline span:nth-child(n+4){
+  border-top:1px solid var(--line)!important;
+}
+#page-tools .schedule-inline span:not(:nth-child(3n+1)){
+  border-left:1px solid var(--line)!important;
+}
+
+/* Backtest controls use the same compact field geometry as the rest of Tools. */
+#page-tools .backtest-controls select,
+#page-tools .backtest-controls .primary-button{
+  min-height:40px;
+}
+#page-tools .backtest-status{
+  border-radius:var(--radius-xs)!important;
+  border:1px solid var(--line)!important;
+}
+
+/* All expanded tool bodies share one spacing rhythm. */
+#page-tools .tool-collapse>.tool-body{
+  padding-top:7px!important;
+}
+#page-tools .tool-collapse.is-open>.section-heading{
+  margin-bottom:0!important;
+}
+
+@media(max-width:560px){
+  #page-tools .account-grid article,
+  #page-tools .diagnostic-grid article{
+    padding:8px 9px!important;
+  }
+  #page-tools .schedule-inline{
+    margin-top:7px!important;
+  }
+  #page-tools .schedule-inline span{
+    padding:7px 4px!important;
+  }
+}
