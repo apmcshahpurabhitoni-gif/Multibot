@@ -316,14 +316,16 @@ html[data-reduce-motion="true"] .page.active{
 }
 #page-overview .metric-card{
   display:grid;
-  grid-template-columns:minmax(0,42%) minmax(0,58%);
+  grid-template-columns:minmax(0,45%) minmax(0,55%);
   align-items:center;
-  column-gap:8px;
+  column-gap:6px;
 }
 #page-overview .metric-card span{
   max-width:100%;
   min-width:0;
-  overflow-wrap:anywhere;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 #page-overview .metric-card strong{
   min-width:0;
