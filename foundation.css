@@ -2535,3 +2535,49 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     text-align:left!important;
   }
 }
+
+
+/* ---------- Signals mobile repair: preserve compact ledger geometry -------- */
+@media(max-width:560px){
+  #page-signals .signal-date-rows .signal-card{
+    min-height:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  #page-signals .signal-date-rows .signal-card .card-main{
+    min-height:64px!important;
+    height:64px!important;
+    box-sizing:border-box!important;
+    padding:9px 10px!important;
+  }
+  #page-signals .signal-date-rows .signal-leading{
+    gap:10px!important;
+  }
+  #page-signals .signal-date-rows .signal-leading strong{
+    font-size:15px!important;
+    line-height:1.2!important;
+  }
+  #page-signals .signal-date-rows .signal-leading small{
+    font-size:12px!important;
+    line-height:1.25!important;
+  }
+  #page-signals .signal-date-rows .direction-icon{
+    width:28px!important;
+    height:28px!important;
+    border-radius:8px!important;
+  }
+  #page-signals .signal-date-rows .card-state{
+    gap:8px!important;
+  }
+  #page-signals .signal-date-rows .expand-button{
+    width:40px!important;
+    height:40px!important;
+    min-width:40px!important;
+    min-height:40px!important;
+  }
+}
+@media(hover:none){
+  #page-signals .signal-date-rows .card-main:hover{
+    background:transparent!important;
+  }
+}
