@@ -809,3 +809,24 @@ html[data-style="neo"] #page-overview .section-heading>.text-button:active{
   html[data-style="neo"] #page-overview .metric-grid.four{gap:9px!important}
   html[data-style="neo"] #page-overview .hero-pills{gap:9px!important}
 }
+
+
+/* ---------- Final Home polish: preserve structure, refine visual weight ----- */
+/* Mobile tap/focus must not create a second ring around the active destination.
+   Keyboard focus remains visible through :focus-visible. */
+button:focus:not(:focus-visible){outline:none!important}
+
+/* Empty states remain clearly separated but subordinate to their parent card.
+   Neo keeps its stronger 2px treatment through the theme layer. */
+.empty-state{border-width:1px!important}
+html[data-style="neo"] .empty-state,
+html.neo-mode .empty-state{border-width:2px!important}
+
+/* Home empty activity should feel like an in-card state, not a full-size panel. */
+#page-overview .overview-activity .empty-state{
+  min-height:0!important;
+  padding:18px 14px!important;
+}
+@media(max-width:560px){
+  #page-overview .overview-activity .empty-state{padding:16px 12px!important}
+}
