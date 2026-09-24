@@ -3126,10 +3126,8 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 @media(max-width:560px){
   #page-signals .signal-card.expanded .detail-grid>div:nth-child(2) b,
   #page-signals .signal-card.expanded .detail-grid>div:nth-child(4) b,
-  #page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
   #page-signals .signal-card.expanded .detail-grid>div:nth-child(8) b,
-  #page-signals .signal-card.expanded .detail-grid>div:nth-child(10) b,
-  #page-signals .signal-card.expanded .detail-grid>div:nth-child(12) b{
+  #page-signals .signal-card.expanded .detail-grid>div:nth-child(10) b{
     white-space:nowrap!important;
     overflow-wrap:normal!important;
     word-break:normal!important;
