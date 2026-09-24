@@ -624,3 +624,26 @@ html[data-reduce-motion="true"] .page.active{
     max-height:160px!important;
   }
 }
+
+
+/* ---------- Financial type refinement: keep Neo bold, improve hierarchy ----- */
+/* Neo remains visually dominant; financial values use a controlled weight so
+   numbers do not overpower their labels or surrounding content. */
+#page-overview .metric-card strong,
+#page-overview .overview-equity .chart-head > span,
+#page-overview .overview-risk .metric-card strong,
+.history-summary-grid .metric-card strong,
+.trade-row-price b,
+.live-trade-row b,
+.drawer-price-grid b,
+.drawer-details b,
+.account-grid b{
+  font-weight:800;
+  letter-spacing:-.018em;
+}
+
+html[data-style="neo"] #page-overview .metric-card strong,
+html[data-style="neo"] #page-overview .overview-equity .chart-head > span,
+html[data-style="neo"] #page-overview .overview-risk .metric-card strong{
+  font-weight:800!important;
+}
