@@ -825,15 +825,16 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .version-badge{display:none}
   .header-meta{gap:6px}
   .mobile-nav{
-    position:sticky;z-index:45;top:0;
-    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:6px 8px;
-    margin:0 -10px 10px;
+    position:fixed;z-index:50;left:10px;right:10px;bottom:7px;
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px;
     background:var(--surface);
-    border-bottom:var(--border-w) solid var(--line);
-    box-shadow:var(--shadow-soft);
+    border:var(--border-w) solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);
   }
   .mobile-nav .nav-button{flex-direction:column;justify-content:center;gap:3px;min-height:48px;height:48px;padding:5px 2px;font-size:9px;border-radius:var(--radius-sm)}
   .mobile-nav .nav-button .nav-icon{font-size:15px;line-height:1}
+  .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+  .mobile-nav{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:calc(7px + env(safe-area-inset-bottom))}
   .hero{padding:10px 12px}
   .hero h2{font-size:15px}
   .section-heading h2{font-size:16px}
