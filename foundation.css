@@ -1,0 +1,2326 @@
+/* ==========================================================================
+   MULTIBOT FOUNDATION — layout/geometry contract
+   Phase 1 of the UI refactor.
+   Theme files must change appearance only; this file owns geometry.
+   No trading/runtime logic belongs here.
+   ========================================================================== */
+
+:root{
+  /* Foundation spacing scale */
+  --f-space-1:4px;
+  --f-space-2:8px;
+  --f-space-3:12px;
+  --f-space-4:16px;
+  --f-space-5:20px;
+  --f-space-6:24px;
+
+  /* Shared geometry */
+  --f-section-gap:16px;
+  --f-section-gap-compact:12px;
+  --f-grid-gap:12px;
+  --f-card-gap:10px;
+  --f-section-pad:16px;
+  --f-card-pad:12px;
+  --f-control-h:36px;
+  --f-control-h-mobile:40px;
+  --f-content-max:1500px;
+  --f-radius:12px;
+  --f-radius-sm:9px;
+  --f-border-w:1px;
+  --f-neo-depth:3px;
+
+  /* Fixed navigation clearance */
+  --f-mobile-nav-h:60px;
+  --f-mobile-nav-clearance:76px;
+}
+
+/* ---------- Geometry reset ------------------------------------------------ */
+html,body{min-width:0}
+body{overflow-x:hidden}
+img,svg,canvas,video{max-width:100%}
+button,input,select,textarea{max-width:100%}
+button{min-width:0}
+
+.app{
+  width:min(1280px,100%);
+  min-width:0;
+  margin-inline:auto;
+}
+
+main{
+  width:100%;
+  min-width:0;
+  max-width:var(--f-content-max);
+}
+
+.page{
+  width:100%;
+  min-width:0;
+  min-height:0;
+}
+
+.page > *{
+  min-width:0;
+}
+
+.page > * + *{
+  margin-top:var(--f-section-gap);
+}
+
+/* ---------- Shared section contract -------------------------------------- */
+.section-block,
+.signals-workspace,
+.history-workspace,
+.calendar-workspace,
+.tool-card{
+  min-width:0;
+  box-sizing:border-box;
+}
+
+.section-heading,
+.workspace-heading,
+.page-heading{
+  min-width:0;
+}
+
+.section-heading > *,
+.workspace-heading > *,
+.page-heading > *{
+  min-width:0;
+}
+
+.section-heading{
+  min-height:32px;
+  margin-bottom:var(--f-space-2);
+}
+
+.section-heading > :first-child,
+.workspace-heading > :first-child,
+.page-heading > :first-child{
+  min-width:0;
+}
+
+/* ---------- Shared grid contract ----------------------------------------- */
+.metric-grid,
+.history-summary-grid,
+.calendar-summary-grid,
+.detail-grid,
+.backtest-summary,
+.backtest-metrics,
+.account-grid,
+.diagnostic-grid,
+.schedule-inline,
+.universe-grid{
+  min-width:0;
+}
+
+.metric-grid > *,
+.history-summary-grid > *,
+.calendar-summary-grid > *,
+.detail-grid > *,
+.backtest-summary > *,
+.backtest-metrics > *,
+.account-grid > *,
+.diagnostic-grid > *,
+.schedule-inline > *,
+.universe-grid > *{
+  min-width:0;
+  max-width:100%;
+}
+
+/* Prevent long trading values from changing grid geometry. */
+.metric-card strong,
+.detail-grid b,
+.live-trade-row b,
+.trade-row-price b,
+.calendar-time strong,
+.backtest-summary b,
+.backtest-metrics b,
+.account-grid b,
+.diagnostic-grid b{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* ---------- Shared control contract -------------------------------------- */
+.secondary-button,
+.primary-button,
+.icon-button,
+.expand-button,
+.filter-button,
+.impact-filter,
+.trade-tab,
+.signal-tab,
+.history-tab,
+.history-filter,
+.signal-filter,
+.chip-option,
+.settings-toggle,
+.appearance-option{
+  box-sizing:border-box;
+  flex:0 0 auto;
+}
+
+.secondary-button,
+.primary-button{
+  min-height:var(--f-control-h);
+}
+
+.icon-button{
+  min-width:var(--f-control-h);
+  min-height:var(--f-control-h);
+}
+
+/* Action rows must wrap instead of forcing cards wider. */
+.section-heading,
+.workspace-heading,
+.page-heading,
+.calendar-agenda-status,
+.backtest-controls{
+  flex-wrap:wrap;
+}
+
+/* ---------- Shared content/list contract --------------------------------- */
+.stack,
+.signals-date-list,
+.history-date-list,
+.history-live-list,
+.calendar-date-list,
+.rule-list,
+.backtest-trades,
+.backtest-signal-list{
+  min-width:0;
+}
+
+.signal-card,
+.trade-card,
+.calendar-item,
+.news-item,
+.live-trade-row,
+.scan-history-row,
+.backtest-trade-row,
+.backtest-signal-list > div{
+  min-width:0;
+  max-width:100%;
+}
+
+/* ---------- Neo geometry safety ------------------------------------------ */
+/* Neo's visual depth must never create accidental layout collisions. */
+html[data-style="neo"] .section-block,
+html[data-style="neo"] .tool-card,
+html[data-style="neo"] .signals-workspace,
+html[data-style="neo"] .history-workspace,
+html[data-style="neo"] .calendar-workspace,
+html[data-style="neo"] .metric-card,
+html[data-style="neo"] .chart-card,
+html[data-style="neo"] .signal-card,
+html[data-style="neo"] .trade-card,
+html[data-style="neo"] .calendar-item{
+  position:relative;
+  isolation:isolate;
+}
+
+/* Reserve the shadow footprint in flow without using negative margins. */
+html[data-style="neo"] .section-block,
+html[data-style="neo"] .tool-card,
+html[data-style="neo"] .signals-workspace,
+html[data-style="neo"] .history-workspace,
+html[data-style="neo"] .calendar-workspace{
+  margin-right:var(--f-neo-depth);
+  margin-bottom:var(--f-neo-depth);
+}
+
+/* ---------- Mobile navigation contract ----------------------------------- */
+@media(max-width:900px){
+  body{
+    padding-bottom:var(--f-mobile-nav-clearance);
+  }
+
+  main{
+    padding-bottom:var(--f-mobile-nav-clearance);
+  }
+
+  .mobile-nav{
+    min-height:var(--f-mobile-nav-h);
+    box-sizing:border-box;
+  }
+}
+
+@media(max-width:760px){
+  :root{
+    --f-section-gap:14px;
+    --f-grid-gap:10px;
+    --f-section-pad:14px;
+    --f-card-pad:11px;
+  }
+
+  .page > * + *{
+    margin-top:var(--f-section-gap);
+  }
+}
+
+@media(max-width:560px){
+  .page > * + *{
+    margin-top:12px;
+  }
+
+  .section-heading,
+  .workspace-heading{
+    gap:8px;
+  }
+
+  .metric-card strong{
+    overflow-wrap:anywhere;
+  }
+}
+
+/* ---------- Compact foundation ------------------------------------------- */
+html[data-compact="true"]{
+  --f-section-gap:12px;
+  --f-grid-gap:8px;
+  --f-section-pad:12px;
+  --f-card-pad:10px;
+}
+
+html[data-compact="true"] .page > * + *{
+  margin-top:var(--f-section-gap);
+}
+
+/* ---------- Reduced motion foundation ------------------------------------ */
+html[data-reduce-motion="true"] .page.active{
+  animation:none!important;
+}
+
+
+/* ---------- Home page contract -------------------------------------------- */
+/* Keep the dashboard's primary metrics stable across themes and widths. */
+#page-overview .metric-grid.four{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:var(--f-grid-gap);
+}
+
+#page-overview .metric-card{
+  min-width:0;
+  overflow:hidden;
+}
+
+#page-overview .metric-card strong{
+  display:block;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;
+}
+#page-overview .metric-card{
+  display:grid;
+  grid-template-columns:minmax(0,45%) minmax(0,55%);
+  align-items:center;
+  column-gap:6px;
+}
+#page-overview .metric-card span{
+  max-width:100%;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#page-overview .metric-card strong{
+  min-width:0;
+  max-width:100%;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#page-overview .overview-equity .chart-card,
+#page-overview .overview-activity .chart-card{
+  min-width:0;
+  overflow:hidden;
+}
+
+#page-overview .equity-card .chart-area{
+  min-height:220px;
+}
+
+#page-overview .overview-activity .chart-area{
+  min-height:160px;
+}
+
+#page-overview .overview-scan .section-heading{
+  align-items:center;
+}
+
+#page-overview #scanSummary{
+  display:block;
+  max-width:min(100%,720px);
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+#page-overview .overview-signals .stack{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--f-card-gap);
+}
+
+#page-overview .overview-signals .empty-state{
+  grid-column:1 / -1;
+}
+
+@media(max-width:900px){
+  #page-overview .metric-grid.four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  #page-overview .overview-signals .stack{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:900px){
+  #page-overview .metric-card{grid-template-columns:minmax(0,1fr) auto}
+}
+
+@media(max-width:560px){
+  #page-overview .metric-grid.four{
+    gap:8px;
+  }
+
+
+  #page-overview .equity-card .chart-area{
+    min-height:180px;
+  }
+
+  #page-overview .overview-activity .chart-area{
+    min-height:120px;
+  }
+}
+
+
+/* ---------- Home component repair: dense, data-aware mobile layout --------- */
+#page-overview .overview-activity .chart-area:has(.empty-state){
+  min-height:0!important;
+  height:auto!important;
+  display:block;
+}
+
+#page-overview .overview-activity .chart-area:has(.empty-state) .empty-state{
+  min-height:88px;
+  margin:0;
+  padding:12px;
+}
+
+#page-overview .overview-scan .section-heading{
+  align-items:center;
+}
+
+#page-overview .overview-scan .section-heading h2{
+  white-space:nowrap;
+}
+
+#page-overview .overview-scan #scanSummary{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  text-align:right;
+}
+
+#page-overview .overview-signals .signal-card .card-main{
+  min-height:42px;
+  padding:6px 9px;
+}
+
+#page-overview .overview-signals .signal-leading{
+  gap:9px;
+}
+
+#page-overview .overview-signals .signal-leading strong{
+  font-size:12px;
+}
+
+#page-overview .overview-signals .signal-leading small{
+  margin-top:1px;
+  line-height:1.2;
+}
+
+#page-overview .overview-signals .direction-icon{
+  width:22px;
+  height:22px;
+}
+
+#page-overview .overview-signals .expand-button{
+  width:30px;
+  height:30px;
+}
+
+#page-overview .overview-signals .expand-content{
+  padding:4px 8px 9px;
+}
+
+#page-overview .overview-signals .detail-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+  padding-top:6px;
+}
+#page-overview .overview-signals .expand-content{display:block!important;height:auto!important;overflow:visible!important}
+#page-overview .overview-signals .detail-grid>div{min-width:0;width:auto!important;max-width:none!important}
+#page-overview .overview-signals .detail-grid b.fresh,#page-overview .overview-signals .detail-grid b.stale{background:transparent!important;border:0!important;outline:0!important;box-shadow:none!important}
+
+#page-overview .overview-signals .detail-grid>div{
+  padding:7px 8px;
+}
+
+#page-overview .overview-signals .detail-grid b{
+  margin-top:3px;
+  font-size:11.5px;
+}
+
+#page-overview .overview-signals .detail-grid b.fresh,
+#page-overview .overview-signals .detail-grid b.stale{
+  display:inline-flex;
+  width:auto;
+  max-width:100%;
+  padding:2px 6px;
+  border-radius:999px;
+  line-height:1.2;
+}
+
+#page-overview .overview-signals .reason{
+  margin-top:6px;
+  padding:8px 9px;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-scan .section-heading{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+
+  #page-overview .overview-scan .section-heading> :first-child{
+    display:block;
+  }
+
+  #page-overview .overview-scan #scanSummary{
+    text-align:left;
+    justify-self:stretch;
+  }
+
+  #page-overview .overview-signals .signal-leading small{
+    -webkit-line-clamp:2;
+  }
+
+  #page-overview .overview-signals .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:380px){
+  #page-overview .overview-signals .detail-grid{
+    gap:5px;
+  }
+
+  #page-overview .overview-signals .detail-grid>div{
+    padding:6px 7px;
+  }
+
+  #page-overview .overview-signals .detail-grid b{
+    font-size:11px;
+  }
+}
+/* ---------- Financial typography contract -------------------------------- */
+/* Financial values use the same compact dashboard font and weight in every theme. */
+#page-overview .metric-card{
+  grid-template-columns:minmax(0,1fr) auto;
+}
+#page-overview .metric-card strong,
+#page-overview .overview-equity .chart-head > span,
+#page-overview .overview-risk .metric-card strong,
+.history-summary-grid .metric-card strong,
+.trade-row-price b,
+.live-trade-row b,
+.drawer-price-grid b,
+.drawer-details b,
+.account-grid b{
+  font-family:var(--font);
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+}
+#page-overview .metric-card strong{
+  font-size:14px!important;
+  line-height:1.15;
+}
+#page-overview .overview-equity .chart-head > span{
+  font-size:11px;
+  line-height:1.2;
+}
+@media(max-width:760px){
+  #page-overview .metric-card strong,
+  .history-summary-grid .metric-card strong{
+    font-size:14px!important;
+  }
+}
+/* ---------- Mobile chart density ----------------------------------------- */
+@media(max-width:560px){
+  #page-overview .overview-activity .chart-area{
+    min-height:0!important;
+    height:128px;
+  }
+  #page-overview .overview-activity .chart-area svg{
+    width:100%;
+    height:128px;
+  }
+  #page-overview .overview-equity .equity-card .chart-area{
+    min-height:160px;
+    height:160px;
+  }
+  #page-overview .overview-equity .equity-card .chart-area svg{
+    width:100%;
+    height:160px;
+  }
+}
+
+
+/* ---------- Mobile visual repair: preserve Neo, fix text + chart geometry ---- */
+/* Keep Neo's strong borders/shadows intact. These rules only repair content
+   fitting and remove whitespace caused by inline SVG dimensions. */
+@media(max-width:560px){
+  #page-overview .metric-card span{
+    max-width:none;
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    line-height:1.1;
+    letter-spacing:.06em;
+  }
+
+  #page-overview .metric-card{
+    grid-template-columns:minmax(0,1fr) max-content;
+  }
+
+  #page-overview .overview-activity .chart-area{
+    min-height:0!important;
+    height:128px!important;
+  }
+
+  #page-overview .overview-activity .chart-area svg{
+    width:100%!important;
+    height:128px!important;
+    max-height:128px!important;
+  }
+
+  #page-overview .overview-equity .equity-card .chart-area{
+    min-height:0!important;
+    height:160px!important;
+  }
+
+  #page-overview .overview-equity .equity-card .chart-area svg{
+    width:100%!important;
+    height:160px!important;
+    max-height:160px!important;
+  }
+}
+
+
+/* ---------- Financial type refinement: keep Neo bold, improve hierarchy ----- */
+/* Neo remains visually dominant; financial values use a controlled weight so
+   numbers do not overpower their labels or surrounding content. */
+#page-overview .metric-card strong,
+#page-overview .overview-equity .chart-head > span,
+#page-overview .overview-risk .metric-card strong,
+.history-summary-grid .metric-card strong,
+.trade-row-price b,
+.live-trade-row b,
+.drawer-price-grid b,
+.drawer-details b,
+.account-grid b{
+  font-weight:800;
+  letter-spacing:-.018em;
+}
+
+html[data-style="neo"] #page-overview .metric-card strong,
+html[data-style="neo"] #page-overview .overview-equity .chart-head > span,
+html[data-style="neo"] #page-overview .overview-risk .metric-card strong{
+  font-weight:800!important;
+}
+
+
+/* ---------- Signals page contract ----------------------------------------- */
+/* Keep Neo's full visual weight while giving the ledger a predictable mobile
+   hierarchy: workspace -> date group -> signal card -> expanded details. */
+#page-signals .signals-workspace{
+  min-width:0;
+}
+
+#page-signals .signals-date-list{
+  min-width:0;
+}
+
+#page-signals .signal-date-group{
+  min-width:0;
+}
+
+#page-signals .signal-date-toggle{
+  min-width:0;
+}
+
+#page-signals .signal-date-toggle > span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+#page-signals .signal-date-toggle b{
+  overflow-wrap:anywhere;
+}
+
+#page-signals .signal-date-rows .signal-card{
+  min-width:0;
+}
+
+#page-signals .signal-leading{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+#page-signals .signal-leading > div{
+  min-width:0;
+}
+
+#page-signals .signal-leading small{
+  overflow-wrap:anywhere;
+}
+
+@media(max-width:560px){
+  #page-signals .signals-date-list{
+    padding:6px 8px 10px;
+  }
+
+  #page-signals .signal-date-toggle{
+    min-height:44px;
+    padding:8px 6px;
+  }
+
+  #page-signals .signal-date-toggle i{
+    width:32px;
+    height:32px;
+  }
+
+  #page-signals .signal-date-rows{
+    padding:7px 3px 9px;
+    gap:8px;
+  }
+
+  #page-signals .signal-date-rows .signal-card .card-main{
+    min-height:52px;
+    padding:8px 9px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading{
+    gap:9px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading strong{
+    font-size:12.5px;
+  }
+
+  #page-signals .signal-date-rows .signal-leading small{
+    font-size:10.5px;
+    line-height:1.35;
+  }
+
+  #page-signals .signal-date-rows .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+
+  #page-signals .signal-date-rows .reason{
+    margin-top:8px;
+  }
+}
+
+/* Neo date groups/cards keep the same strong treatment as the rest of Neo. */
+html[data-style="neo"] #page-signals .signal-date-rows .signal-card{
+  border:2px solid var(--line-strong)!important;
+  border-left-width:4px!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Signals mobile action polish ---------------------------------- */
+/* Keep the page structure intact; only reduce the refresh control footprint. */
+@media(max-width:560px){
+  #page-signals .signals-heading{
+    align-items:flex-end;
+  }
+
+  #page-signals #signalsRefreshButton{
+    width:auto;
+    min-width:92px;
+    min-height:40px;
+    padding:8px 12px;
+    flex:0 0 auto;
+  }
+
+  #page-signals .signals-heading > div{
+    min-width:0;
+  }
+
+  #page-signals .signals-heading p{
+    max-width:30rem;
+  }
+}
+
+
+/* ---------- Signals date header card -------------------------------------- */
+/* The date row is a nested information surface, not a full-width divider.
+   Give it the same contained-card language as the signal rows. */
+#page-signals .signal-date-group{
+  border-bottom:0;
+  margin:0 0 8px;
+}
+
+#page-signals .signal-date-toggle{
+  width:calc(100% - 10px);
+  min-width:0;
+  margin:6px 5px 0;
+  padding:9px 10px;
+  min-height:46px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-soft);
+}
+
+#page-signals .signal-date-group.is-open > .signal-date-toggle{
+  background:var(--accent-softer);
+  border-color:var(--line);
+  border-radius:var(--radius-sm);
+}
+
+#page-signals .signal-date-toggle i{
+  border-radius:8px;
+}
+
+#page-signals .signal-date-rows{
+  padding:7px 5px 3px;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-date-toggle{
+    width:calc(100% - 6px);
+    margin:5px 3px 0;
+    padding:8px 9px;
+    min-height:46px;
+  }
+
+  #page-signals .signal-date-rows{
+    padding:7px 3px 3px;
+  }
+}
+
+/* Neo keeps its strong personality: the date header gets the same deliberate
+   border/shadow language as the other Neo cards. */
+html[data-style="neo"] #page-signals .signal-date-toggle{
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Signals heading alignment repair ------------------------------ */
+/* Mobile page headings stack vertically. Keep the heading block on the
+   content edge; only the action stays compact. */
+@media(max-width:760px){
+  #page-signals .signals-heading{
+    align-items:flex-start!important;
+  }
+
+  #page-signals #signalsRefreshButton{
+    width:auto!important;
+    align-self:flex-start;
+  }
+}
+
+
+/* ---------- Signals mobile final geometry -------------------------------- */
+/* Keep the page heading and action on one row. The generic mobile page-heading
+   rule stacks actions for other pages, but Signals has a single compact action. */
+@media(max-width:560px){
+  #page-signals .signals-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+  }
+
+  #page-signals .signals-heading > div{
+    min-width:0;
+  }
+
+  #page-signals #signalsRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+  }
+
+  /* Fixed bottom navigation must never cover expanded signal details. */
+  #page-signals{
+    padding-bottom:104px;
+  }
+
+  #page-signals .signals-workspace{
+    margin-bottom:0;
+  }
+}
+
+
+/* ---------- Expanded signal detail groups -------------------------------- */
+/* Two compact information surfaces instead of eleven independent cards. */
+#page-signals .detail-groups{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding-top:8px;
+}
+
+#page-signals .detail-group{
+  min-width:0;
+  padding:8px 9px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius-xs);
+}
+
+#page-signals .detail-group > div{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:baseline;
+  gap:8px;
+  padding:4px 0;
+}
+
+#page-signals .detail-group > div + div{
+  border-top:1px solid color-mix(in srgb,var(--line) 65%,transparent);
+}
+
+#page-signals .detail-group span{
+  color:var(--muted);
+  font-size:9.5px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+
+#page-signals .detail-group b{
+  margin:0;
+  font-size:11.5px;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+
+#page-signals .detail-group b.fresh,
+#page-signals .detail-group b.stale{
+  padding:1px 5px;
+  border-radius:999px;
+  line-height:1.2;
+}
+
+#page-signals .reason{
+  margin-top:8px;
+  padding:8px 9px;
+}
+
+#page-signals .reason p{
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:560px){
+  #page-signals .detail-groups{
+    grid-template-columns:1fr;
+    gap:6px;
+    padding-top:7px;
+  }
+
+  #page-signals .detail-group{
+    padding:6px 8px;
+  }
+
+  #page-signals .detail-group > div{
+    padding:3px 0;
+  }
+
+  #page-signals .detail-group b{
+    font-size:11px;
+  }
+
+  #page-signals .reason{
+    margin-top:6px;
+  }
+}
+
+html[data-style="neo"] #page-signals .detail-group{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Expanded signal details: compact two-surface treatment ------- */
+/* Keep the known-good markup. The whole detail grid is one contained surface;
+   strategy reason is the second surface. No JS restructuring required. */
+#page-signals .signal-card .expand-content{
+  padding:7px 9px 9px;
+}
+
+#page-signals .signal-card .detail-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:var(--radius-xs);
+  background:var(--surface-2);
+  overflow:hidden;
+}
+
+#page-signals .signal-card .detail-grid>div{
+  padding:6px 8px;
+  background:transparent;
+  border-radius:0;
+  min-width:0;
+}
+
+#page-signals .signal-card .detail-grid>div:nth-child(even){
+  border-left:1px solid var(--line);
+}
+
+#page-signals .signal-card .detail-grid>div:nth-child(n+3){
+  border-top:1px solid var(--line);
+}
+
+#page-signals .signal-card .detail-grid b{
+  margin-top:2px;
+  font-size:11px;
+}
+
+#page-signals .signal-card .reason{
+  margin-top:7px;
+  padding:7px 8px;
+}
+
+#page-signals .signal-card .reason p{
+  margin:4px 0 0;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-card .detail-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  #page-signals .signal-card .detail-grid>div{
+    padding:5px 7px;
+  }
+
+  #page-signals .signal-card .detail-grid b{
+    font-size:10.8px;
+  }
+}
+
+html[data-style="neo"] #page-signals .signal-card .detail-grid{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Signal detail density ----------------------------------------- */
+#page-signals .signal-card .detail-grid{
+  border-radius:var(--radius-xs);
+}
+
+#page-signals .signal-card .detail-grid>div{
+  padding:4px 8px;
+}
+
+#page-signals .signal-card .detail-grid span{
+  line-height:1.1;
+}
+
+#page-signals .signal-card .detail-grid b{
+  margin-top:1px;
+  line-height:1.2;
+}
+
+#page-signals .signal-card .reason{
+  margin-top:6px;
+  padding:6px 8px;
+}
+
+#page-signals .signal-card .reason p{
+  margin-top:3px;
+  line-height:1.3;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-card .detail-grid>div{
+    padding:4px 7px;
+  }
+
+  #page-signals .signal-card .detail-grid b{
+    font-size:10.5px;
+  }
+}
+
+
+/* ---------- Signals expanded panel: final compact Neo treatment ------------ */
+/* CSS-only: do not alter signal rendering, API, navigation, or dashboard JS. */
+#page-signals .signal-card.expanded .expand-content{
+  padding:6px 8px 8px;
+}
+
+#page-signals .signal-card.expanded .detail-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  background:var(--surface-2);
+}
+
+#page-signals .signal-card.expanded .detail-grid>div{
+  min-width:0;
+  padding:5px 8px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+}
+
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(even){
+  border-left:1px solid var(--line);
+}
+
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(n+3){
+  border-top:1px solid var(--line);
+}
+
+#page-signals .signal-card.expanded .detail-grid span{
+  display:block;
+  margin:0 0 2px;
+  font-size:9px;
+  line-height:1.05;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+#page-signals .signal-card.expanded .detail-grid b{
+  display:block;
+  margin:0;
+  font-size:11px;
+  line-height:1.15;
+  overflow-wrap:anywhere;
+}
+
+#page-signals .signal-card.expanded .reason{
+  margin:6px 0 0;
+  padding:6px 8px;
+  border-radius:10px;
+}
+
+#page-signals .signal-card.expanded .reason span{
+  font-size:9px;
+  line-height:1.05;
+}
+
+#page-signals .signal-card.expanded .reason p{
+  margin:3px 0 0;
+  font-size:10.5px;
+  line-height:1.25;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-card.expanded .expand-content{
+    padding:5px 7px 7px;
+  }
+
+  #page-signals .signal-card.expanded .detail-grid>div{
+    padding:4px 7px;
+  }
+
+  #page-signals .signal-card.expanded .detail-grid b{
+    font-size:10.5px;
+  }
+
+  #page-signals .signal-card.expanded .reason{
+    margin-top:5px;
+    padding:5px 7px;
+  }
+}
+
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] #page-signals .signal-card.expanded .reason{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Shared expanded-signal detail contract ------------------------ */
+/* Keep Home and Signals on the same compact information geometry. */
+#page-overview .overview-signals .signal-card.expanded .expand-content,
+#page-signals .signal-card.expanded .expand-content{
+  padding:5px 7px 7px;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid,
+#page-signals .signal-card.expanded .detail-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0;
+  padding-top:0;
+  border:1px solid var(--line);
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--surface-2);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+#page-signals .signal-card.expanded .detail-grid>div{
+  min-width:0;
+  padding:5px 7px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(even){
+  border-left:1px solid var(--line);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(n+3),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(n+3){
+  border-top:1px solid var(--line);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid span,
+#page-signals .signal-card.expanded .detail-grid span{
+  margin:0 0 2px;
+  font-size:9px;
+  line-height:1.05;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b,
+#page-signals .signal-card.expanded .detail-grid b{
+  margin:0;
+  font-size:11px;
+  line-height:1.15;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason,
+#page-signals .signal-card.expanded .reason{
+  margin:5px 0 0;
+  padding:6px 7px;
+  border-radius:9px;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason span,
+#page-signals .signal-card.expanded .reason span{
+  font-size:9px;
+  line-height:1.05;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason p,
+#page-signals .signal-card.expanded .reason p{
+  margin:3px 0 0;
+  font-size:10.5px;
+  line-height:1.2;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .reason,
+html[data-style="neo"] #page-signals .signal-card.expanded .reason{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-signals .signal-card.expanded .detail-grid,
+  #page-signals .signal-card.expanded .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+
+/* ---------- Expanded signal details: compact readable rows --------------- */
+/* One information surface, two columns. Labels and values share a row so the
+   panel uses horizontal space instead of stacking every field vertically.
+   Applies to Home and Signals; data/markup remain unchanged. */
+#page-overview .overview-signals .signal-card.expanded .detail-grid,
+#page-signals .signal-card.expanded .detail-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-rows:minmax(0,auto);
+  align-items:stretch;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+#page-signals .signal-card.expanded .detail-grid>div{
+  display:grid!important;
+  grid-template-columns:max-content minmax(0,1fr);
+  align-items:center;
+  column-gap:8px;
+  min-height:30px;
+  padding:5px 8px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid span,
+#page-signals .signal-card.expanded .detail-grid span{
+  display:block;
+  margin:0!important;
+  white-space:nowrap;
+  font-size:8.5px!important;
+  line-height:1.1!important;
+  letter-spacing:.055em;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b,
+#page-signals .signal-card.expanded .detail-grid b{
+  min-width:0;
+  margin:0!important;
+  font-size:10.5px!important;
+  line-height:1.15!important;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b.fresh,
+#page-overview .overview-signals .signal-card.expanded .detail-grid b.stale,
+#page-signals .signal-card.expanded .detail-grid b.fresh,
+#page-signals .signal-card.expanded .detail-grid b.stale{
+  justify-self:end;
+  width:max-content;
+  max-width:100%;
+  padding:1px 5px;
+  text-align:center;
+  background:color-mix(in srgb,var(--warning) 16%,transparent);
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason,
+#page-signals .signal-card.expanded .reason{
+  display:grid;
+  grid-template-columns:max-content minmax(0,1fr);
+  align-items:center;
+  column-gap:10px;
+  min-height:30px;
+  margin:5px 0 0!important;
+  padding:6px 8px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason span,
+#page-signals .signal-card.expanded .reason span{
+  white-space:nowrap;
+  margin:0!important;
+  font-size:8.5px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason p,
+#page-signals .signal-card.expanded .reason p{
+  min-width:0;
+  margin:0!important;
+  font-size:10.5px!important;
+  line-height:1.2!important;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid{
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .reason,
+html[data-style="neo"] #page-signals .signal-card.expanded .reason{
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-signals .signal-card.expanded .detail-grid,
+  #page-signals .signal-card.expanded .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+  #page-signals .signal-card.expanded .detail-grid>div{
+    min-height:28px;
+    padding:4px 7px!important;
+    grid-template-columns:max-content minmax(0,1fr);
+    column-gap:6px;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid span,
+  #page-signals .signal-card.expanded .detail-grid span{
+    font-size:8px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid b,
+  #page-signals .signal-card.expanded .detail-grid b{
+    font-size:10px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .reason,
+  #page-signals .signal-card.expanded .reason{
+    grid-template-columns:max-content minmax(0,1fr);
+    min-height:28px;
+    padding:5px 7px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .reason span,
+  #page-signals .signal-card.expanded .reason span{
+    font-size:8px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .reason p,
+  #page-signals .signal-card.expanded .reason p{
+    font-size:10px!important;
+  }
+}
+
+
+/* ---------- Expanded signal details: final readability polish ------------- */
+/* Keep the compact two-column Neo layout. Only improve value fit/readability. */
+#page-overview .overview-signals .signal-card.expanded .detail-grid,
+#page-signals .signal-card.expanded .detail-grid{
+  font-size:inherit;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+#page-signals .signal-card.expanded .detail-grid>div{
+  min-height:31px;
+  padding:5px 8px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid span,
+#page-signals .signal-card.expanded .detail-grid span{
+  font-size:8.5px!important;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b,
+#page-signals .signal-card.expanded .detail-grid b{
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+
+/* Timestamp fields are allowed to wrap instead of being clipped with "...". */
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+}
+
+/* FIRST SENT has no useful partner on the final row, so use the full width. */
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(11),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(11){
+  grid-column:1 / -1;
+  grid-template-columns:max-content minmax(0,1fr);
+  border-left:0!important;
+  border-top:1px solid var(--line)!important;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+  #page-signals .signal-card.expanded .detail-grid>div{
+    min-height:30px;
+    padding:5px 7px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid span,
+  #page-signals .signal-card.expanded .detail-grid span{
+    font-size:8.2px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid b,
+  #page-signals .signal-card.expanded .detail-grid b{
+    font-size:10.7px!important;
+  }
+
+  #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
+  #page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+}
+
+
+/* ---------- History page contract ----------------------------------------- */
+/* Reuse the proven Signals hierarchy: workspace -> date group -> compact row.
+   No runtime/data styling belongs in the history renderer. */
+#page-history .history-summary-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--f-grid-gap);
+}
+#page-history .history-summary-grid .metric-card{
+  min-width:0;
+}
+#page-history .history-workspace{
+  overflow:visible;
+}
+#page-history .history-date-list{
+  padding:6px 12px 12px;
+}
+#page-history .history-date-group{
+  min-width:0;
+  margin:0;
+  border-bottom:0;
+}
+#page-history .history-date-rows{
+  display:grid;
+  gap:8px;
+  padding:7px 5px 9px;
+}
+#page-history .history-date-rows .trade-row{
+  min-width:0;
+}
+#page-history .history-live-list{
+  display:grid;
+  gap:8px;
+  padding:8px 12px 12px;
+}
+#page-history .history-live-list .live-trade-row,
+#page-history .history-live-list .scan-history-row{
+  min-width:0;
+  max-width:100%;
+}
+#page-history .history-scan-workspace .history-live-list{
+  padding-top:7px;
+}
+@media(max-width:760px){
+  #page-history .history-summary-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+@media(max-width:560px){
+  #page-history .history-date-list{
+    padding:6px 8px 10px;
+  }
+  #page-history .history-date-rows{
+    gap:8px;
+    padding:7px 3px 9px;
+  }
+  #page-history .history-live-list{
+    gap:8px;
+    padding:7px 8px 10px;
+  }
+  #page-history .history-live-list .live-trade-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:6px 8px;
+    padding:8px 9px;
+  }
+  #page-history .history-live-list .live-trade-row > div:first-child{
+    grid-column:1 / -1;
+  }
+  #page-history .history-live-list .live-trade-row > div:nth-child(2),
+  #page-history .history-live-list .live-trade-row > div:nth-child(3){
+    min-width:0;
+  }
+  #page-history .history-live-list .live-trade-row .live-open-badge{
+    grid-column:1;
+    justify-self:start;
+    align-self:center;
+  }
+  #page-history .history-live-list .live-trade-row .trade-detail-button{
+    grid-column:2;
+    justify-self:end;
+  }
+  #page-history .history-scan-workspace .history-live-list{
+    padding:7px 8px 10px;
+  }
+}
+
+
+/* ---------- History final mobile geometry -------------------------------- */
+#page-history .history-summary-grid .metric-card{
+  grid-template-columns:minmax(0,1fr) minmax(64px,auto);
+  align-items:center;
+}
+#page-history .history-summary-grid .metric-card strong{
+  white-space:nowrap;
+  overflow:visible;
+  word-break:normal;
+  overflow-wrap:normal;
+  text-align:right;
+  font-size:14px!important;
+}
+@media(max-width:560px){
+  #page-history .history-summary-grid .metric-card{
+    grid-template-columns:minmax(0,1fr) minmax(66px,auto);
+    gap:7px;
+    padding-inline:9px;
+  }
+  #page-history .history-summary-grid .metric-card strong{
+    font-size:13.5px!important;
+  }
+}
+
+
+/* ---------- History polish: summary + scan rows -------------------------- */
+#page-history .history-summary-grid .metric-card{
+  grid-template-columns:minmax(0,1fr) max-content;
+}
+#page-history .history-summary-grid .metric-card strong{
+  display:block;
+  min-width:max-content!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+  text-align:right;
+  font-size:14px!important;
+  line-height:1.1;
+}
+#page-history .history-scan-workspace .history-date-rows{gap:7px}
+#page-history .history-scan-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:8px;
+  padding:10px 11px;
+  border:var(--border-w) solid var(--line);
+  border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm);
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+}
+#page-history .history-scan-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  align-items:start;
+  gap:8px;
+  min-width:0;
+}
+#page-history .history-scan-identity{min-width:0}
+#page-history .history-scan-identity strong{
+  display:block;
+  min-width:0;
+  font-size:12px;
+  line-height:1.25;
+  font-weight:850;
+  overflow-wrap:anywhere;
+}
+#page-history .history-scan-identity small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.3;
+}
+#page-history .history-scan-status{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  padding:4px 8px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--surface-2);
+  color:var(--muted)!important;
+  font-size:9px!important;
+  font-weight:900;
+  letter-spacing:.06em;
+  white-space:nowrap;
+  text-transform:uppercase;
+}
+#page-history .history-scan-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;
+  min-width:0;
+}
+#page-history .history-scan-metrics span{
+  min-width:0;
+  padding:6px 5px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:var(--surface-2);
+  color:var(--muted);
+  font-size:9.5px;
+  line-height:1.2;
+  text-align:center;
+  white-space:nowrap;
+}
+#page-history .history-scan-metrics b{
+  color:var(--text);
+  font-size:10.5px;
+  font-weight:850;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:560px){
+  #page-history .history-summary-grid .metric-card{
+    grid-template-columns:minmax(0,1fr) max-content;
+    gap:6px;
+  }
+  #page-history .history-summary-grid .metric-card strong{font-size:13px!important}
+  #page-history .history-scan-row{padding:9px}
+  #page-history .history-scan-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  #page-history .history-scan-metrics span{padding:6px 3px;font-size:8.5px}
+  #page-history .history-scan-metrics b{font-size:10px}
+}
+
+
+/* ---------- History final contract ---------------------------------------- */
+/* History owns its data once; this layer only controls compact geometry. */
+#page-history .history-summary-grid{
+  align-items:stretch;
+}
+#page-history .history-summary-grid .metric-card{
+  grid-template-columns:minmax(0,1fr) max-content;
+  gap:8px;
+  padding:8px 10px;
+}
+#page-history .history-summary-grid .metric-card span{
+  min-width:0;
+  max-width:none;
+  white-space:nowrap;
+}
+#page-history .history-summary-grid .metric-card strong{
+  min-width:max-content!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  font-size:13.5px!important;
+  line-height:1.1;
+}
+#page-history .history-date-list{
+  padding:4px 10px 10px;
+}
+#page-history .history-date-rows{
+  gap:6px;
+  padding:6px 3px 8px;
+}
+#page-history .history-live-list{
+  gap:6px;
+  padding:6px 10px 10px;
+}
+#page-history .history-empty-state{
+  min-height:76px;
+  padding:10px 12px;
+  gap:3px;
+}
+#page-history .history-empty-state span{
+  font-size:14px;
+  line-height:1;
+}
+#page-history .history-empty-state strong{
+  font-size:12.5px;
+}
+#page-history .history-empty-state small{
+  font-size:10.5px;
+  line-height:1.35;
+}
+#page-history .history-scan-workspace .history-date-rows{
+  gap:6px;
+  padding:6px 3px 8px;
+}
+#page-history .history-scan-row{
+  gap:6px;
+  padding:8px 9px;
+}
+#page-history .history-scan-head{
+  gap:6px;
+}
+#page-history .history-scan-identity strong{
+  font-size:11.5px;
+}
+#page-history .history-scan-identity small{
+  margin-top:2px;
+  font-size:9.5px;
+}
+#page-history .history-scan-status{
+  padding:3px 7px;
+  font-size:8.5px!important;
+}
+#page-history .history-scan-metrics{
+  gap:4px;
+}
+#page-history .history-scan-metrics span{
+  padding:4px 3px;
+  font-size:8.5px;
+}
+#page-history .history-scan-metrics b{
+  font-size:10px;
+}
+@media(max-width:560px){
+  #page-history .history-summary-grid .metric-card{
+    gap:5px;
+    padding:8px 9px;
+  }
+  #page-history .history-summary-grid .metric-card strong{
+    font-size:13px!important;
+  }
+  #page-history .history-date-list{
+    padding:3px 7px 8px;
+  }
+  #page-history .history-live-list{
+    padding:5px 7px 8px;
+  }
+  #page-history .history-scan-row{
+    padding:8px;
+  }
+  #page-history .history-scan-metrics{
+    gap:3px;
+  }
+  #page-history .history-scan-metrics span{
+    padding:4px 2px;
+    font-size:8px;
+  }
+}
+
+
+/* ---------- History heading parity ---------------------------------------- */
+/* History uses the same compact page-heading contract as Signals.
+   The refresh action must stay beside the title instead of becoming a
+   full-width second row. */
+@media(max-width:560px){
+  #page-history .history-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+    flex-wrap:nowrap!important;
+  }
+
+  #page-history .history-heading > div{
+    min-width:0;
+  }
+
+  #page-history #historyRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+    flex:0 0 auto;
+  }
+}
+
+@media(max-width:760px){
+  #page-history .history-heading{
+    align-items:flex-start;
+  }
+
+  #page-history #historyRefreshButton{
+    width:auto!important;
+    align-self:flex-start;
+  }
+}
+
+@media(max-width:560px){
+  #page-history .history-heading{
+    align-items:end!important;
+  }
+
+  #page-history #historyRefreshButton{
+    align-self:end;
+  }
+}
+
+
+/* ---------- History date header parity with Signals ----------------------- */
+/* Date groups use the same contained card treatment on both ledgers. */
+#page-history .history-date-group{
+  border-bottom:0;
+  margin:0 0 8px;
+}
+
+#page-history .history-date-toggle{
+  width:calc(100% - 10px);
+  min-width:0;
+  margin:6px 5px 0;
+  padding:9px 10px;
+  min-height:46px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-soft);
+}
+
+#page-history .history-date-group.is-open > .history-date-toggle{
+  background:var(--accent-softer);
+  border-color:var(--line);
+  border-radius:var(--radius-sm);
+}
+
+#page-history .history-date-toggle > span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+#page-history .history-date-toggle b{
+  overflow-wrap:anywhere;
+}
+
+#page-history .history-date-toggle i{
+  border-radius:8px;
+}
+
+@media(max-width:560px){
+  #page-history .history-date-list{
+    padding:6px 8px 10px;
+  }
+
+  #page-history .history-date-toggle{
+    width:calc(100% - 6px);
+    margin:5px 3px 0;
+    padding:8px 9px;
+    min-height:46px;
+  }
+
+  #page-history .history-date-toggle i{
+    width:32px;
+    height:32px;
+  }
+
+  #page-history .history-date-rows{
+    padding:7px 3px 9px;
+  }
+}
+
+html[data-style="neo"] #page-history .history-date-toggle{
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+/* ---------- History scan density final ------------------------------------ */
+#page-history .history-scan-workspace .history-date-rows{
+  gap:5px;
+  padding:5px 3px 7px;
+}
+#page-history .history-scan-row{
+  gap:6px;
+  padding:6px 8px;
+}
+#page-history .history-scan-head{
+  gap:5px;
+}
+#page-history .history-scan-identity strong{
+  font-size:11px;
+  line-height:1.2;
+}
+#page-history .history-scan-identity small{
+  margin-top:1px;
+  font-size:9px;
+  line-height:1.2;
+}
+#page-history .history-scan-status{
+  padding:3px 7px;
+  font-size:8px!important;
+}
+#page-history .history-scan-metrics{
+  gap:3px;
+}
+#page-history .history-scan-metrics span{
+  padding:3px 2px;
+  font-size:8px;
+  line-height:1.1;
+}
+#page-history .history-scan-metrics b{
+  font-size:9.5px;
+}
+@media(max-width:560px){
+  #page-history .history-scan-row{
+    padding:6px 7px;
+  }
+  #page-history .history-scan-metrics{
+    gap:3px;
+  }
+  #page-history .history-scan-metrics span{
+    padding:3px 1px;
+    font-size:7.5px;
+  }
+  #page-history .history-scan-metrics b{
+    font-size:9px;
+  }
+}
+
+/* ---------- History / trade detail parity -------------------------------- */
+/* Match History's outer surface to the same contained-card contract as Signals.
+   overflow:hidden is intentional: the workspace radius must clip its header background. */
+#page-history .history-workspace{
+  overflow:hidden;
+}
+#page-history .history-workspace .workspace-heading{
+  border-top-left-radius:inherit;
+  border-top-right-radius:inherit;
+}
+
+/* Trade detail is the same information surface as an expanded Signal:
+   compact header, compact 2-column facts, no oversized modal geometry. */
+.trade-drawer{
+  box-sizing:border-box;
+  padding:18px 18px 20px;
+}
+.trade-drawer h2{
+  margin:5px 0 9px;
+  font-size:20px;
+}
+.trade-drawer .drawer-status{
+  margin-bottom:12px;
+}
+.trade-drawer .drawer-price-grid,
+.trade-drawer .drawer-details{
+  gap:7px;
+}
+.trade-drawer .drawer-price-grid>div,
+.trade-drawer .drawer-details>div{
+  padding:8px 9px;
+  border-radius:var(--radius-xs);
+}
+.trade-drawer .drawer-price-grid b,
+.trade-drawer .drawer-details b{
+  margin-top:4px;
+  font-size:12px;
+  line-height:1.25;
+}
+.trade-drawer section{
+  margin-top:16px;
+}
+.trade-drawer h3{
+  margin:0 0 8px;
+  font-size:12.5px;
+}
+@media(max-width:760px){
+  .trade-drawer{
+    height:auto;
+    max-height:88vh;
+    padding:16px 16px 18px;
+    border:var(--border-w) solid var(--line);
+    border-bottom:0;
+  }
+  .drawer-close{
+    top:10px;
+    right:10px;
+    width:36px;
+    height:36px;
+    font-size:18px;
+  }
+}
+@media(max-width:560px){
+  .trade-drawer h2{
+    font-size:19px;
+  }
+  .trade-drawer .drawer-price-grid>div,
+  .trade-drawer .drawer-details>div{
+    padding:8px;
+  }
+}
+
+
+/* ---------- Calendar parity contract -------------------------------------- */
+/* Calendar keeps its existing data/rendering contract, but uses the same
+   contained surfaces and responsive geometry already proven on Signals/History. */
+#page-calendar .calendar-agenda-workspace{
+  overflow:hidden;
+}
+
+#page-calendar .calendar-agenda-status{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  min-width:0;
+}
+
+#page-calendar .calendar-status{
+  min-width:0;
+}
+
+#page-calendar .calendar-status .inline-status{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  width:100%;
+  min-width:0;
+  padding:7px 10px;
+  white-space:normal;
+}
+
+#page-calendar .calendar-status .inline-status b{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+#page-calendar .calendar-status .inline-status small{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#page-calendar .calendar-source{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:6px 8px;
+}
+
+#page-calendar .calendar-summary-grid{
+  padding:0 0 0;
+  gap:var(--f-grid-gap, var(--grid-gap));
+}
+
+#page-calendar .calendar-summary-grid .metric-card{
+  min-width:0;
+}
+
+#page-calendar .calendar-agenda-bar{
+  min-height:42px;
+  padding:9px 14px;
+}
+
+#page-calendar .calendar-date-list{
+  padding:6px 12px 12px;
+}
+
+#page-calendar .calendar-date-group{
+  border-bottom:0;
+  margin:0 0 8px;
+  min-width:0;
+}
+
+#page-calendar .calendar-date-toggle{
+  width:calc(100% - 10px);
+  min-width:0;
+  margin:6px 5px 0;
+  min-height:46px;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  box-shadow:var(--shadow-soft);
+}
+
+#page-calendar .calendar-date-toggle > span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+#page-calendar .calendar-date-toggle b{
+  overflow-wrap:anywhere;
+}
+
+#page-calendar .calendar-date-group.is-open > .calendar-date-toggle{
+  background:var(--accent-softer);
+  border-color:var(--line);
+  border-radius:var(--radius-sm);
+}
+
+#page-calendar .calendar-date-events{
+  display:grid;
+  gap:8px;
+  padding:7px 3px 9px;
+}
+
+#page-calendar .calendar-item{
+  min-width:0;
+  border-radius:var(--radius-sm);
+  box-shadow:var(--shadow-soft);
+  padding:7px 9px;
+}
+
+#page-calendar .calendar-item .calendar-meta{
+  margin:0;
+}
+
+#page-calendar .calendar-item .calendar-title{
+  font-size:12px;
+  line-height:1.3;
+}
+
+#page-calendar .calendar-details{
+  gap:8px;
+  margin-top:7px;
+  padding-top:7px;
+}
+
+#page-calendar .calendar-details > span{
+  min-width:0;
+}
+
+@media(max-width:760px){
+  #page-calendar .calendar-agenda-status{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+}
+
+@media(max-width:560px){
+  #page-calendar .calendar-agenda-status{
+    grid-template-columns:1fr;
+    align-items:stretch;
+    gap:6px;
+    padding:9px 10px;
+  }
+
+  #page-calendar .calendar-source{
+    justify-self:end;
+  }
+
+  #page-calendar .calendar-status .inline-status{
+    padding:7px 9px;
+  }
+
+  #page-calendar .calendar-date-list{
+    padding:6px 8px 10px;
+  }
+
+  #page-calendar .calendar-date-toggle{
+    width:calc(100% - 6px);
+    margin:5px 3px 0;
+    min-height:46px;
+    padding:8px 9px;
+  }
+
+  #page-calendar .calendar-date-events{
+    gap:8px;
+    padding:7px 3px 9px;
+  }
+
+  #page-calendar .calendar-item{
+    padding:8px 8px;
+  }
+}
+
+/* Calendar date controls use the same Neo treatment as Signals/History. */
+html[data-style="neo"] #page-calendar .calendar-date-toggle{
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-date-toggle{
+  background:var(--accent-soft)!important;
+  border-color:var(--line-strong)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+
+/* ---------- Calendar mobile composition correction ------------------------ */
+/* Keep the calendar feed header compact on phones; the source link belongs to
+   the same row as the cached/online state rather than becoming a second band. */
+@media(max-width:560px){
+  #page-calendar .page-heading .secondary-button{
+    width:auto!important;
+    align-self:flex-start;
+  }
+
+  #page-calendar .calendar-agenda-status{
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+    padding:9px 10px;
+  }
+
+  #page-calendar .calendar-source{
+    justify-self:end;
+    min-height:32px;
+    padding:5px 6px;
+  }
+
+  #page-calendar .calendar-status .inline-status{
+    width:100%;
+    min-height:34px;
+    padding:6px 8px;
+  }
+
+  #page-calendar .calendar-status .inline-status small{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+}
+
+/* The first date is the primary calendar context, so it opens by default.
+   User-controlled subsequent toggles still use the existing JS state. */
+#page-calendar .calendar-date-events{
+  min-width:0;
+}
+
+
+/* ---------- Calendar parity: mobile metric and event geometry ------------ */
+@media(max-width:760px){
+  #page-calendar .calendar-summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    padding:8px 10px;
+  }
+  #page-calendar .calendar-summary-grid .metric-card{
+    min-height:42px;
+    padding:8px 10px;
+    border-radius:var(--radius-sm);
+  }
+}
+
+@media(max-width:560px){
+  #page-calendar .calendar-summary-grid{
+    gap:9px;
+    padding:8px 9px;
+  }
+  #page-calendar .calendar-agenda-bar{
+    padding:9px 12px;
+  }
+  #page-calendar .calendar-date-events{
+    gap:8px;
+    padding:7px 4px 10px;
+  }
+  #page-calendar .calendar-item{
+    min-width:0;
+    margin:0;
+  }
+  #page-calendar .calendar-details{
+    gap:7px;
+    margin-left:55px;
+    flex-wrap:wrap;
+  }
+}
+
+/* ---------- Calendar heading/action parity -------------------------------- */
+@media(max-width:560px){
+  #page-calendar .calendar-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+  }
+  #page-calendar .calendar-heading > div{min-width:0}
+  #page-calendar #calendarRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+  }
+}
