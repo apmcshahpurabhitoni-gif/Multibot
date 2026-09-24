@@ -2517,3 +2517,21 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   #page-tools .backtest-metrics>div{padding:7px 8px!important}
   #page-tools .backtest-trade-row{padding:7px 8px!important}
 }
+
+
+/* ---------- Home mobile composition repair -------------------------------- */
+@media(max-width:560px){
+  #page-overview .overview-scan .section-heading{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    align-items:start!important;
+    gap:8px!important;
+  }
+  #page-overview .overview-scan .section-heading>div{min-width:0!important}
+  #page-overview .overview-scan .section-heading h2{white-space:nowrap!important}
+  #page-overview .overview-scan #scanSummary{
+    width:100%!important;
+    max-width:100%!important;
+    text-align:left!important;
+  }
+}
