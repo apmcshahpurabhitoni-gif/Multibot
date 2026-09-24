@@ -1,0 +1,294 @@
+/* ==========================================================================
+   MULTIBOT FOUNDATION — layout/geometry contract
+   Phase 1 of the UI refactor.
+   Theme files must change appearance only; this file owns geometry.
+   No trading/runtime logic belongs here.
+   ========================================================================== */
+
+:root{
+  /* Foundation spacing scale */
+  --f-space-1:4px;
+  --f-space-2:8px;
+  --f-space-3:12px;
+  --f-space-4:16px;
+  --f-space-5:20px;
+  --f-space-6:24px;
+
+  /* Shared geometry */
+  --f-section-gap:16px;
+  --f-section-gap-compact:12px;
+  --f-grid-gap:12px;
+  --f-card-gap:10px;
+  --f-section-pad:16px;
+  --f-card-pad:12px;
+  --f-control-h:36px;
+  --f-control-h-mobile:40px;
+  --f-content-max:1500px;
+  --f-radius:12px;
+  --f-radius-sm:9px;
+  --f-border-w:1px;
+  --f-neo-depth:3px;
+
+  /* Fixed navigation clearance */
+  --f-mobile-nav-h:60px;
+  --f-mobile-nav-clearance:76px;
+}
+
+/* ---------- Geometry reset ------------------------------------------------ */
+html,body{min-width:0}
+body{overflow-x:hidden}
+img,svg,canvas,video{max-width:100%}
+button,input,select,textarea{max-width:100%}
+button{min-width:0}
+
+.app{
+  width:min(1280px,100%);
+  min-width:0;
+  margin-inline:auto;
+}
+
+main{
+  width:100%;
+  min-width:0;
+  max-width:var(--f-content-max);
+}
+
+.page{
+  width:100%;
+  min-width:0;
+  min-height:0;
+}
+
+.page > *{
+  min-width:0;
+}
+
+.page > * + *{
+  margin-top:var(--f-section-gap);
+}
+
+/* ---------- Shared section contract -------------------------------------- */
+.section-block,
+.signals-workspace,
+.history-workspace,
+.calendar-workspace,
+.tool-card{
+  min-width:0;
+  box-sizing:border-box;
+}
+
+.section-heading,
+.workspace-heading,
+.page-heading{
+  min-width:0;
+}
+
+.section-heading > *,
+.workspace-heading > *,
+.page-heading > *{
+  min-width:0;
+}
+
+.section-heading{
+  min-height:32px;
+  margin-bottom:var(--f-space-2);
+}
+
+.section-heading > :first-child,
+.workspace-heading > :first-child,
+.page-heading > :first-child{
+  min-width:0;
+}
+
+/* ---------- Shared grid contract ----------------------------------------- */
+.metric-grid,
+.history-summary-grid,
+.calendar-summary-grid,
+.detail-grid,
+.backtest-summary,
+.backtest-metrics,
+.account-grid,
+.diagnostic-grid,
+.schedule-inline,
+.universe-grid{
+  min-width:0;
+}
+
+.metric-grid > *,
+.history-summary-grid > *,
+.calendar-summary-grid > *,
+.detail-grid > *,
+.backtest-summary > *,
+.backtest-metrics > *,
+.account-grid > *,
+.diagnostic-grid > *,
+.schedule-inline > *,
+.universe-grid > *{
+  min-width:0;
+  max-width:100%;
+}
+
+/* Prevent long trading values from changing grid geometry. */
+.metric-card strong,
+.detail-grid b,
+.live-trade-row b,
+.trade-row-price b,
+.calendar-time strong,
+.backtest-summary b,
+.backtest-metrics b,
+.account-grid b,
+.diagnostic-grid b{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* ---------- Shared control contract -------------------------------------- */
+.secondary-button,
+.primary-button,
+.icon-button,
+.expand-button,
+.filter-button,
+.impact-filter,
+.trade-tab,
+.signal-tab,
+.history-tab,
+.history-filter,
+.signal-filter,
+.chip-option,
+.settings-toggle,
+.appearance-option{
+  box-sizing:border-box;
+  flex:0 0 auto;
+}
+
+.secondary-button,
+.primary-button{
+  min-height:var(--f-control-h);
+}
+
+.icon-button{
+  min-width:var(--f-control-h);
+  min-height:var(--f-control-h);
+}
+
+/* Action rows must wrap instead of forcing cards wider. */
+.section-heading,
+.workspace-heading,
+.page-heading,
+.calendar-agenda-status,
+.backtest-controls{
+  flex-wrap:wrap;
+}
+
+/* ---------- Shared content/list contract --------------------------------- */
+.stack,
+.signals-date-list,
+.history-date-list,
+.history-live-list,
+.calendar-date-list,
+.rule-list,
+.backtest-trades,
+.backtest-signal-list{
+  min-width:0;
+}
+
+.signal-card,
+.trade-card,
+.calendar-item,
+.news-item,
+.live-trade-row,
+.scan-history-row,
+.backtest-trade-row,
+.backtest-signal-list > div{
+  min-width:0;
+  max-width:100%;
+}
+
+/* ---------- Neo geometry safety ------------------------------------------ */
+/* Neo's visual depth must never create accidental layout collisions. */
+html[data-style="neo"] .section-block,
+html[data-style="neo"] .tool-card,
+html[data-style="neo"] .signals-workspace,
+html[data-style="neo"] .history-workspace,
+html[data-style="neo"] .calendar-workspace,
+html[data-style="neo"] .metric-card,
+html[data-style="neo"] .chart-card,
+html[data-style="neo"] .signal-card,
+html[data-style="neo"] .trade-card,
+html[data-style="neo"] .calendar-item{
+  position:relative;
+  isolation:isolate;
+}
+
+/* Reserve the shadow footprint in flow without using negative margins. */
+html[data-style="neo"] .section-block,
+html[data-style="neo"] .tool-card,
+html[data-style="neo"] .signals-workspace,
+html[data-style="neo"] .history-workspace,
+html[data-style="neo"] .calendar-workspace{
+  margin-right:var(--f-neo-depth);
+  margin-bottom:var(--f-neo-depth);
+}
+
+/* ---------- Mobile navigation contract ----------------------------------- */
+@media(max-width:900px){
+  body{
+    padding-bottom:var(--f-mobile-nav-clearance);
+  }
+
+  main{
+    padding-bottom:var(--f-mobile-nav-clearance);
+  }
+
+  .mobile-nav{
+    min-height:var(--f-mobile-nav-h);
+    box-sizing:border-box;
+  }
+}
+
+@media(max-width:760px){
+  :root{
+    --f-section-gap:14px;
+    --f-grid-gap:10px;
+    --f-section-pad:14px;
+    --f-card-pad:11px;
+  }
+
+  .page > * + *{
+    margin-top:var(--f-section-gap);
+  }
+}
+
+@media(max-width:560px){
+  .page > * + *{
+    margin-top:12px;
+  }
+
+  .section-heading,
+  .workspace-heading{
+    gap:8px;
+  }
+
+  .metric-card strong{
+    overflow-wrap:anywhere;
+  }
+}
+
+/* ---------- Compact foundation ------------------------------------------- */
+html[data-compact="true"]{
+  --f-section-gap:12px;
+  --f-grid-gap:8px;
+  --f-section-pad:12px;
+  --f-card-pad:10px;
+}
+
+html[data-compact="true"] .page > * + *{
+  margin-top:var(--f-section-gap);
+}
+
+/* ---------- Reduced motion foundation ------------------------------------ */
+html[data-reduce-motion="true"] .page.active{
+  animation:none!important;
+}
