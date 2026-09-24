@@ -1253,3 +1253,32 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   #page-tools .schedule-inline{grid-template-columns:repeat(3,minmax(0,1fr))}
   #page-tools .tool-collapse>.section-heading{min-height:40px}
 }
+
+
+/* ---------- Tools: final mobile polish ------------------------------------ */
+#page-tools .tool-backtest .backtest-status:empty{display:none}
+#page-tools .tool-backtest .backtest-status{
+  min-height:0!important;
+  margin-bottom:0!important;
+}
+#page-tools .tools-appearance .settings-row{align-items:center}
+#page-tools .tools-appearance .section-note{max-width:52ch}
+#page-tools .account-grid article{min-height:0}
+#page-tools .rule-list>div{min-height:0}
+#page-tools .diagnostic-grid article{min-height:0}
+#page-tools .schedule-inline span{min-height:0}
+@media(max-width:560px){
+  #page-tools .tools-layout{gap:7px}
+  #page-tools .tool-card{padding:9px}
+  #page-tools .tools-appearance{padding:9px}
+  #page-tools .tools-appearance .settings-row{margin-top:6px}
+  #page-tools .tools-appearance .settings-label{line-height:1.2}
+  #page-tools .account-grid article{padding:8px 9px}
+  #page-tools .account-grid span{margin-top:2px}
+  #page-tools .account-grid small{margin-top:2px}
+  #page-tools .rule-list>div{padding:8px 10px}
+  #page-tools .rule-list span{line-height:1.3}
+  #page-tools .diagnostic-grid article{padding:8px}
+  #page-tools .schedule-inline span{padding:7px 4px}
+  #page-tools .schedule-inline small{margin-top:2px}
+}
