@@ -1793,3 +1793,54 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
     font-size:8px;
   }
 }
+
+
+/* ---------- History heading parity ---------------------------------------- */
+/* History uses the same compact page-heading contract as Signals.
+   The refresh action must stay beside the title instead of becoming a
+   full-width second row. */
+@media(max-width:560px){
+  #page-history .history-heading{
+    width:100%;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end!important;
+    gap:10px;
+    flex-wrap:nowrap!important;
+  }
+
+  #page-history .history-heading > div{
+    min-width:0;
+  }
+
+  #page-history #historyRefreshButton{
+    width:auto!important;
+    min-width:92px;
+    min-height:40px;
+    margin:0;
+    align-self:end;
+    justify-self:end;
+    flex:0 0 auto;
+  }
+}
+
+@media(max-width:760px){
+  #page-history .history-heading{
+    align-items:flex-start;
+  }
+
+  #page-history #historyRefreshButton{
+    width:auto!important;
+    align-self:flex-start;
+  }
+}
+
+@media(max-width:560px){
+  #page-history .history-heading{
+    align-items:end!important;
+  }
+
+  #page-history #historyRefreshButton{
+    align-self:end;
+  }
+}
