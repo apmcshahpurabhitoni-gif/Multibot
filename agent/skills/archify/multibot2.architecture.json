@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MULTIBOT2 System Architecture",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "signal-path",
+        "label": "Signal path",
+        "focus": ["yahoo", "providers", "engine", "service", "gate", "trading", "telegram", "db"],
+        "note": "How a scan becomes a validated paper trade and Telegram alert."
+      },
+      {
+        "id": "plug-in-path",
+        "label": "Adding a strategy",
+        "focus": ["plugins", "registry", "engine", "service"],
+        "note": "Plug-ins drop into strategies/ and are discovered automatically."
+      },
+      {
+        "id": "ui-path",
+        "label": "Dashboard path",
+        "focus": ["service", "api", "ui", "css", "news"],
+        "note": "How canonical runtime data reaches the five dashboard destinations."
+      }
+    ],
+    "legend": { "mode": "auto" },
+    "viewBox": [1380, 760]
+  },
+  "components": [
+    { "id": "telegram", "type": "external", "label": "Telegram", "sublabel": "telegram.py", "pos": [990, 140], "size": [120, 60] },
+    { "id": "yahoo", "type": "external", "label": "Yahoo Finance", "sublabel": "market data", "pos": [40, 300], "size": [120, 60] },
+    { "id": "providers", "type": "backend", "label": "Yahoo Provider", "sublabel": "yahoo_provider.py", "pos": [230, 300], "size": [120, 60] },
+    { "id": "engine", "type": "backend", "label": "Strategy Engine", "sublabel": "strategy_engine.py", "pos": [420, 300], "size": [120, 60] },
+    { "id": "service", "type": "backend", "label": "Strategy Service", "sublabel": "strategy_service.py", "pos": [610, 300], "size": [120, 60] },
+    { "id": "gate", "type": "security", "label": "Signal Gate", "sublabel": "signal_gate.py", "pos": [800, 300], "size": [120, 60] },
+    { "id": "api", "type": "backend", "label": "Dashboard API", "sublabel": "dashboard.py", "pos": [1180, 300], "size": [120, 60] },
+    { "id": "registry", "type": "backend", "label": "Registry", "sublabel": "registry.py", "pos": [230, 460], "size": [120, 60] },
+    { "id": "plugins", "type": "backend", "label": "Strategy Plug-ins", "sublabel": "strategies/", "pos": [420, 460], "size": [120, 60] },
+    { "id": "news", "type": "backend", "label": "News Gate", "sublabel": "news.py · cache", "pos": [610, 460], "size": [120, 60] },
+    { "id": "trading", "type": "backend", "label": "Trading Core", "sublabel": "trading.py", "pos": [800, 460], "size": [120, 60] },
+    { "id": "db", "type": "database", "label": "Persistence", "sublabel": "Supabase + SQLite", "pos": [990, 460], "size": [120, 60] },
+    { "id": "css", "type": "frontend", "label": "UI System", "sublabel": "styles.css", "pos": [610, 620], "size": [120, 60] },
+    { "id": "ui", "type": "frontend", "label": "Dashboard UI", "sublabel": "dashboard.html", "pos": [800, 620], "size": [120, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "MULTIBOT2 runtime core", "wraps": ["providers", "engine", "plugins", "registry", "service", "news", "gate", "trading", "db"], "pad": 22 },
+    { "kind": "security-group", "label": "locked core safety rules", "wraps": ["gate", "trading"], "pad": 14 }
+  ],
+  "connections": [
+    { "from": "yahoo", "to": "providers", "label": "candles" },
+    { "from": "registry", "to": "plugins", "label": "discovers" },
+    { "from": "plugins", "to": "engine", "label": "signal logic" },
+    { "from": "providers", "to": "engine", "label": "feeds" },
+    { "from": "engine", "to": "service", "label": "signal" },
+    { "from": "news", "to": "service", "label": "pause" },
+    { "from": "service", "to": "gate", "label": "checks", "labelDy": 30 },
+    { "from": "gate", "to": "trading", "label": "approved", "labelDy": 30 },
+    { "from": "trading", "to": "db", "label": "trades" },
+    { "from": "service", "to": "telegram", "label": "alerts", "fromSide": "top", "toSide": "bottom", "via": [[670, 225], [1050, 225]] },
+    { "from": "service", "to": "api", "label": "snapshot", "fromSide": "right", "toSide": "top", "via": [[760, 330], [760, 245], [1240, 245]] },
+    { "from": "api", "to": "ui", "label": "JSON", "fromSide": "bottom", "toSide": "top", "via": [[1240, 570], [860, 570]] },
+    { "from": "css", "to": "ui", "label": "themes" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Locked safety rules", "items": ["Freshness 1h · duplicate max 2 · ₹2,000 risk per trade", "Account limits cannot be bypassed", "Paper mode only — no live broker orders"] },
+    { "dot": "cyan", "title": "Plug-in contract", "items": ["Drop a folder in strategies/ with create_strategy()", "Registry auto-discovers it at startup", "Core lifecycle stays untouched"] },
+    { "dot": "emerald", "title": "Outputs", "items": ["Supabase authoritative, SQLite fallback", "Telegram alerts come only from canonical signals", "Dashboard snapshot serves the five destinations"] }
+  ]
+}
