@@ -609,6 +609,78 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .whats-new{display:grid;gap:8px;margin:0;padding:0 0 0 18px}
 .whats-new li{padding-left:4px;color:var(--text-soft);font-size:11.5px;line-height:1.5}
 
+
+/* ---------- 12a. Backtest result density contract ------------------------ */
+.backtest-results[hidden]{display:none!important}
+.backtest-results{gap:9px;padding:10px}
+.backtest-section{padding:12px}
+.backtest-section-heading{margin-bottom:9px;padding-bottom:9px}
+.backtest-section-heading h3{font-size:15px}
+.backtest-summary{gap:7px}
+.backtest-summary>div{padding:9px 10px}
+.backtest-summary b{margin-top:3px;font-size:12px}
+.backtest-metrics{gap:7px}
+.backtest-metrics>div{padding:9px 10px}
+.backtest-metrics b{margin-top:4px;font-size:clamp(15px,2.2vw,20px)}
+.backtest-rating{padding:5px 9px;font-size:10px}
+.backtest-trade-row{gap:9px;padding:10px 11px}
+.backtest-trade-row b{font-size:11.5px}
+.backtest-trade-row small{margin-top:3px;font-size:10.5px}
+.backtest-trade-row>strong{font-size:11.5px}
+.backtest-signal-list{gap:6px}
+.backtest-signal-list>div{gap:8px;padding:8px 10px}
+.backtest-signal-list b,.backtest-signal-list small{font-size:10.5px}
+.backtest-overview-section,.backtest-curve-section,.backtest-performance-section,.backtest-trades-section,.backtest-signals-section{box-shadow:none}
+@media(max-width:760px){
+  .backtest-controls{gap:7px}
+  .backtest-controls label{gap:4px}
+  .backtest-controls select{min-height:40px;padding:6px 9px}
+  .tool-backtest .primary-button{min-height:42px}
+  .backtest-status{margin-top:9px;padding:8px 10px;font-size:11px;line-height:1.35}
+  .backtest-results{margin-top:9px;padding:8px;gap:8px}
+  .backtest-section{padding:10px}
+  .backtest-summary{gap:6px}
+  .backtest-summary>div{padding:8px 9px}
+  .backtest-metrics{gap:6px}
+  .backtest-metrics>div{padding:8px 9px}
+  .backtest-metrics b{font-size:17px}
+  .backtest-section-heading{margin-bottom:8px;padding-bottom:8px}
+}
+@media(max-width:560px){
+  .backtest-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .backtest-summary>div{padding:8px}
+  .backtest-section{padding:9px}
+  .backtest-section-heading h3{font-size:14.5px}
+  .backtest-trade-row{grid-template-columns:38px minmax(0,1fr) auto;gap:7px;padding:9px 10px}
+  .backtest-trade-side{font-size:9.5px}
+  .backtest-trade-row>strong{font-size:11px}
+  .backtest-signal-list>div{grid-template-columns:auto auto minmax(0,1fr);gap:7px;padding:7px 9px}
+}
+/* ---------- 12a. Tools compact settings contract ------------------------- */
+@media(max-width:760px){
+  .tools-appearance .section-heading{margin-bottom:7px}
+  .settings-row{gap:7px}
+  .settings-row .settings-label{min-width:78px;font-size:9.5px}
+  .settings-inline{gap:5px}
+  .chip-option{min-height:29px;padding:4px 9px;font-size:10px}
+  .account-grid article{padding:10px}
+  .account-grid span{margin-top:3px}
+  .account-grid small{margin-top:3px}
+  .rule-list>div{padding:10px 12px;gap:3px}
+  .rule-list span{line-height:1.4}
+  .universe-grid{gap:6px}
+  .universe-grid span{padding:7px 5px}
+  .diagnostic-grid article{padding:9px}
+  .schedule-inline{gap:6px}
+  .schedule-inline span{padding:9px 6px}
+}
+/* ---------- 12a. Tool section state contract ------------------------------ */
+.tool-collapse>.section-heading{background:transparent}
+.tool-collapse>.section-heading:hover{background:var(--surface-2)}
+.tool-collapse.is-open>.section-heading{background:transparent}
+.tool-collapse.is-open>.section-heading h2{color:var(--text)}
+.tool-collapse.is-open>.section-heading .collapse-chev{background:var(--accent-soft)}
+
 /* ---------- 12b. Collapsible tool sections + release modal --------------- */
 .tool-collapse>.section-heading{cursor:pointer;user-select:none;margin:0;min-height:40px}
 .tool-collapse>.section-heading:hover h2{color:var(--accent-strong)}
