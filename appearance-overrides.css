@@ -1403,3 +1403,46 @@ html.neo-mode .empty-state{border-width:2px!important}
     font-size:10.5px!important;
   }
 }
+
+
+/* ==========================================================================
+   TOOLS — APPEARANCE THEME READABILITY FREEZE
+   Structure/geometry is frozen. This pass only guarantees readable control
+   foregrounds across Modern/Neo + Light/Dark + accent combinations.
+   ========================================================================== */
+#page-tools .tools-appearance .chip-option,
+#page-tools .tools-appearance .settings-toggle{
+  color:var(--text)!important;
+  background:var(--surface-2)!important;
+  border-color:var(--line)!important;
+  -webkit-text-fill-color:var(--text)!important;
+}
+#page-tools .tools-appearance .chip-option.active,
+#page-tools .tools-appearance .settings-toggle.active{
+  color:var(--on-accent)!important;
+  background:var(--accent-fill)!important;
+  border-color:var(--accent-fill)!important;
+  -webkit-text-fill-color:var(--on-accent)!important;
+}
+#page-tools .tools-appearance .chip-option.active .appearance-swatch,
+#page-tools .tools-appearance .settings-toggle.active .appearance-swatch{
+  border-color:var(--on-accent)!important;
+}
+html[data-style="neo"] #page-tools .tools-appearance .chip-option,
+html.neo-mode #page-tools .tools-appearance .chip-option,
+html[data-style="neo"] #page-tools .tools-appearance .settings-toggle,
+html.neo-mode #page-tools .tools-appearance .settings-toggle{
+  color:var(--text)!important;
+  background:var(--surface-2)!important;
+  border-color:var(--line-strong)!important;
+  -webkit-text-fill-color:var(--text)!important;
+}
+html[data-style="neo"] #page-tools .tools-appearance .chip-option.active,
+html.neo-mode #page-tools .tools-appearance .chip-option.active,
+html[data-style="neo"] #page-tools .tools-appearance .settings-toggle.active,
+html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
+  color:var(--on-accent)!important;
+  background:var(--accent-fill)!important;
+  border-color:var(--line-strong)!important;
+  -webkit-text-fill-color:var(--on-accent)!important;
+}
