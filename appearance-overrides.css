@@ -1405,3 +1405,169 @@ html.neo-mode .empty-state{border-width:2px!important}
     padding:0!important;
   }
 }
+
+/* ==========================================================================
+   TOOLS — PONYTAIL MOBILE SEGMENT CONTRACT
+   Scoped only to Tools. Establish one geometry for header, body, controls
+   and market cells; do not alter shared page foundations.
+   ========================================================================== */
+
+/* 1) Every tool header uses the same two-column alignment. */
+#page-tools .tool-collapse>.section-heading{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:12px!important;
+  box-sizing:border-box!important;
+  min-width:0!important;
+}
+#page-tools .tool-collapse>.section-heading>div:first-child{
+  min-width:0!important;
+  width:auto!important;
+  flex:none!important;
+}
+#page-tools .tool-collapse>.section-heading .collapse-chev{
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  margin:0!important;
+  align-self:center!important;
+  display:grid!important;
+  place-items:center!important;
+  flex:none!important;
+  box-sizing:border-box!important;
+}
+
+/* 2) Header/body share the same horizontal content edge. */
+#page-tools .tool-collapse>.section-heading{
+  padding-inline:14px!important;
+}
+#page-tools .tool-collapse>.tool-body{
+  padding:14px!important;
+  box-sizing:border-box!important;
+}
+
+/* 3) Appearance settings: fixed label column + left-aligned control rail.
+   Wrapped accent controls start on the same x-position instead of drifting
+   to the right on the second line. */
+#page-tools .tools-appearance .settings-row{
+  display:grid!important;
+  grid-template-columns:76px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-width:0!important;
+}
+#page-tools .tools-appearance .settings-label{
+  min-width:0!important;
+}
+#page-tools .tools-appearance .settings-inline{
+  min-width:0!important;
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+}
+
+/* 4) Keep every control at one stable height. */
+#page-tools .tools-appearance .chip-option,
+#page-tools .tools-appearance .settings-toggle{
+  min-height:40px!important;
+  height:40px!important;
+  box-sizing:border-box!important;
+}
+
+/* 5) Markets: no broken horizontal rules caused by grid gaps.
+   Two-column mobile cells have continuous row borders and a single
+   center divider; an odd final asset occupies one clean cell. */
+#page-tools .asset-category-items{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0!important;
+  width:100%!important;
+}
+#page-tools .asset-category-items>span{
+  min-width:0!important;
+  min-height:48px!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  padding:8px 14px!important;
+  border-top:1px solid var(--line)!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#page-tools .asset-category-items>span:nth-child(odd){
+  border-right:1px solid var(--line)!important;
+}
+#page-tools .asset-category-items>span:nth-child(1),
+#page-tools .asset-category-items>span:nth-child(2){
+  border-top:0!important;
+}
+#page-tools .asset-category-label{
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:7px 0!important;
+}
+
+/* 6) Backtest fields follow the same edge and vertical rhythm. */
+#page-tools .tool-backtest .section-note{
+  margin:0 0 10px!important;
+  line-height:1.4!important;
+}
+#page-tools .tool-backtest .backtest-controls{
+  gap:10px!important;
+}
+#page-tools .tool-backtest .backtest-controls label{
+  min-width:0!important;
+  line-height:1.2!important;
+}
+#page-tools .tool-backtest .backtest-controls select,
+#page-tools .tool-backtest .backtest-controls .primary-button{
+  box-sizing:border-box!important;
+  min-height:40px!important;
+  height:40px!important;
+}
+#page-tools .tool-backtest .backtest-status{
+  box-sizing:border-box!important;
+  margin-top:10px!important;
+  width:100%!important;
+}
+
+@media(max-width:560px){
+  #page-tools .tool-collapse>.section-heading{
+    gap:10px!important;
+  }
+  #page-tools .tool-collapse>.section-heading .collapse-chev{
+    width:40px!important;
+    height:40px!important;
+    min-width:40px!important;
+  }
+  #page-tools .tool-collapse>.tool-body{
+    padding:14px!important;
+  }
+  #page-tools .tools-appearance .settings-row{
+    grid-template-columns:70px minmax(0,1fr)!important;
+    gap:8px!important;
+    margin-top:6px!important;
+  }
+  #page-tools .tools-appearance .settings-inline{
+    gap:7px!important;
+  }
+  #page-tools .tools-appearance .chip-option,
+  #page-tools .tools-appearance .settings-toggle{
+    min-height:40px!important;
+    height:40px!important;
+    padding-inline:10px!important;
+  }
+  #page-tools .asset-category-items>span{
+    min-height:48px!important;
+    padding-inline:14px!important;
+  }
+}
