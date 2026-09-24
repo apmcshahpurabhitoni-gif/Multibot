@@ -314,9 +314,25 @@ html[data-reduce-motion="true"] .page.active{
   text-overflow:ellipsis;
   font-variant-numeric:tabular-nums;
 }
-#page-overview .metric-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
-#page-overview .metric-card span{max-width:none;min-width:0}
-#page-overview .metric-card strong{text-align:right}
+#page-overview .metric-card{
+  display:grid;
+  grid-template-columns:minmax(0,42%) minmax(0,58%);
+  align-items:center;
+  column-gap:8px;
+}
+#page-overview .metric-card span{
+  max-width:100%;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+#page-overview .metric-card strong{
+  min-width:0;
+  max-width:100%;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
 #page-overview .overview-equity .chart-card,
 #page-overview .overview-activity .chart-card{
@@ -373,7 +389,7 @@ html[data-reduce-motion="true"] .page.active{
   }
 
   #page-overview .metric-card strong{
-    font-size:clamp(18px,6vw,28px);
+    font-size:clamp(19px,5.4vw,24px);
   }
 
   #page-overview .equity-card .chart-area{
