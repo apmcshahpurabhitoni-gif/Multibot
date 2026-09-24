@@ -3197,48 +3197,22 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   }
 }
 
-
-/* ---------- History / drawer final parity ---------------------------------
-   Ponytail pass: preserve structure, normalize only the remaining surfaces
-   that visibly drift from the frozen Signals contract. */
+/* ---------- History: final Ponytail mobile contract -----------------------
+   Keep the existing History structure. Only restore the compact row geometry
+   that matches the already-approved Signals treatment. */
 @media(max-width:560px){
-  /* Scan History: four metrics become a deliberate 2x2 information grid
-     instead of four compressed pills competing for one row. */
-  #page-history .history-scan-metrics{
-    display:grid!important;
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:4px!important;
-    min-width:0!important;
-  }
-  #page-history .history-scan-metrics span{
-    min-width:0!important;
-    min-height:28px!important;
-    padding:4px 6px!important;
-    display:flex!important;
-    align-items:baseline!important;
-    justify-content:center!important;
-    gap:4px!important;
-    border:1px solid var(--line)!important;
-    border-radius:var(--radius-xs)!important;
-    background:var(--surface-2)!important;
-    font-size:8.5px!important;
-    line-height:1.15!important;
-    white-space:nowrap!important;
-  }
-  #page-history .history-scan-metrics b{
-    font-size:10.5px!important;
-    line-height:1!important;
-  }
-
-  /* Trade rows: keep the identity rail and action rail identical in density
-     to the frozen Signals cards. */
+  /* Completed trades: identity + status + View stay on one row. */
   #page-history .history-date-rows .trade-row-main{
-    min-width:0!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-columns:minmax(0,1fr) auto auto!important;
     align-items:center!important;
+    min-width:0!important;
+    min-height:56px!important;
+    padding:7px 9px!important;
+    gap:8px!important;
   }
   #page-history .history-date-rows .trade-row-identity{
     min-width:0!important;
+    gap:9px!important;
   }
   #page-history .history-date-rows .trade-row-identity strong,
   #page-history .history-date-rows .trade-row-identity small{
@@ -3247,52 +3221,81 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     text-overflow:ellipsis!important;
     white-space:nowrap!important;
   }
-
-  /* Drawer information cells use the same label/value scale as expanded
-     Signals, without changing the drawer's structure or behavior. */
-  .trade-drawer{
-    padding:18px 16px!important;
-  }
-  .trade-drawer h2{
-    margin:5px 0 9px!important;
-    font-size:20px!important;
+  #page-history .history-date-rows .trade-row-identity strong{
+    font-size:13.5px!important;
     line-height:1.2!important;
   }
-  .drawer-status{
-    gap:7px!important;
-    margin-bottom:12px!important;
+  #page-history .history-date-rows .trade-row-identity small{
+    font-size:10.5px!important;
+    line-height:1.2!important;
   }
-  .drawer-price-grid,
-  .drawer-details{
-    gap:6px!important;
+  #page-history .history-date-rows .trade-detail-button{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:auto!important;
+    min-width:58px!important;
+    min-height:34px!important;
+    height:34px!important;
+    padding:5px 10px!important;
+    font-size:10.5px!important;
+    border-radius:8px!important;
   }
-  .drawer-price-grid>div,
-  .drawer-details>div{
+
+  /* Scan history: one compact information block, not a 2x2 metric grid. */
+  #page-history .history-scan-row{
+    display:grid!important;
+    grid-template-columns:minmax(145px,1.7fr) auto repeat(4,minmax(0,1fr))!important;
+    align-items:center!important;
+    gap:5px!important;
     min-width:0!important;
     padding:8px 9px!important;
-    border-radius:var(--radius-xs)!important;
   }
-  .drawer-price-grid span,
-  .drawer-details span{
+  #page-history .history-scan-head{
+    display:contents!important;
+  }
+  #page-history .history-scan-identity{
+    min-width:0!important;
+    grid-column:auto!important;
+  }
+  #page-history .history-scan-identity strong{
     display:block!important;
+    min-width:0!important;
+    font-size:11.5px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  #page-history .history-scan-identity small{
+    display:block!important;
+    margin-top:2px!important;
     font-size:9.5px!important;
     line-height:1.2!important;
-    color:var(--muted)!important;
     white-space:nowrap!important;
   }
-  .drawer-price-grid b,
-  .drawer-details b{
+  #page-history .history-scan-status{
     min-width:0!important;
-    margin-top:4px!important;
-    font-size:11.5px!important;
-    line-height:1.25!important;
-    overflow-wrap:anywhere!important;
+    padding:3px 6px!important;
+    font-size:8px!important;
   }
-  .trade-drawer section{
-    margin-top:16px!important;
+  #page-history .history-scan-metrics{
+    display:contents!important;
   }
-  .trade-drawer h3{
-    margin-bottom:8px!important;
-    font-size:12.5px!important;
+  #page-history .history-scan-metrics span{
+    min-width:0!important;
+    min-height:28px!important;
+    padding:4px 3px!important;
+    border:1px solid var(--line)!important;
+    border-radius:7px!important;
+    background:var(--surface-2)!important;
+    font-size:8px!important;
+    line-height:1.1!important;
+    text-align:center!important;
+    white-space:nowrap!important;
+  }
+  #page-history .history-scan-metrics b{
+    font-size:10px!important;
+    line-height:1!important;
   }
 }
