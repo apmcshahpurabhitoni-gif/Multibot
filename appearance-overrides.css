@@ -1741,3 +1741,331 @@ html.neo-mode .empty-state{border-width:2px!important}
     padding-inline:12px!important;
   }
 }
+
+/* ==========================================================================
+   TOOLS — COMPACT PONYTAIL v3
+   Final density/alignment pass for the mobile Tools page.
+   ========================================================================== */
+
+/* One compact control language. */
+#page-tools .chip-option,
+#page-tools .settings-toggle,
+#page-tools .tool-tag{
+  box-sizing:border-box!important;
+  min-height:30px!important;
+  height:30px!important;
+  border-radius:9px!important;
+  line-height:1!important;
+}
+#page-tools .chip-option{
+  padding:4px 9px!important;
+  font-size:10px!important;
+}
+#page-tools .tool-tag{
+  padding:4px 9px!important;
+  font-size:10px!important;
+}
+#page-tools .collapse-chev{
+  width:32px!important;
+  height:32px!important;
+  min-width:32px!important;
+  min-height:32px!important;
+  border-radius:8px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+}
+
+/* Keep every Tool header on one baseline. */
+#page-tools .tool-collapse>.section-heading{
+  min-height:42px!important;
+  height:42px!important;
+  padding:6px 12px!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto auto!important;
+  align-items:center!important;
+  gap:7px!important;
+}
+#page-tools .tool-collapse>.section-heading h2{
+  line-height:1.15!important;
+}
+#page-tools .tool-collapse>.section-heading .eyebrow{
+  line-height:1.05!important;
+}
+#page-tools .tool-collapse>.section-heading>div:first-child{
+  min-width:0!important;
+  display:grid!important;
+  align-content:center!important;
+  gap:2px!important;
+}
+
+/* Compact Appearance: labels and controls share one predictable baseline. */
+#page-tools .tools-appearance>.section-heading{
+  min-height:70px!important;
+  height:70px!important;
+  padding:9px 12px!important;
+}
+#page-tools .tools-appearance>.section-heading h2{
+  font-size:14px!important;
+}
+#page-tools .tools-appearance .section-note{
+  margin-top:3px!important;
+  font-size:10px!important;
+  line-height:1.25!important;
+}
+#page-tools .tools-appearance .settings-row{
+  min-height:38px!important;
+  padding:4px 12px!important;
+  grid-template-columns:68px minmax(0,1fr)!important;
+  gap:7px!important;
+  box-sizing:border-box!important;
+}
+#page-tools .tools-appearance .settings-label{
+  line-height:1!important;
+}
+#page-tools .tools-appearance .settings-inline{
+  gap:5px!important;
+  align-items:center!important;
+}
+
+/* Backtest input rhythm. */
+#page-tools .tool-backtest>.tool-body{
+  padding:9px 12px!important;
+}
+#page-tools .tool-backtest .section-note{
+  margin:0 0 6px!important;
+  font-size:10px!important;
+  line-height:1.3!important;
+}
+#page-tools .tool-backtest .backtest-controls{
+  gap:6px!important;
+}
+#page-tools .tool-backtest .backtest-controls label{
+  gap:3px!important;
+  font-size:9.5px!important;
+  line-height:1.1!important;
+}
+#page-tools .tool-backtest .backtest-controls select{
+  min-height:34px!important;
+  height:34px!important;
+  padding:5px 8px!important;
+  border-radius:9px!important;
+  font-size:10.5px!important;
+}
+#page-tools .tool-backtest .primary-button{
+  min-height:36px!important;
+  height:36px!important;
+  border-radius:9px!important;
+}
+
+/* Backtest results: halve the visual weight of the metric boxes. */
+#page-tools .backtest-results{
+  margin-top:6px!important;
+  gap:6px!important;
+}
+#page-tools .backtest-section{
+  margin-bottom:7px!important;
+  padding:8px!important;
+  border-radius:9px!important;
+}
+#page-tools .backtest-section-heading{
+  margin-bottom:5px!important;
+  padding-bottom:5px!important;
+}
+#page-tools .backtest-summary,
+#page-tools .backtest-metrics{
+  gap:5px!important;
+}
+#page-tools .backtest-summary>div,
+#page-tools .backtest-metrics>div{
+  min-height:40px!important;
+  padding:6px 8px!important;
+  border-radius:8px!important;
+}
+#page-tools .backtest-summary span,
+#page-tools .backtest-metrics span{
+  font-size:8.5px!important;
+  line-height:1.1!important;
+}
+#page-tools .backtest-summary b,
+#page-tools .backtest-metrics b{
+  margin-top:3px!important;
+  font-size:14px!important;
+  line-height:1.05!important;
+}
+#page-tools .backtest-curve-section .chart-area,
+#page-tools .backtest-curve-section .chart-area svg{
+  min-height:108px!important;
+  height:108px!important;
+}
+#page-tools .backtest-curve-section .chart-head{
+  margin-bottom:3px!important;
+}
+#page-tools .backtest-curve-section .chart-head strong{
+  font-size:12px!important;
+}
+#page-tools .backtest-curve-section .chart-head small{
+  font-size:9px!important;
+}
+
+/* Completed trades: compact rows without losing readable hierarchy. */
+#page-tools .backtest-trades{
+  border-radius:9px!important;
+}
+#page-tools .backtest-trade-row{
+  min-height:46px!important;
+  padding:6px 8px!important;
+  gap:6px!important;
+}
+#page-tools .backtest-trade-side{
+  font-size:9px!important;
+}
+#page-tools .backtest-trade-row b{
+  font-size:10.5px!important;
+  line-height:1.1!important;
+}
+#page-tools .backtest-trade-row small{
+  margin-top:2px!important;
+  font-size:9px!important;
+  line-height:1.1!important;
+}
+#page-tools .backtest-trade-row>strong{
+  font-size:10.5px!important;
+}
+
+/* Markets: make assets materially smaller and align their text to the same
+   left/right rails as the rest of Tools. */
+#page-tools .tool-universe>.tool-body{
+  padding:6px 12px!important;
+}
+#page-tools .universe-grid{
+  padding:0!important;
+}
+#page-tools .universe-grid>.asset-category{
+  padding:5px 0!important;
+}
+#page-tools .asset-category-label{
+  min-height:20px!important;
+  height:20px!important;
+  margin:0!important;
+  padding:2px 0!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+}
+#page-tools .asset-category-items{
+  grid-auto-rows:30px!important;
+  align-items:stretch!important;
+}
+#page-tools .asset-category-items>span{
+  min-height:0!important;
+  height:30px!important;
+  padding:4px 10px!important;
+  font-size:9.5px!important;
+  line-height:1!important;
+  box-sizing:border-box!important;
+}
+
+/* Accounts: match the compact asset row rhythm. */
+#page-tools .account-grid{
+  border-top:0!important;
+}
+#page-tools .account-grid>article{
+  min-height:42px!important;
+  height:42px!important;
+  padding:6px 10px!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:2px 8px!important;
+  box-sizing:border-box!important;
+}
+#page-tools .account-grid>article b{
+  font-size:10.5px!important;
+  line-height:1.1!important;
+}
+#page-tools .account-grid>article span,
+#page-tools .account-grid>article small{
+  font-size:9px!important;
+  line-height:1.1!important;
+}
+#page-tools .account-grid>article span{
+  margin-top:0!important;
+}
+
+/* Locked Rules: compact rows with consistent type scale. */
+#page-tools .rule-list>div{
+  min-height:40px!important;
+  padding:6px 10px!important;
+  gap:2px!important;
+}
+#page-tools .rule-list b{
+  font-size:10.5px!important;
+  line-height:1.1!important;
+}
+#page-tools .rule-list span{
+  font-size:9px!important;
+  line-height:1.2!important;
+}
+
+/* Diagnostics/Runtime metrics use the same compact inner-card geometry. */
+#page-tools .diagnostic-grid{
+  gap:5px!important;
+}
+#page-tools .diagnostic-grid article{
+  padding:7px 8px!important;
+  border-radius:8px!important;
+}
+#page-tools .diagnostic-grid span{
+  font-size:8.5px!important;
+}
+#page-tools .diagnostic-grid b{
+  margin-top:3px!important;
+  font-size:10.5px!important;
+}
+
+/* Remove unnecessary vertical whitespace around all Tool cards. */
+#page-tools .tools-layout{
+  gap:8px!important;
+}
+#page-tools .tools-layout .tool-card{
+  padding:0!important;
+}
+#page-tools .tool-card>.tool-body{
+  box-sizing:border-box!important;
+}
+
+@media(max-width:560px){
+  #page-tools .tools-appearance>.section-heading{
+    height:68px!important;
+    min-height:68px!important;
+  }
+  #page-tools .tools-appearance .settings-row{
+    min-height:36px!important;
+    grid-template-columns:64px minmax(0,1fr)!important;
+    padding-inline:12px!important;
+  }
+  #page-tools .chip-option,
+  #page-tools .tool-tag{
+    min-height:29px!important;
+    height:29px!important;
+  }
+  #page-tools .asset-category-items{
+    grid-auto-rows:29px!important;
+  }
+  #page-tools .asset-category-items>span{
+    height:29px!important;
+    padding-inline:9px!important;
+  }
+  #page-tools .account-grid>article{
+    min-height:40px!important;
+    height:40px!important;
+  }
+  #page-tools .rule-list>div{
+    min-height:38px!important;
+  }
+  #page-tools .backtest-summary>div,
+  #page-tools .backtest-metrics>div{
+    min-height:38px!important;
+    padding:5px 7px!important;
+  }
+}
