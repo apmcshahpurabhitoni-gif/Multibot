@@ -753,3 +753,59 @@ html[data-reduce-motion="true"] .expand-button::before{transition:none}
   #page-calendar .calendar-item{min-height:72px!important}
   #page-calendar .calendar-details{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* ========================================================================== 
+   HOME PAGE — NEO-SAFE SURFACE CONTRACT
+   Home is the reference page for Neo Brutalism. Keep enough separation for
+   ink borders/shadows so controls and nested surfaces never visually collide.
+   ========================================================================== */
+#page-overview .metric-grid{gap:10px!important}
+#page-overview .section-block{overflow:visible!important}
+#page-overview .chart-card{box-shadow:none!important;overflow:hidden!important}
+#page-overview .section-heading{min-width:0!important}
+#page-overview .section-heading>.text-button{flex:0 0 auto!important}
+
+html[data-style="neo"] #page-overview .hero,
+html[data-style="neo"] #page-overview .section-block{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] #page-overview .metric-card,
+html[data-style="neo"] #page-overview .chart-card{
+  border:2px solid var(--line-strong)!important;
+}
+html[data-style="neo"] #page-overview .metric-card{
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] #page-overview .chart-card{
+  box-shadow:none!important;
+}
+html[data-style="neo"] #page-overview .hero-pills{
+  gap:10px!important;
+}
+html[data-style="neo"] #page-overview .hero-pills span{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] #page-overview .metric-grid.four{
+  column-gap:10px!important;
+  row-gap:10px!important;
+}
+html[data-style="neo"] #page-overview .text-button{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+  background:var(--surface)!important;
+}
+html[data-style="neo"] #page-overview .section-heading>.text-button:active{
+  transform:translate(2px,2px)!important;
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
+@media(max-width:900px){
+  html[data-style="neo"] #page-overview .hero-pills{row-gap:10px!important}
+}
+@media(max-width:560px){
+  #page-overview .metric-grid{gap:9px!important}
+  html[data-style="neo"] #page-overview .metric-grid.four{gap:9px!important}
+  html[data-style="neo"] #page-overview .hero-pills{gap:9px!important}
+}
