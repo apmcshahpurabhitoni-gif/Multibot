@@ -2324,3 +2324,196 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     justify-self:end;
   }
 }
+
+
+/* ---------- Final surface parity contract ---------------------------------
+   One geometry language across Home, Signals, History, Calendar, Tools and
+   Backtest. Presentation remains theme-owned; this block only normalizes
+   surfaces, density and internal separators. */
+:root{
+  --f-outer-radius:var(--radius);
+  --f-inner-radius:var(--radius-sm);
+  --f-inner-line:1px solid var(--line);
+  --f-inner-bg:var(--surface-2);
+}
+
+/* Every top-level content section uses the same outer surface. */
+#page-overview .section-block,
+#page-signals .signals-workspace,
+#page-history .history-workspace,
+#page-calendar .calendar-workspace,
+#page-tools .tool-card{
+  border:var(--border-w) solid var(--line);
+  border-radius:var(--f-outer-radius);
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  min-width:0;
+}
+
+/* Nested data surfaces use one compact geometry language. */
+#page-overview .metric-card,
+#page-overview .chart-card,
+#page-signals .signal-card,
+#page-history .trade-card,
+#page-history .live-trade-row,
+#page-history .scan-history-row,
+#page-calendar .calendar-item,
+#page-tools .backtest-section,
+#page-tools .backtest-status,
+#page-tools .universe-grid,
+#page-tools .account-grid,
+#page-tools .rule-list,
+#page-tools .diagnostic-grid,
+#page-tools .schedule-inline{
+  border-radius:var(--f-inner-radius);
+}
+
+/* Tools data groups are containers, not collections of unrelated mini-cards. */
+#page-tools .universe-grid,
+#page-tools .account-grid,
+#page-tools .rule-list,
+#page-tools .diagnostic-grid,
+#page-tools .schedule-inline{
+  border:var(--f-inner-line);
+  background:var(--f-inner-bg);
+  box-shadow:none;
+  overflow:hidden;
+}
+
+/* Markets and Accounts now share the same internal surface treatment. */
+#page-tools .universe-grid{
+  display:grid;
+  gap:0;
+}
+#page-tools .asset-category{
+  min-width:0;
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+}
+#page-tools .asset-category:last-child{
+  border-bottom:0;
+}
+#page-tools .asset-category-items{
+  min-width:0;
+}
+#page-tools .account-grid{
+  gap:0!important;
+}
+#page-tools .account-grid article{
+  min-height:0;
+  padding:9px 10px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .account-grid article:nth-child(odd){
+  border-right:0!important;
+}
+#page-tools .account-grid article:nth-child(even){
+  border-left:1px solid var(--line)!important;
+}
+
+/* Locked Rules uses the same row density as Accounts and Markets. */
+#page-tools .rule-list>div{
+  padding:9px 10px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  background:transparent!important;
+}
+#page-tools .rule-list>div:last-child{
+  border-bottom:0!important;
+}
+
+/* Diagnostics and candle schedule share the same 2-column / 3x2 rhythm. */
+#page-tools .diagnostic-grid{
+  gap:0!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#page-tools .diagnostic-grid article{
+  padding:9px 10px!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+  background:transparent!important;
+}
+#page-tools .diagnostic-grid article:nth-child(even){
+  border-left:1px solid var(--line)!important;
+}
+#page-tools .diagnostic-grid article:nth-child(n+3){
+  border-top:0!important;
+}
+#page-tools .schedule-inline{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0!important;
+  margin-top:8px!important;
+}
+#page-tools .schedule-inline span{
+  min-height:0!important;
+  padding:7px 5px!important;
+  border:0!important;
+  border-right:1px solid var(--line)!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#page-tools .schedule-inline span:nth-child(3n){
+  border-right:0!important;
+}
+#page-tools .schedule-inline span:nth-child(n+4){
+  border-top:0!important;
+}
+#page-tools .schedule-inline span:nth-child(n+4):nth-last-child(-n+3){
+  border-bottom:0!important;
+}
+
+/* Backtest result sections follow the same inner-card density. */
+#page-tools .backtest-results{
+  margin-top:7px!important;
+  gap:7px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#page-tools .backtest-section{
+  padding:9px!important;
+}
+#page-tools .backtest-summary,
+#page-tools .backtest-metrics{
+  gap:7px!important;
+}
+#page-tools .backtest-summary>div,
+#page-tools .backtest-metrics>div{
+  padding:8px 9px!important;
+  border:var(--f-inner-line)!important;
+  border-radius:var(--radius-xs)!important;
+  background:var(--surface-2)!important;
+}
+#page-tools .backtest-trades{
+  border:var(--f-inner-line)!important;
+  border-radius:var(--radius-xs)!important;
+  background:var(--surface)!important;
+  overflow:hidden;
+}
+#page-tools .backtest-trade-row{
+  padding:7px 9px!important;
+  gap:7px!important;
+  border-bottom:1px solid var(--line);
+}
+#page-tools .backtest-trade-row:last-child{
+  border-bottom:0;
+}
+
+@media(max-width:560px){
+  #page-tools .asset-category{padding:8px 9px}
+  #page-tools .account-grid article{padding:8px 9px!important}
+  #page-tools .rule-list>div{padding:8px 9px!important}
+  #page-tools .diagnostic-grid article{padding:8px 9px!important}
+  #page-tools .schedule-inline{margin-top:7px!important}
+  #page-tools .schedule-inline span{padding:6px 4px!important}
+  #page-tools .backtest-section{padding:8px!important}
+  #page-tools .backtest-summary,
+  #page-tools .backtest-metrics{gap:6px!important}
+  #page-tools .backtest-summary>div,
+  #page-tools .backtest-metrics>div{padding:7px 8px!important}
+  #page-tools .backtest-trade-row{padding:7px 8px!important}
+}
