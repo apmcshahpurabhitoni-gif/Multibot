@@ -59,33 +59,68 @@ function renderOpenHistoryRow(trade,index){
   </article>`;
 }
 function renderHistory(){
-  const trades=Array.isArray(state.data?.trades)?state.data.trades:[];
-  const closedRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade.status||"").toUpperCase()==="CLOSED");
-  const openRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade.status||"").toUpperCase()==="OPEN");
+  const data=state.data||{};
+  const trades=Array.isArray(data.trades)?data.trades:[];
+  const closedRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade?.status||"").toUpperCase()==="CLOSED");
+  const openRows=trades.map((trade,index)=>({trade,index})).filter(row=>String(row.trade?.status||"").toUpperCase()==="OPEN");
   const closed=closedRows.map(row=>row.trade);
-  const pnlValues=closed.map(t=>Number(t.pnl)).filter(Number.isFinite);
+  const pnlValues=closed.map(t=>Number(t?.pnl)).filter(Number.isFinite);
   const winners=pnlValues.filter(v=>v>0).length;
-  const latestDate=closedRows.map(row=>dateKey(tradeDateValue(row.trade))).filter(x=>x!=="unknown").sort().at(-1);
+  const dates=closedRows.map(row=>dateKey(tradeDateValue(row.trade))).filter(x=>x!=="unknown").sort();
+  const latestDate=dates.length?dates[dates.length-1]:null;
   const dailyRows=latestDate?closedRows.filter(row=>dateKey(tradeDateValue(row.trade))===latestDate):[];
-  const dailyPnl=dailyRows.reduce((sum,row)=>sum+(Number(row.trade.pnl)||0),0);
+  const dailyPnl=dailyRows.reduce((sum,row)=>sum+(Number(row.trade?.pnl)||0),0);
 
-  $("historyClosedCount").textContent=closedRows.length;
-  $("historyDailyPnl").textContent=latestDate?inr(dailyPnl):"—";
-  $("historyWinRate").textContent=pnlValues.length?Math.round(winners/pnlValues.length*100)+"%":"—";
-  $("historyResultCount").textContent=closedRows.length+" trade"+(closedRows.length===1?"":"s");
-  $("historyList").innerHTML=closedRows.length?renderHistoryDateGroups(closedRows,"trade"):empty("No completed trades","◷","Completed paper trades will appear here grouped by date.");
+  const closedCount=$("historyClosedCount");
+  const dailyPnlEl=$("historyDailyPnl");
+  const winRate=$("historyWinRate");
+  const resultCount=$("historyResultCount");
+  const list=$("historyList");
+  const openList=$("historyOpenTrades");
+  const scanList=$("historyScanHistory");
 
-  $("historyOpenTrades").innerHTML=openRows.length
-    ?openRows.map(row=>renderOpenHistoryRow(row.trade,row.index)).join("")
-    :empty("No open positions","◌","There are no active paper trades in the current snapshot.");
+  if(closedCount)closedCount.textContent=String(closedRows.length);
+  if(dailyPnlEl)dailyPnlEl.textContent=latestDate?inr(dailyPnl):"—";
+  if(winRate)winRate.textContent=pnlValues.length?Math.round(winners/pnlValues.length*100)+"%":"—";
+  if(resultCount)resultCount.textContent=`${closedRows.length} trade${closedRows.length===1?"":"s"}`;
 
-  const scans=Array.isArray(state.data?.scan_history)?state.data.scan_history:[];
+  // Clear every loading placeholder first. A malformed optional row must never
+  // leave the History page looking permanently stuck.
+  if(list){
+    try{
+      list.innerHTML=closedRows.length
+        ?renderHistoryDateGroups(closedRows,"trade")
+        :empty("No completed trades","◷","Completed paper trades will appear here grouped by date.");
+    }catch(error){
+      console.error("History completed trades render failed",error);
+      list.innerHTML=empty("History unavailable","!","The completed-trade snapshot could not be rendered.");
+    }
+  }
+
+  if(openList){
+    try{
+      openList.innerHTML=openRows.length
+        ?openRows.map(row=>renderOpenHistoryRow(row.trade,row.index)).join("")
+        :empty("No open positions","◌","There are no active paper trades in the current snapshot.");
+    }catch(error){
+      console.error("History open positions render failed",error);
+      openList.innerHTML=empty("Open positions unavailable","!","The current paper-trade snapshot could not be rendered.");
+    }
+  }
+
+  const scans=Array.isArray(data.scan_history)?data.scan_history:[];
   const scanRows=scans.map(scan=>({scan})).filter(row=>scanDateValue(row.scan));
-  $("historyScanHistory").innerHTML=scanRows.length
-    ?renderHistoryDateGroups(scanRows,"scan")
-    :empty("No scan history","◷","Persisted runtime scans will appear here when completed runs are recorded.");
+  if(scanList){
+    try{
+      scanList.innerHTML=scanRows.length
+        ?renderHistoryDateGroups(scanRows,"scan")
+        :empty("No scan history","◷","Persisted runtime scans will appear here when completed runs are recorded.");
+    }catch(error){
+      console.error("History scan history render failed",error);
+      scanList.innerHTML=empty("Scan history unavailable","!","The persisted scan snapshot could not be rendered.");
+    }
+  }
 }
-
 function calendarDayKey(day){return `calendar-day:${day}`;}
 function renderCalendar(){
   const calendar=state.calendar||{},days=Array.isArray(calendar.days)?calendar.days:[],items=Array.isArray(calendar.items)?calendar.items:[],status=String(calendar.status||"UNKNOWN").toUpperCase(),available=["ONLINE","CACHED"].includes(status),counts=calendar.counts||{};
@@ -140,7 +175,7 @@ async function loadCalendar(){const impact=state.calendarImpacts.has("All")?"All
 async function showConnectionStatus(online,message=""){const banner=$("connectionBanner"),status=$("systemStatus"),badge=$("systemStatusBadge");if(banner){banner.hidden=online;if(!online)banner.textContent=message||"Dashboard connection problem.";}if(status)status.textContent=online?"ONLINE":"OFFLINE";if(badge)badge.classList.toggle("offline",!online);}
 function renderSafely(name,fn){try{fn();}catch(error){console.error(`Dashboard render failed: ${name}`,error);}}
 async function loadDashboard(){try{const response=await fetch(`${CONFIG.apiUrl}?t=${Date.now()}`,{cache:"no-store"});if(!response.ok)throw new Error(`Dashboard API ${response.status}`);const payload=await readJsonResponse(response,"Dashboard API");if(payload.ok===false)throw new Error(payload?.error||"Dashboard API returned an invalid snapshot.");state.data=payload;state.lastUpdate=payload.generated_at||new Date().toISOString();showConnectionStatus(true);renderSafely("overview",renderOverview);renderSafely("scanStatus",renderScanStatus);renderSafely("signals",renderSignals);renderSafely("history",renderHistory);renderSafely("tools",renderTools);if(state.activePage==="calendar")renderSafely("calendar",loadCalendar);}catch(error){console.error("Dashboard load failed",error);showConnectionStatus(false,`Dashboard connection problem: ${error.message}`);}}
-function setPage(page){state.activePage=page;$$('.page').forEach(el=>el.classList.toggle('active',el.id===`page-${page}`));$$('.nav-button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));if(page==="calendar")loadCalendar();window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});}
+function setPage(page){state.activePage=page;$('.page').forEach(el=>el.classList.toggle('active',el.id===`page-${page}`));$('.nav-button').forEach(el=>el.classList.toggle('active',el.dataset.page===page));if(page==="history"&&state.data)renderSafely("history",renderHistory);if(page==="calendar")loadCalendar();window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});}
 function resolveTheme(theme){return theme==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):theme;}function applyTheme(theme){const choice=["light","dark","system"].includes(theme)?theme:"light";document.documentElement.dataset.theme=resolveTheme(choice);document.documentElement.dataset.themePref=choice;localStorage.setItem("mavis-theme",choice);applyAppearanceControls();}
 function applyStyle(style){const value=style==="neo"?"neo":"modern";document.documentElement.dataset.style=value;localStorage.setItem("mavis-style",value);applyAppearanceControls();}
 function applyAppearanceControls(){$$('[data-theme-choice]').forEach(b=>{const active=b.dataset.themeChoice===(document.documentElement.dataset.themePref||document.documentElement.dataset.theme);b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});$$('[data-style-choice]').forEach(b=>{const active=b.dataset.styleChoice===document.documentElement.dataset.style;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});$$('[data-accent-choice]').forEach(b=>{const active=b.dataset.accentChoice===document.documentElement.dataset.accent;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});const compact=localStorage.getItem("mavis-compact")==="true",motion=localStorage.getItem("mavis-reduce-motion")==="true";document.documentElement.dataset.compact=compact?"true":"false";document.documentElement.dataset.reduceMotion=motion?"true":"false";const c=$("compactModeToggle"),m=$("reduceMotionToggle");if(c){c.classList.toggle("active",compact);c.setAttribute("aria-pressed",String(compact));}if(m){m.classList.toggle("active",motion);m.setAttribute("aria-pressed",String(motion));}}
