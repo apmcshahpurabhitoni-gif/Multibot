@@ -3306,8 +3306,10 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   }
 
 
-/* ---------- History summary: keep all three metrics on one mobile row ------ */
-/* Safe presentation-only fix: no renderer/data changes. */
+/* ---------- History summary: shared metric geometry ---------------------- */
+/* Ponytail root-cause fix: keep the 3-column grid, but let each metric own
+   a stable vertical label/value stack. Financial values remain fully visible
+   instead of being ellipsized when they become long (e.g. ₹1,00,000+). */
 @media(max-width:560px){
   #page-history .history-summary-grid{
     display:grid!important;
@@ -3316,29 +3318,77 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     width:100%!important;
     min-width:0!important;
   }
+
   #page-history .history-summary-grid .metric-card{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
     min-width:0!important;
     width:100%!important;
     box-sizing:border-box!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
-    gap:6px!important;
+    gap:4px!important;
     padding:9px 8px!important;
   }
+
   #page-history .history-summary-grid .metric-card span{
+    display:block!important;
+    width:100%!important;
     min-width:0!important;
     max-width:100%!important;
+    margin:0!important;
     overflow:hidden!important;
     text-overflow:ellipsis!important;
     white-space:nowrap!important;
     font-size:9px!important;
+    line-height:1.15!important;
   }
+
   #page-history .history-summary-grid .metric-card strong{
+    display:block!important;
+    width:100%!important;
     min-width:0!important;
     max-width:100%!important;
+    margin:0!important;
+    text-align:left!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
     font-size:13px!important;
-    white-space:nowrap!important;
+    line-height:1.15!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+
+  #page-history .history-summary-grid .metric-card small{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    margin:0!important;
+    font-size:8.5px!important;
+    line-height:1.15!important;
     overflow:hidden!important;
     text-overflow:ellipsis!important;
-    text-align:right!important;
+    white-space:nowrap!important;
   }
 }
+
+/* Slightly larger mobile widths get more breathing room without changing the
+   component structure or introducing device-specific hacks. */
+@media(min-width:400px) and (max-width:560px){
+  #page-history .history-summary-grid{
+    gap:10px!important;
+  }
+
+  #page-history .history-summary-grid .metric-card{
+    padding-inline:10px!important;
+  }
+
+  #page-history .history-summary-grid .metric-card strong{
+    font-size:14px!important;
+  }
+}
+
+/* ---------- End History metric repair ------------------------------------ */
