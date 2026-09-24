@@ -9,29 +9,29 @@
   /* accent: emerald is the default; [data-accent] variants override below.
      --accent-fill is the surface color for filled accent controls and
      --on-accent the guaranteed-contrast text on them. */
-  --accent:#0e9d6e;
-  --accent-strong:#057a55;
-  --accent-fill:#057a55; --on-accent:#ffffff;
-  --accent-soft:rgba(14,159,110,.12);
- --accent-softer:rgba(14,159,110,.07);
+  --accent:#10b981;
+  --accent-strong:#059669;
+  --accent-fill:#059669; --on-accent:#ffffff;
+  --accent-soft:rgba(16,185,129,.12);
+  --accent-softer:rgba(16,185,129,.07);
 
-  --bg:#f4f5f6;
+  --bg:#f6f7f9;
   --surface:#ffffff;
-  --surface-2:#f0f4f1;
-  --surface-3:#e3ebe6;
-  --text:#101613;
-  --text-soft:#3c4640;
-  --muted:#5c6a62;
-  --line:rgba(16,22,19,.12);
-  --line-strong:rgba(16,22,19,.28);
-  --positive:#057a55;
-  --positive-soft:rgba(5,122,85,.11);
-  --negative:#c62b38;
-  --negative-soft:rgba(198,43,56,.1);
-  --warning:#a15b00;
-  --warning-soft:rgba(161,91,0,.11);
-  --shadow:0 18px 44px rgba(13,32,24,.09);
-  --shadow-soft:0 4px 16px rgba(13,32,24,.06);
+  --surface-2:#f1f3f6;
+  --surface-3:#e4e8ef;
+  --text:#0f172a;
+  --text-soft:#334155;
+  --muted:#64748b;
+  --line:rgba(15,23,42,.12);
+  --line-strong:rgba(15,23,42,.26);
+  --positive:#059669;
+  --positive-soft:rgba(5,150,105,.12);
+  --negative:#dc2626;
+  --negative-soft:rgba(220,38,38,.11);
+  --warning:#b45309;
+  --warning-soft:rgba(180,83,9,.12);
+  --shadow:0 18px 44px rgba(15,23,42,.09);
+  --shadow-soft:0 4px 16px rgba(15,23,42,.06);
   --radius:14px;
   --radius-sm:11px;
   --radius-xs:9px;
@@ -48,34 +48,34 @@
 
   color-scheme:light;
 }
-html[data-accent="indigo"]{--accent:#4f46e5;--accent-strong:#3730a3;--accent-fill:#3730a3;--accent-soft:rgba(79,70,229,.12);--accent-softer:rgba(79,70,229,.07)}
-html[data-accent="amber"]{--accent:#b45309;--accent-strong:#92400e;--accent-fill:#92400e;--accent-soft:rgba(180,83,9,.13);--accent-softer:rgba(180,83,9,.07)}
-html[data-accent="rose"]{--accent:#be123c;--accent-strong:#9f1239;--accent-fill:#9f1239;--accent-soft:rgba(190,18,60,.11);--accent-softer:rgba(190,18,60,.06)}
-html[data-accent="cyan"]{--accent:#0e7490;--accent-strong:#155e75;--accent-fill:#155e75;--accent-soft:rgba(14,116,144,.12);--accent-softer:rgba(14,116,144,.07)}
+html[data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#4f46e5;--accent-soft:rgba(99,102,241,.12);--accent-softer:rgba(99,102,241,.07)}
+html[data-accent="amber"]{--accent:#f59e0b;--accent-strong:#b45309;--accent-fill:#b45309;--accent-soft:rgba(245,158,11,.15);--accent-softer:rgba(245,158,11,.08)}
+html[data-accent="rose"]{--accent:#f43f5e;--accent-strong:#e11d48;--accent-fill:#e11d48;--accent-soft:rgba(244,63,94,.12);--accent-softer:rgba(244,63,94,.06)}
+html[data-accent="cyan"]{--accent:#06b6d4;--accent-strong:#0e7490;--accent-fill:#0e7490;--accent-soft:rgba(6,182,212,.13);--accent-softer:rgba(6,182,212,.07)}
 
 /* ---------- Dark theme (works with every style + accent) ------------------ */
 html[data-theme="dark"]{
-  --bg:#0b0c0d;
-  --surface:#121815;
-  --surface-2:#1a221e;
-  --surface-3:#242e29;
-  --text:#f0f5f2;
-  --text-soft:#c8d4cd;
-  --muted:#94a49c;
-  --line:rgba(240,245,242,.11);
-  --line-strong:rgba(240,245,242,.26);
-  --accent:#2fd69b;
-  --accent-strong:#5ce3b4;
-  --accent-fill:#2fd69b;
+  --bg:#0b0d10;
+  --surface:#12151b;
+  --surface-2:#1a1f27;
+  --surface-3:#252c36;
+  --text:#f1f5f9;
+  --text-soft:#cbd5e1;
+  --muted:#8b96a5;
+  --line:rgba(241,245,249,.11);
+  --line-strong:rgba(241,245,249,.24);
+  --accent:#34d399;
+  --accent-strong:#6ee7b7;
+  --accent-fill:#34d399;
   --on-accent:#08110d;
-  --accent-soft:rgba(47,214,155,.14);
-  --accent-softer:rgba(47,214,155,.08);
-  --positive:#3ddc9c;
-  --positive-soft:rgba(61,220,156,.12);
-  --negative:#ff7078;
-  --negative-soft:rgba(255,112,120,.12);
-  --warning:#f5b95e;
-  --warning-soft:rgba(245,185,94,.12);
+  --accent-soft:rgba(52,211,153,.15);
+  --accent-softer:rgba(52,211,153,.08);
+  --positive:#34d399;
+  --positive-soft:rgba(52,211,153,.13);
+  --negative:#f87171;
+  --negative-soft:rgba(248,113,113,.13);
+  --warning:#fbbf24;
+  --warning-soft:rgba(251,191,36,.13);
   --shadow:0 20px 50px rgba(0,0,0,.4);
   --shadow-soft:0 6px 20px rgba(0,0,0,.26);
   color-scheme:dark;
