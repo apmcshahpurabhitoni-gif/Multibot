@@ -176,16 +176,20 @@ function calendarTimeline(items){
 }
 function calendarCard(item,index){
   const key=keyFor("calendar",item,index),impact=String(item.impact||"Low").toLowerCase(),open=state.expanded.has(key);
-  const details=open?`<div class="calendar-details"><div><span>Actual</span><b>${escapeHtml(item.actual||"—")}</b></div><div><span>Forecast</span><b>${escapeHtml(item.forecast||"—")}</b></div><div><span>Previous</span><b>${escapeHtml(item.previous||"—")}</b></div></div>`:"";
-  return `<article class="calendar-item impact-${escapeHtml(impact)} ${open?"expanded":""}">
-    <div class="calendar-time"><strong>${escapeHtml(item.time||"All day")}</strong><small>IST</small></div>
+  const details=open?\`<div class="calendar-details"><span>Actual <b>\${escapeHtml(item.actual||"—")}</b></span><span>Forecast <b>\${escapeHtml(item.forecast||"—")}</b></span><span>Previous <b>\${escapeHtml(item.previous||"—")}</b></span></div>\`:"";
+  return \`<article class="calendar-item impact-\${escapeHtml(impact)} \${open?"expanded":""}">
     <div class="calendar-event">
-      <div class="calendar-meta"><i class="news-dot impact-${escapeHtml(impact)}" aria-hidden="true"></i><span class="currency-code">${escapeHtml(item.currency||"ALL")}</span><b class="impact-pill ${escapeHtml(impact)}">${escapeHtml(item.impact||"Low")}</b>${expandButton(key,"event")}</div>
-      <strong>${escapeHtml(item.title||"Economic event")}</strong>
-      <small>${item.actual?`Actual ${escapeHtml(item.actual)}`:item.forecast?`Forecast ${escapeHtml(item.forecast)}`:"Scheduled event"}${item.previous?` · Previous ${escapeHtml(item.previous)}`:""}</small>
-      ${details}
+      <div class="calendar-meta">
+        <strong class="calendar-time-value">\${escapeHtml(item.time||"All day")}</strong>
+        <i class="news-dot impact-\${escapeHtml(impact)}" aria-hidden="true"></i>
+        <span class="currency-code">\${escapeHtml(item.currency||"ALL")}</span>
+        <b class="impact-pill \${escapeHtml(impact)}">\${escapeHtml(item.impact||"Low")}</b>
+        \${expandButton(key,"event")}
+      </div>
+      <strong class="calendar-title">\${escapeHtml(item.title||"Economic event")}</strong>
+      \${details}
     </div>
-  </article>`;
+  </article>\`;
 }
 function renderTools(){const data=state.data||{},universe=Array.isArray(data.universe?.symbols)?data.universe.symbols:[],strategies=Array.isArray(data.strategies)?data.strategies:[],accounts=Array.isArray(data.accounts?.data)?data.accounts.data:[];const strategySelect=$("backtestStrategy"),currentStrategy=strategySelect.value;strategySelect.innerHTML=strategies.map(strategy=>`<option value="${escapeHtml(strategy.id)}">${escapeHtml(strategy.name)} · v${escapeHtml(strategy.version)}</option>`).join("");if([...strategySelect.options].some(o=>o.value===currentStrategy))strategySelect.value=currentStrategy;const assets=supportedBacktestAssets(strategySelect.value),select=$("backtestSymbol"),current=select.value,groups={};assets.forEach(asset=>(groups[asset.group]??=[]).push(asset));select.innerHTML=Object.entries(groups).map(([group,rows])=>`<optgroup label="${escapeHtml(group)}">${rows.map(asset=>`<option value="${escapeHtml(asset.key||asset.ticker)}">${escapeHtml(asset.label)}</option>`).join("")}</optgroup>`).join("");if([...select.options].some(o=>o.value===current))select.value=current;$("universeGrid").innerHTML=universe.map(s=>`<span>${escapeHtml(assetLabel(s,s))}</span>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>`<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} planned risk remaining</small></article>`).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");$("candleSchedule").innerHTML=["10:15|First close","11:15|Hourly close","12:15|Hourly close","13:15|Hourly close","14:15|Hourly close","15:15|Final close"].map(item=>{const [time,label]=item.split("|");return `<span><b>${time}</b><small>${label}</small></span>`;}).join("");$("diagnostics").innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
 function backtestMetricLabel(key){return ({return_pct:"Return",max_drawdown_pct:"Max drawdown",sharpe:"Sharpe",sortino:"Sortino",win_rate_pct:"Win rate",profit_factor:"Profit factor",number_of_trades:"Trades",average_trade:"Average trade",max_losing_streak:"Max losing streak",exposure_pct:"Exposure",risk_adjusted_performance:"Risk-adjusted performance"})[key]||key.replaceAll("_"," ");}
