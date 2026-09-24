@@ -973,3 +973,71 @@ html[data-style="neo"] #page-signals .detail-group{
   border:2px solid var(--line-strong)!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;
 }
+
+
+/* ---------- Expanded signal details: compact two-surface treatment ------- */
+/* Keep the known-good markup. The whole detail grid is one contained surface;
+   strategy reason is the second surface. No JS restructuring required. */
+#page-signals .signal-card .expand-content{
+  padding:7px 9px 9px;
+}
+
+#page-signals .signal-card .detail-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:var(--radius-xs);
+  background:var(--surface-2);
+  overflow:hidden;
+}
+
+#page-signals .signal-card .detail-grid>div{
+  padding:6px 8px;
+  background:transparent;
+  border-radius:0;
+  min-width:0;
+}
+
+#page-signals .signal-card .detail-grid>div:nth-child(even){
+  border-left:1px solid var(--line);
+}
+
+#page-signals .signal-card .detail-grid>div:nth-child(n+3){
+  border-top:1px solid var(--line);
+}
+
+#page-signals .signal-card .detail-grid b{
+  margin-top:2px;
+  font-size:11px;
+}
+
+#page-signals .signal-card .reason{
+  margin-top:7px;
+  padding:7px 8px;
+}
+
+#page-signals .signal-card .reason p{
+  margin:4px 0 0;
+  font-size:11px;
+  line-height:1.4;
+}
+
+@media(max-width:560px){
+  #page-signals .signal-card .detail-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  #page-signals .signal-card .detail-grid>div{
+    padding:5px 7px;
+  }
+
+  #page-signals .signal-card .detail-grid b{
+    font-size:10.8px;
+  }
+}
+
+html[data-style="neo"] #page-signals .signal-card .detail-grid{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
