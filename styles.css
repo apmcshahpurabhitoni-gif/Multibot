@@ -870,3 +870,66 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .backtest-trade-side{width:44px}
   .mobile-nav .nav-button{font-size:8px;min-height:46px;height:46px}
 }
+
+
+/* ---------- Neo collapsible parity: date groups --------------------------- */
+/* Date headers are controls, so Neo gives them the same tactile frame as every
+   other collapsible control. This is presentation-only. */
+html[data-style="neo"] .signal-date-toggle,
+html[data-style="neo"] .history-date-toggle,
+html[data-style="neo"] .calendar-date-toggle,
+html[data-style="neo"] .trade-date-toggle{
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+  background:var(--surface)!important;
+  margin:3px 3px 6px;
+  width:calc(100% - 6px);
+  min-height:44px;
+  padding:8px 10px;
+  transition:transform .15s ease,background .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+
+html[data-style="neo"] .signal-date-toggle:hover,
+html[data-style="neo"] .history-date-toggle:hover,
+html[data-style="neo"] .calendar-date-toggle:hover,
+html[data-style="neo"] .trade-date-toggle:hover{
+  transform:translate(-1px,-1px);
+  background:var(--surface)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signal-date-toggle:active,
+html[data-style="neo"] .history-date-toggle:active,
+html[data-style="neo"] .calendar-date-toggle:active,
+html[data-style="neo"] .trade-date-toggle:active{
+  transform:translate(3px,3px);
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signal-date-group.is-open>.signal-date-toggle,
+html[data-style="neo"] .history-date-group.is-open>.history-date-toggle,
+html[data-style="neo"] .calendar-date-group.is-open>.calendar-date-toggle,
+html[data-style="neo"] .trade-date-group.is-open>.trade-date-toggle{
+  background:var(--accent-soft)!important;
+  border-color:var(--line-strong)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] .signal-date-group,
+html[data-style="neo"] .history-date-group,
+html[data-style="neo"] .calendar-date-group,
+html[data-style="neo"] .trade-date-group{
+  border-bottom:0;
+}
+
+@media(max-width:560px){
+  html[data-style="neo"] .signal-date-toggle,
+  html[data-style="neo"] .history-date-toggle,
+  html[data-style="neo"] .calendar-date-toggle,
+  html[data-style="neo"] .trade-date-toggle{
+    margin:3px 2px 6px;
+    width:calc(100% - 4px);
+    min-height:42px;
+  }
+}
