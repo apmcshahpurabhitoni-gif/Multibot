@@ -3026,3 +3026,69 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     overflow-wrap:anywhere!important;
   }
 }
+
+
+/* Signals final detail alignment: label/value rows, never stacked or right-justified. */
+@media(max-width:560px){
+  #page-signals .signal-card.expanded .detail-grid>div{
+    display:grid!important;
+    grid-template-columns:max-content minmax(0,1fr)!important;
+    align-items:center!important;
+    column-gap:8px!important;
+    padding:5px 7px!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid span{
+    width:auto!important;
+    min-width:0!important;
+    margin:0!important;
+    text-align:left!important;
+    white-space:nowrap!important;
+    line-height:1.1!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid b,
+  #page-signals .signal-card.expanded .detail-grid b.fresh,
+  #page-signals .signal-card.expanded .detail-grid b.stale{
+    min-width:0!important;
+    width:auto!important;
+    max-width:100%!important;
+    justify-self:start!important;
+    margin:0!important;
+    padding:0!important;
+    text-align:left!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    line-height:1.2!important;
+  }
+  #page-signals .signal-card.expanded .detail-grid b.fresh,
+  #page-signals .signal-card.expanded .detail-grid b.stale{
+    padding:1px 5px!important;
+    justify-self:start!important;
+    width:max-content!important;
+    max-width:100%!important;
+  }
+  #page-signals .signal-card.expanded .reason{
+    display:grid!important;
+    grid-template-columns:max-content minmax(0,1fr)!important;
+    align-items:center!important;
+    column-gap:8px!important;
+    margin:5px 0 0!important;
+    padding:6px 8px!important;
+  }
+  #page-signals .signal-card.expanded .reason>span{
+    width:auto!important;
+    min-width:0!important;
+    margin:0!important;
+    white-space:nowrap!important;
+    text-align:left!important;
+  }
+  #page-signals .signal-card.expanded .reason>p{
+    min-width:0!important;
+    margin:0!important;
+    text-align:left!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    line-height:1.2!important;
+  }
+}
