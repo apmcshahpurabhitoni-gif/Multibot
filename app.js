@@ -176,18 +176,18 @@ function calendarTimeline(items){
 }
 function calendarCard(item,index){
   const key=keyFor("calendar",item,index),impact=String(item.impact||"Low").toLowerCase(),open=state.expanded.has(key);
-  const details=open?`<div class="calendar-details"><span>Actual <b>${}escapeHtml(item.actual||"—")}</b></span><span>Forecast <b>${}escapeHtml(item.forecast||"—")}</b></span><span>Previous <b>${}escapeHtml(item.previous||"—")}</b></span></div>`:"";
-  return `<article class="calendar-item impact-${}escapeHtml(impact)} ${}open?"expanded":""}">
+  const details=open?`<div class="calendar-details"><span>Actual <b>${escapeHtml(item.actual||"—")}</b></span><span>Forecast <b>${escapeHtml(item.forecast||"—")}</b></span><span>Previous <b>${escapeHtml(item.previous||"—")}</b></span></div>`:"";
+  return `<article class="calendar-item impact-${escapeHtml(impact)} ${open?"expanded":""}">
     <div class="calendar-event">
       <div class="calendar-meta">
-        <strong class="calendar-time-value">${}escapeHtml(item.time||"All day")}</strong>
-        <i class="news-dot impact-${}escapeHtml(impact)}" aria-hidden="true"></i>
-        <span class="currency-code">${}escapeHtml(item.currency||"ALL")}</span>
-        <b class="impact-pill ${}escapeHtml(impact)}">${}escapeHtml(item.impact||"Low")}</b>
-        ${}expandButton(key,"event")}
+        <strong class="calendar-time-value">${escapeHtml(item.time||"All day")}</strong>
+        <i class="news-dot impact-${escapeHtml(impact)}" aria-hidden="true"></i>
+        <span class="currency-code">${escapeHtml(item.currency||"ALL")}</span>
+        <b class="impact-pill ${escapeHtml(impact)}">${escapeHtml(item.impact||"Low")}</b>
+        ${expandButton(key,"event")}
       </div>
-      <strong class="calendar-title">${}escapeHtml(item.title||"Economic event")}</strong>
-      ${}details}
+      <strong class="calendar-title">${escapeHtml(item.title||"Economic event")}</strong>
+      ${details}
     </div>
   </article>`;
 }
