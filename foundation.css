@@ -1176,3 +1176,94 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
   border:2px solid var(--line-strong)!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;
 }
+
+
+/* ---------- Shared expanded-signal detail contract ------------------------ */
+/* Keep Home and Signals on the same compact information geometry. */
+#page-overview .overview-signals .signal-card.expanded .expand-content,
+#page-signals .signal-card.expanded .expand-content{
+  padding:5px 7px 7px;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid,
+#page-signals .signal-card.expanded .detail-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:0;
+  padding-top:0;
+  border:1px solid var(--line);
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--surface-2);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+#page-signals .signal-card.expanded .detail-grid>div{
+  min-width:0;
+  padding:5px 7px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(even){
+  border-left:1px solid var(--line);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(n+3),
+#page-signals .signal-card.expanded .detail-grid>div:nth-child(n+3){
+  border-top:1px solid var(--line);
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid span,
+#page-signals .signal-card.expanded .detail-grid span{
+  margin:0 0 2px;
+  font-size:9px;
+  line-height:1.05;
+}
+
+#page-overview .overview-signals .signal-card.expanded .detail-grid b,
+#page-signals .signal-card.expanded .detail-grid b{
+  margin:0;
+  font-size:11px;
+  line-height:1.15;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason,
+#page-signals .signal-card.expanded .reason{
+  margin:5px 0 0;
+  padding:6px 7px;
+  border-radius:9px;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason span,
+#page-signals .signal-card.expanded .reason span{
+  font-size:9px;
+  line-height:1.05;
+}
+
+#page-overview .overview-signals .signal-card.expanded .reason p,
+#page-signals .signal-card.expanded .reason p{
+  margin:3px 0 0;
+  font-size:10.5px;
+  line-height:1.2;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .reason,
+html[data-style="neo"] #page-signals .signal-card.expanded .reason{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+}
+
+@media(max-width:560px){
+  #page-overview .overview-signals .signal-card.expanded .detail-grid,
+  #page-signals .signal-card.expanded .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
