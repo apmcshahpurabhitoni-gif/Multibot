@@ -1656,3 +1656,38 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   }
   #page-tools .backtest-trade-row{padding:7px 8px!important}
 }
+
+
+/* ---------- Tools parity: flat account grid matches asset presentation ----- */
+#page-tools .account-grid{
+  gap:0;
+  border-top:1px solid var(--line);
+}
+#page-tools .account-grid article{
+  padding:9px 10px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:0;
+  background:transparent;
+}
+#page-tools .account-grid article:nth-child(odd){
+  border-right:1px solid var(--line);
+}
+#page-tools .account-grid b{
+  font-size:11.5px;
+  font-weight:850;
+}
+#page-tools .account-grid span{
+  margin-top:3px;
+  font-size:10.5px;
+  line-height:1.35;
+}
+#page-tools .account-grid small{
+  margin-top:2px;
+  font-size:10px;
+  line-height:1.35;
+}
+@media(max-width:560px){
+  #page-tools .account-grid article{padding:8px 9px}
+  #page-tools .account-grid b{font-size:11.5px}
+}
