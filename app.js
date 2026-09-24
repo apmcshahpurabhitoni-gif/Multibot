@@ -156,7 +156,7 @@ function renderCalendar(){
 }
 function calendarDateGroups(days){
   if(!state.calendarDates)state.calendarDates=new Set();
-  if(!state.groupInit.has("calendar")){state.groupInit.add("calendar");if(!state.calendarDates.size&&days[0])state.calendarDates.add(calendarDayKey(days[0].date));}
+  if(!state.groupInit.has("calendar")){state.groupInit.add("calendar");if(days[0])state.calendarDates.add(calendarDayKey(days[0].date));}
   return days.map((day,index)=>{
     const key=calendarDayKey(day.date),open=state.calendarDates.has(key),items=Array.isArray(day.items)?day.items:[];
     const today=index===0?"TODAY · ":"";
