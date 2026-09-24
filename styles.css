@@ -2240,3 +2240,159 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     padding-right:0!important;
   }
 }
+
+
+/* ---------- Tools: Runtime compact density pass --------------------------- */
+/* Runtime keeps the same information, but removes unnecessary vertical
+   whitespace on narrow screens. Scoped to Tools only. */
+#page-tools .tool-runtime{
+  display:grid!important;
+  gap:0!important;
+}
+
+#page-tools .tool-runtime>.section-heading{
+  min-height:42px!important;
+  height:42px!important;
+  margin:0!important;
+  padding:0!important;
+  align-items:center!important;
+}
+
+#page-tools .tool-runtime>.tool-body{
+  padding-top:5px!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:0!important;
+  border:1px solid var(--line)!important;
+  border-radius:var(--radius-sm)!important;
+  overflow:hidden!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid article{
+  box-sizing:border-box!important;
+  min-height:48px!important;
+  height:48px!important;
+  padding:7px 9px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--surface-2)!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid article:nth-child(even){
+  border-left:1px solid var(--line)!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid article:nth-child(n+3){
+  border-top:1px solid var(--line)!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid span{
+  margin:0!important;
+  font-size:9.5px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid b{
+  min-width:0!important;
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  text-align:right!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+#page-tools .tool-runtime .schedule-inline{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:6px 0 0!important;
+  border:1px solid var(--line)!important;
+  border-radius:var(--radius-sm)!important;
+  overflow:hidden!important;
+}
+
+#page-tools .tool-runtime .schedule-inline span{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:50px!important;
+  height:50px!important;
+  padding:6px 4px!important;
+  display:grid!important;
+  align-content:center!important;
+  justify-items:center!important;
+  gap:2px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:var(--surface-2)!important;
+}
+
+#page-tools .tool-runtime .schedule-inline span:nth-child(n+4){
+  border-top:1px solid var(--line)!important;
+}
+
+#page-tools .tool-runtime .schedule-inline span:not(:nth-child(3n+1)){
+  border-left:1px solid var(--line)!important;
+}
+
+#page-tools .tool-runtime .schedule-inline b{
+  font-size:11px!important;
+  line-height:1!important;
+}
+
+#page-tools .tool-runtime .schedule-inline small{
+  font-size:9px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:560px){
+  #page-tools .tool-runtime>.section-heading{
+    min-height:40px!important;
+    height:40px!important;
+  }
+
+  #page-tools .tool-runtime>.tool-body{
+    padding-top:4px!important;
+  }
+
+  #page-tools .tool-runtime .diagnostic-grid article{
+    min-height:44px!important;
+    height:44px!important;
+    padding:6px 8px!important;
+  }
+
+  #page-tools .tool-runtime .diagnostic-grid span{
+    font-size:9px!important;
+  }
+
+  #page-tools .tool-runtime .diagnostic-grid b{
+    font-size:10.5px!important;
+  }
+
+  #page-tools .tool-runtime .schedule-inline{
+    margin-top:5px!important;
+  }
+
+  #page-tools .tool-runtime .schedule-inline span{
+    min-height:46px!important;
+    height:46px!important;
+    padding:5px 3px!important;
+  }
+
+  #page-tools .tool-runtime .schedule-inline b{
+    font-size:10.5px!important;
+  }
+
+  #page-tools .tool-runtime .schedule-inline small{
+    font-size:8.5px!important;
+  }
+}
