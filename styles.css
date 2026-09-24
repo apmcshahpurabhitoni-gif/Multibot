@@ -620,9 +620,6 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .backtest-trade-row b{font-size:11.5px}
 .backtest-trade-row small{margin-top:3px;font-size:10.5px}
 .backtest-trade-row>strong{font-size:11.5px}
-.backtest-signal-list{gap:6px}
-.backtest-signal-list>div{gap:8px;padding:8px 10px}
-.backtest-signal-list b,.backtest-signal-list small{font-size:10.5px}
 .backtest-overview-section,.backtest-curve-section,.backtest-performance-section,.backtest-trades-section,.backtest-signals-section{box-shadow:none}
 @media(max-width:760px){
   .backtest-controls{gap:7px}
@@ -647,7 +644,6 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
   .backtest-trade-row{grid-template-columns:38px minmax(0,1fr) auto;gap:7px;padding:9px 10px}
   .backtest-trade-side{font-size:9.5px}
   .backtest-trade-row>strong{font-size:11px}
-  .backtest-signal-list>div{grid-template-columns:auto auto minmax(0,1fr);gap:7px;padding:7px 9px}
 }
 /* ---------- 12a. Tools compact settings contract ------------------------- */
 @media(max-width:760px){
