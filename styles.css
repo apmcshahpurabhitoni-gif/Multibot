@@ -1691,3 +1691,356 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   #page-tools .account-grid article{padding:8px 9px}
   #page-tools .account-grid b{font-size:11.5px}
 }
+
+/* ==========================================================================
+   CALENDAR FLOW CONTRACT V3
+   Reference: Signals + History.
+   Goal: stable hierarchy, shared alignment, no shifting source row, no clipped
+   event text, and identical responsive behavior at the actual mobile/tablet
+   breakpoint (<=760px).
+   ========================================================================== */
+
+/* 1) Source/status block is a fixed two-row composition.
+   The previous flex row allowed Forex Factory to participate in the same
+   sizing context as the cached status, which created the large blank area
+   and made the link appear to shift. */
+#page-calendar .calendar-agenda-status{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:2px!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:8px 12px 6px!important;
+  background:var(--surface-2)!important;
+}
+#page-calendar .calendar-agenda-status .calendar-status{
+  width:100%!important;
+  min-width:0!important;
+  min-height:32px!important;
+  height:32px!important;
+  display:flex!important;
+  align-items:center!important;
+  overflow:hidden!important;
+}
+#page-calendar #calendarStatus .inline-status{
+  width:100%!important;
+  min-width:0!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:5px 9px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  overflow:hidden!important;
+}
+#page-calendar #calendarStatus .inline-status b{
+  flex:none!important;
+  font-size:10.5px!important;
+  line-height:1!important;
+}
+#page-calendar #calendarStatus .inline-status small{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+#page-calendar .calendar-agenda-status .calendar-source{
+  justify-self:end!important;
+  align-self:center!important;
+  margin:0!important;
+  min-height:27px!important;
+  height:27px!important;
+  padding:4px 6px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  font-size:10.5px!important;
+  line-height:1!important;
+}
+
+/* 2) Summary uses the exact compact metric geometry; descriptions remain
+   intentionally suppressed just like History's summary metrics. */
+#page-calendar .calendar-summary-grid{
+  gap:8px!important;
+  padding:8px 12px!important;
+}
+#page-calendar .calendar-summary-grid .metric-card{
+  min-width:0!important;
+  min-height:46px!important;
+  height:46px!important;
+  padding:7px 10px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+#page-calendar .calendar-summary-grid .metric-card span{
+  min-width:0!important;
+  max-width:72%!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  letter-spacing:.07em!important;
+}
+#page-calendar .calendar-summary-grid .metric-card strong{
+  flex:none!important;
+  font-size:13.5px!important;
+  line-height:1!important;
+}
+
+/* 3) Section hierarchy: heading -> date -> event -> details.
+   No oversized whitespace between levels. */
+#page-calendar .calendar-agenda-bar{
+  min-height:48px!important;
+  height:48px!important;
+  padding:9px 14px!important;
+}
+#page-calendar .calendar-agenda-bar .eyebrow{
+  font-size:10.5px!important;
+  line-height:1!important;
+}
+#page-calendar .calendar-agenda-bar .workspace-count{
+  font-size:10.5px!important;
+}
+
+/* 4) Date row shares History geometry. */
+#page-calendar .calendar-date-list{
+  padding:7px 8px 10px!important;
+}
+#page-calendar .calendar-date-group{
+  margin:0 0 6px!important;
+  border-bottom:0!important;
+}
+#page-calendar .calendar-date-toggle{
+  box-sizing:border-box!important;
+  min-height:48px!important;
+  height:48px!important;
+  margin:0!important;
+  padding:7px 9px!important;
+  border:1px solid var(--line)!important;
+  border-radius:12px!important;
+  background:var(--surface-2)!important;
+}
+#page-calendar .calendar-date-toggle span{
+  gap:2px!important;
+}
+#page-calendar .calendar-date-toggle b{
+  font-size:12px!important;
+  line-height:1.15!important;
+}
+#page-calendar .calendar-date-toggle small{
+  font-size:10px!important;
+  line-height:1.15!important;
+}
+#page-calendar .calendar-date-toggle i{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  border-radius:10px!important;
+}
+
+/* 5) Event cards use a stable two-level layout.
+   Metadata stays on row 1. Title becomes row 2 and is NOT artificially
+   indented by 70px. This fixes the visual break visible in the screenshot. */
+#page-calendar .calendar-date-events{
+  display:grid!important;
+  gap:6px!important;
+  padding:6px 0 0!important;
+}
+#page-calendar .calendar-item{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:6px 8px 7px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+#page-calendar .calendar-event{
+  min-width:0!important;
+  width:100%!important;
+}
+#page-calendar .calendar-meta{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:36px!important;
+  height:36px!important;
+  padding:2px 0!important;
+  gap:6px!important;
+  align-items:center!important;
+}
+#page-calendar .calendar-time-value{
+  flex:0 0 49px!important;
+  width:49px!important;
+  font-size:12px!important;
+  line-height:1!important;
+  font-weight:800!important;
+  font-variant-numeric:tabular-nums!important;
+}
+#page-calendar .calendar-meta .news-dot{
+  width:7px!important;
+  height:7px!important;
+  min-width:7px!important;
+  box-shadow:none!important;
+}
+#page-calendar .currency-code,
+#page-calendar .impact-pill{
+  box-sizing:border-box!important;
+  min-height:24px!important;
+  height:24px!important;
+  padding:5px 8px!important;
+  border-radius:8px!important;
+  font-size:10px!important;
+  line-height:1!important;
+}
+#page-calendar .calendar-meta .expand-button{
+  flex:0 0 34px!important;
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+  margin-left:auto!important;
+  border-radius:10px!important;
+}
+#page-calendar .calendar-meta .expand-button::before{
+  width:7px!important;
+  height:7px!important;
+}
+
+/* Event title is now a first-class hierarchy level.
+   Allow two lines so long titles are readable instead of clipped. */
+#page-calendar .calendar-title,
+#page-calendar .calendar-event>.calendar-title{
+  display:-webkit-box!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:2px 0 0!important;
+  padding:0!important;
+  font-size:12px!important;
+  line-height:1.28!important;
+  font-weight:750!important;
+  letter-spacing:-.01em!important;
+  overflow:hidden!important;
+  overflow-wrap:anywhere!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  -webkit-line-clamp:2!important;
+  -webkit-box-orient:vertical!important;
+}
+
+/* Expanded information is a real 3-column data row, aligned to the card
+   edges instead of being offset under the currency badge. */
+#page-calendar .calendar-details{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  min-width:0!important;
+  gap:6px!important;
+  margin:6px 0 0!important;
+  padding:6px 0 0!important;
+  border-top:1px solid var(--line)!important;
+}
+#page-calendar .calendar-details>span{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:31px!important;
+  height:31px!important;
+  padding:5px 7px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:3px!important;
+  border-radius:8px!important;
+  background:var(--surface-2)!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+#page-calendar .calendar-details>span b{
+  min-width:0!important;
+  font-size:10px!important;
+  line-height:1!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+/* 6) The mobile breakpoint in the actual dashboard is 760px, not 560px.
+   Keep Calendar compact at the same breakpoint as the rest of the app. */
+@media(max-width:760px){
+  #page-calendar .calendar-agenda-status{
+    gap:2px!important;
+    padding:7px 10px 5px!important;
+  }
+  #page-calendar .calendar-agenda-status .calendar-status{
+    min-height:31px!important;
+    height:31px!important;
+  }
+  #page-calendar .calendar-agenda-status .calendar-source{
+    min-height:26px!important;
+    height:26px!important;
+    font-size:10px!important;
+  }
+  #page-calendar .calendar-summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    padding:7px 9px!important;
+  }
+  #page-calendar .calendar-summary-grid .metric-card{
+    height:45px!important;
+    min-height:45px!important;
+    padding:7px 9px!important;
+  }
+  #page-calendar .calendar-agenda-bar{
+    min-height:46px!important;
+    height:46px!important;
+    padding:8px 12px!important;
+  }
+  #page-calendar .calendar-date-list{
+    padding:6px 7px 9px!important;
+  }
+  #page-calendar .calendar-date-toggle{
+    min-height:48px!important;
+    height:48px!important;
+    padding:7px 8px!important;
+  }
+  #page-calendar .calendar-date-toggle i{
+    width:34px!important;
+    height:34px!important;
+  }
+  #page-calendar .calendar-item{
+    padding:6px 8px 7px!important;
+  }
+}
+
+/* 7) Very narrow screens: preserve text rather than hiding hierarchy. */
+@media(max-width:430px){
+  #page-calendar .calendar-meta{
+    gap:5px!important;
+  }
+  #page-calendar .calendar-time-value{
+    flex-basis:47px!important;
+    width:47px!important;
+    font-size:11.5px!important;
+  }
+  #page-calendar .calendar-meta .impact-pill{
+    display:inline-flex!important;
+  }
+  #page-calendar .calendar-meta .expand-button{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+  }
+  #page-calendar .calendar-details{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:4px!important;
+  }
+  #page-calendar .calendar-details>span{
+    padding:5px 5px!important;
+    font-size:8px!important;
+  }
+  #page-calendar .calendar-details>span b{
+    font-size:9px!important;
+  }
+}
