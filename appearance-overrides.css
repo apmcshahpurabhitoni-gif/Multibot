@@ -1325,3 +1325,83 @@ html.neo-mode .empty-state{border-width:2px!important}
     padding:0 12px!important;
   }
 }
+
+/* Calendar alignment contract — ponytail: one row, one alignment system. */
+#page-calendar .calendar-agenda-status{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:10px!important;
+  flex-wrap:nowrap!important;
+}
+#page-calendar .calendar-agenda-status .calendar-status{
+  min-width:0!important;
+  width:auto!important;
+  flex:none!important;
+}
+#page-calendar .calendar-agenda-status .inline-status{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+}
+#page-calendar .calendar-source{
+  width:auto!important;
+  min-width:max-content!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:0 4px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-self:center!important;
+  line-height:1!important;
+}
+#page-calendar .calendar-source a{
+  display:inline-flex!important;
+  align-items:center!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  line-height:1!important;
+}
+#page-calendar .calendar-date-toggle{
+  display:flex!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+}
+#page-calendar .calendar-date-toggle span{
+  flex:1 1 auto!important;
+  align-self:center!important;
+  min-width:0!important;
+}
+#page-calendar .calendar-date-toggle i{
+  flex:0 0 36px!important;
+  align-self:center!important;
+  margin:0!important;
+}
+#page-calendar .calendar-meta{
+  align-items:center!important;
+  box-sizing:border-box!important;
+}
+#page-calendar .calendar-time-value,
+#page-calendar .calendar-meta .news-dot,
+#page-calendar .calendar-meta .currency-code,
+#page-calendar .calendar-meta .impact-pill,
+#page-calendar .calendar-meta .expand-button{
+  align-self:center!important;
+}
+#page-calendar .calendar-title{
+  box-sizing:border-box!important;
+  text-align:left!important;
+}
+@media(max-width:390px){
+  #page-calendar .calendar-agenda-status{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:7px!important;
+  }
+  #page-calendar .calendar-source{
+    padding:0!important;
+  }
+}
