@@ -71,8 +71,8 @@ The strategy tells the core which Yahoo interval and lookback it needs.
 Examples:
 
 ```text
-Adaptive Trend → 1D
-Sweep V2       → 1H NSE / 30m global raw data
+Trend Pulse → 1D
+Sweep 4H       → 1H NSE / 30m global raw data
 ```
 
 The provider remains Yahoo Finance.
