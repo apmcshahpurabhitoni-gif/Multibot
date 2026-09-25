@@ -112,6 +112,32 @@ html[data-style="neo"] .collapse-chev:active,html.neo-mode .collapse-chev:active
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
+/* Ponytail: tool collapsers use the same 30px interactive control as date-group toggles. */
+html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev,
+html.neo-mode .tool-collapse>.section-heading .collapse-chev{
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border:2px solid var(--line-strong)!important;
+  border-radius:8px!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+  background:var(--surface)!important;
+  transform:translate(0,0);
+  transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
+}
+html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-chev,
+html.neo-mode .tool-collapse>.section-heading:hover .collapse-chev{
+  transform:translate(-1px,-1px)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev:active,
+html.neo-mode .tool-collapse>.section-heading .collapse-chev:active{
+  transform:translate(2px,2px)!important;
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
+
 /* --- Reduced motion + compact mirrors --- */
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{
   animation-duration:.01ms!important;animation-iteration-count:1!important;
