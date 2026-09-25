@@ -41,18 +41,22 @@ class TradeMonitor:
                 reason=self._hit(row,float(price))
                 if not reason: continue
                 trade=self._trade(row)
-                closed_trade=close_trade(trade,exit_price=float(price),exit_timestamp=current,exit_reason=reason)
+                # Execution contract: once SL/TP is crossed, settle at the defined
+                # plan level. This prevents monitor polling overshoots from creating
+                # P&L outside the strategy risk/reward contract.
+                exit_price = float(trade.plan.stop_loss if reason == "STOP_LOSS" else trade.plan.take_profit)
+                closed_trade=close_trade(trade,exit_price=exit_price,exit_timestamp=current,exit_reason=reason)
                 account=self.accounts.get(row["account"])
                 if account is None:
                     today=current.tz_convert("Asia/Kolkata").date().isoformat()
                     rows=self.database.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,today)
                     account=AccountState(row["account"],float(rows[row["account"]]["starting_balance"]),float(rows[row["account"]]["balance"]),float(rows[row["account"]]["planned_risk_used"]),int(rows[row["account"]]["trades_today"]))
-                updated,pnl=settle_account(account,trade=trade,exit_price=float(price)); self.accounts[row["account"]]=updated
-                payload=dict(row); payload.update({"status":"CLOSED","exit_price":float(price),"exit_reason":reason,"closed_at":current.isoformat(),"pnl":pnl,"result":"WIN" if pnl>=0 else "LOSS"})
+                updated,pnl=settle_account(account,trade=trade,exit_price=exit_price); self.accounts[row["account"]]=updated
+                payload=dict(row); payload.update({"status":"CLOSED","exit_price":exit_price,"exit_reason":reason,"closed_at":current.isoformat(),"pnl":pnl,"result":"WIN" if pnl>=0 else "LOSS"})
                 self.database.save_trade(row["id"],"CLOSED",payload,current.isoformat())
                 self.database.save_account(updated.name,balance=updated.balance,trades_today=updated.trades_today,planned_risk_used=updated.planned_risk_used,reset_date=current.tz_convert("Asia/Kolkata").date().isoformat())
                 signal_id=str(row.get("signal_id") or row["id"])
-                message=trade_closed_message(closed_trade,float(price),pnl,updated.balance,trade.plan.side=="BUY",reason=="TAKE_PROFIT")
+                message=trade_closed_message(closed_trade,exit_price,pnl,updated.balance,trade.plan.side=="BUY",reason=="TAKE_PROFIT")
                 self.notifier.deliver(signal_id=signal_id,message=message,kind="TRADE_CLOSED",metadata={"trade_id":row["id"],"reason":reason,"pnl":pnl})
                 closed.append(payload)
             except Exception as exc:
