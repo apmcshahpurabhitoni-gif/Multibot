@@ -69,7 +69,7 @@ Material 3 is presentation-only. It does not introduce a second DOM, component f
                                │
                   ┌────────────┴────────────┐
                   ▼                         ▼
-          Adaptive Trend                Sweep V2
+          Trend Pulse                Sweep 4H
                   │                         │
                   └────────────┬────────────┘
                                ▼
@@ -145,8 +145,8 @@ See `STRATEGY_DEVELOPER_GUIDE.md` for the exact workflow.
 
 | Strategy | Assets | Timeframe | Main job |
 |---|---|---|---|
-| 🧠 Adaptive Trend Momentum | BTC-USD, GC=F | 1D | Trend + momentum + breakout |
-| 🔎 Sweep V2 | 25-asset universe | Asset/schedule-defined | Liquidity sweep classification |
+| 🧠 Trend Pulse | BTC-USD, GC=F | 1D | Trend + momentum + breakout |
+| 🔎 Sweep 4H | 25-asset universe | Asset/schedule-defined | Liquidity sweep classification |
 
 Strategies are identified by stable IDs such as `adaptive_trend` and `sweep_v2`, while human-readable names and versions are carried separately.
 
@@ -329,9 +329,9 @@ The universe is intentionally locked to this 25-asset list.
 
 ---
 
-## 🔎 Sweep V2
+## 🔎 Sweep 4H
 
-Sweep V2 remains a separate plug-in, but it uses the same core lifecycle.
+Sweep 4H remains a separate plug-in, but it uses the same core lifecycle.
 
 ### Rules
 
@@ -397,14 +397,14 @@ MULTIBOT2/
 ├── db.py                        # Supabase + SQLite persistence
 ├── telegram.py                  # Telegram adapter
 ├── dashboard.py                 # dashboard backend payloads
-├── sweep_engine.py              # Sweep V2 calculations
+├── sweep_engine.py              # Sweep 4H calculations
 │
 ├── strategies/
 │   ├── base.py                 # stable plug-in contract
 │   ├── registry.py              # automatic discovery
 │   ├── _template/              # new-strategy starter
-│   ├── adaptive_trend/          # Adaptive Trend Momentum
-│   └── sweep_v2/                # Sweep V2 plug-in
+│   ├── adaptive_trend/          # Trend Pulse
+│   └── sweep_v2/                # Sweep 4H plug-in
 │
 ├── tests/                       # canonical test suite
 │
