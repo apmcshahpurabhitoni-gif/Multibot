@@ -3298,3 +3298,184 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     gap:3px 7px!important;
   }
 }
+
+
+/* ==========================================================================
+   TOOLS VISUAL FOUNDATION V3 — final geometry pass
+   One visual rule across every Tools section:
+   white outer card/header -> grey body gutter -> white content/control.
+   ========================================================================== */
+
+/* Shared outer geometry */
+#page-tools .tool-card,
+#page-tools .tools-appearance{
+  border-radius:18px!important;
+  border:1px solid var(--line)!important;
+  box-shadow:var(--shadow-soft)!important;
+  background:var(--surface)!important;
+  overflow:hidden!important;
+}
+
+#page-tools .tool-card>.section-heading,
+#page-tools .tools-appearance>.section-heading{
+  min-height:58px!important;
+  padding:10px 14px!important;
+  margin:0!important;
+  background:var(--surface)!important;
+  border:0!important;
+  border-bottom:1px solid var(--line)!important;
+}
+
+/* Shared grey body — no border around the body itself */
+#page-tools .tool-card>.tool-body{
+  background:var(--surface-2)!important;
+  padding:10px!important;
+  border:0!important;
+}
+
+/* Every actual content surface gets the same geometry */
+#page-tools .account-grid,
+#page-tools .rule-list,
+#page-tools .universe-grid,
+#page-tools .tool-runtime .diagnostic-grid,
+#page-tools .tool-runtime .schedule-inline{
+  border:1px solid var(--line)!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+
+/* Appearance: make the rows one continuous white content surface */
+#page-tools .tools-appearance{
+  overflow:hidden!important;
+}
+
+#page-tools .tools-appearance>.settings-row{
+  margin:0 10px!important;
+  padding:7px 10px!important;
+  min-height:42px!important;
+  background:var(--surface)!important;
+  border-left:1px solid var(--line)!important;
+  border-right:1px solid var(--line)!important;
+  border-bottom:1px solid var(--line)!important;
+  border-radius:0!important;
+}
+
+#page-tools .tools-appearance>.settings-row:first-of-type{
+  border-top:1px solid var(--line)!important;
+  border-top-left-radius:12px!important;
+  border-top-right-radius:12px!important;
+}
+
+#page-tools .tools-appearance>.settings-row:last-child{
+  margin-bottom:10px!important;
+  border-bottom-left-radius:12px!important;
+  border-bottom-right-radius:12px!important;
+}
+
+/* Backtest controls read as one panel rather than unrelated boxes */
+#page-tools .tool-backtest .tool-body{
+  padding:10px!important;
+}
+
+#page-tools .tool-backtest .backtest-controls{
+  padding:10px!important;
+  border:1px solid var(--line)!important;
+  border-radius:12px!important;
+  background:var(--surface)!important;
+  box-shadow:none!important;
+}
+
+#page-tools .tool-backtest .backtest-status{
+  margin-top:8px!important;
+  padding:8px 10px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--surface)!important;
+}
+
+/* Markets: eliminate the extra-looking inner frame and use the same panel
+   geometry as Accounts/Rules/Runtime. */
+#page-tools .tool-universe>.tool-body{
+  padding:10px!important;
+}
+
+#page-tools .universe-grid{
+  border-radius:12px!important;
+  background:var(--surface)!important;
+}
+
+#page-tools .universe-grid>.asset-category{
+  padding:8px 10px!important;
+}
+
+#page-tools .asset-category-label{
+  min-height:36px!important;
+  border-radius:9px!important;
+}
+
+/* Accounts / rules content density */
+#page-tools .account-grid article{
+  padding:9px 12px!important;
+}
+
+#page-tools .rule-list>div{
+  padding:9px 12px!important;
+}
+
+/* Runtime: same content-panel proportions */
+#page-tools .tool-runtime>.tool-body{
+  padding:10px!important;
+}
+
+#page-tools .tool-runtime .diagnostic-grid article{
+  min-height:44px!important;
+  height:44px!important;
+  padding:6px 10px!important;
+}
+
+#page-tools .tool-runtime .schedule-inline{
+  margin-top:8px!important;
+}
+
+#page-tools .tool-runtime .schedule-inline span{
+  min-height:46px!important;
+  height:46px!important;
+}
+
+/* Collapse controls are deliberately identical everywhere */
+#page-tools .collapse-chev{
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  border-radius:10px!important;
+  border:1px solid var(--line)!important;
+  background:var(--surface-2)!important;
+}
+
+@media(max-width:560px){
+  #page-tools .tool-card>.section-heading,
+  #page-tools .tools-appearance>.section-heading{
+    min-height:54px!important;
+    padding:9px 12px!important;
+  }
+
+  #page-tools .tool-card>.tool-body{
+    padding:8px!important;
+  }
+
+  #page-tools .tools-appearance>.settings-row{
+    margin-left:8px!important;
+    margin-right:8px!important;
+    min-height:40px!important;
+    padding:6px 9px!important;
+  }
+
+  #page-tools .tool-backtest .backtest-controls{
+    padding:8px!important;
+  }
+
+  #page-tools .tool-universe>.tool-body,
+  #page-tools .tool-runtime>.tool-body{
+    padding:8px!important;
+  }
+}
