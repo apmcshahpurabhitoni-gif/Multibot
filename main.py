@@ -264,6 +264,15 @@ def web_server():
             except Exception as exc:
                 logger.exception("Backtest request failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
+        if path == "/architecture":
+            architecture_path = os.path.join(root, "agent", "skills", "archify", "multibot2-architecture.html")
+            try:
+                body = open(architecture_path, "rb").read()
+            except OSError:
+                start("404 Not Found", [("Content-Type", "text/plain")])
+                return [b"Architecture file not found"]
+            start("200 OK", [("Content-Type", "text/html; charset=utf-8"), ("Cache-Control", "no-store")])
+            return [body]
         if path in files:
             name,typ=files[path]
             try: body=open(os.path.join(root,name),"rb").read()
