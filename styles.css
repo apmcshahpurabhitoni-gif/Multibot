@@ -3534,3 +3534,39 @@ html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button:acti
     height:48px!important;
   }
 }
+
+
+/* ---------- Tools: exact Neo bottom-nav tactile parity -------------------- */
+/* The Tools-scoped rule must explicitly restore the Neo shadow because its
+   :has(#page-tools.active) specificity otherwise overrides the base Neo rule. */
+html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button{
+  border:2px solid var(--line-strong)!important;
+  border-radius:7px!important;
+  background:var(--surface)!important;
+  color:var(--text)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+  transform:translate(0,0)!important;
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease,color .15s ease!important;
+}
+
+html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button:hover{
+  transform:translate(-1px,-1px)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button.active{
+  background:var(--accent-fill)!important;
+  color:var(--on-accent)!important;
+  border:2px solid var(--line-strong)!important;
+  box-shadow:3px 3px 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button:active{
+  transform:translate(3px,3px)!important;
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
+
+html[data-style="neo"] body:has(#page-tools.active) .mobile-nav .nav-button.active:active{
+  transform:translate(3px,3px)!important;
+  box-shadow:0 0 0 var(--line-strong)!important;
+}
