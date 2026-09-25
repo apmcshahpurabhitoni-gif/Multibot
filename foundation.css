@@ -3392,3 +3392,83 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 }
 
 /* ---------- End History metric repair ------------------------------------ */
+
+
+/* ==========================================================================
+   COLLAPSIBLE CONTROL CONTRACT — SINGLE GEOMETRY AUTHORITY
+   All expandable/collapsible controls use one 40px circular control.
+   Component/theme layers may change color/elevation only; they must not
+   change the control's size, border, radius, or arrow geometry.
+   ========================================================================== */
+:root{
+  --ui-collapse-size:40px;
+  --ui-collapse-radius:50%;
+  --ui-collapse-border:1px solid var(--line);
+  --ui-collapse-icon-size:9px;
+  --ui-collapse-icon-weight:2px;
+}
+
+.collapse-control,
+.expand-button,
+.signal-date-toggle > .chev,
+.history-date-toggle > .chev,
+.calendar-date-toggle > .chev,
+.trade-date-toggle > .chev,
+.tool-collapse > .section-heading > .collapse-chev{
+  width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  flex:0 0 var(--ui-collapse-size)!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:var(--ui-collapse-border)!important;
+  border-radius:var(--ui-collapse-radius)!important;
+  background:var(--surface-2)!important;
+  color:var(--text-soft)!important;
+  font-size:0!important;
+  line-height:1!important;
+  transform:none!important;
+}
+
+.collapse-control::after,
+.expand-button::before,
+.chev::after,
+.collapse-chev::after{
+  content:"";
+  width:var(--ui-collapse-icon-size)!important;
+  height:var(--ui-collapse-icon-size)!important;
+  border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
+  border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
+  border-left:0!important;
+  border-top:0!important;
+  background:transparent!important;
+  transform:rotate(45deg)!important;
+  margin:0!important;
+  transition:transform .18s ease!important;
+}
+
+.collapse-control.is-open::after,
+.expand-button.is-open::before,
+.signal-date-group.is-open .collapse-control::after,
+.history-date-group.is-open .collapse-control::after,
+.calendar-date-group.is-open .collapse-control::after,
+.trade-date-group.is-open .collapse-control::after,
+.tool-collapse.is-open .collapse-control::after{
+  transform:rotate(225deg)!important;
+}
+
+.collapse-control:hover{
+  border-color:var(--accent)!important;
+  background:var(--accent-soft)!important;
+  color:var(--accent-strong)!important;
+}
+
+html[data-reduce-motion="true"] .collapse-control::after,
+html[data-reduce-motion="true"] .expand-button::before,
+html[data-reduce-motion="true"] .chev::after,
+html[data-reduce-motion="true"] .collapse-chev::after{
+  transition:none!important;
+}
