@@ -1,4 +1,4 @@
-"""Engulfing Entries @ 66 SMA strategy.
+"""Engulf 66 SMA strategy.
 
 The signal rules mirror the supplied TradingView "Engulfing Entries @ 66
 SMA (Filtered)" logic. Runtime lifecycle, risk and notification behavior stay
@@ -23,7 +23,7 @@ class Engulfing66SMA(Strategy):
 
     manifest = StrategyManifest(
         id="engulfing_66_sma",
-        name="Engulfing Entries @ 66 SMA",
+        name="Engulf 66 SMA",
         version="1.0.1",
         description=(
             "Bullish/bearish engulfing entries near a 66 SMA with ATR body, "
