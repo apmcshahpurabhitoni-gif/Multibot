@@ -9,15 +9,20 @@
   const STYLE_STORAGE_KEY="mavis-style";
   const ACCENT_STORAGE_KEY="mavis-accent";
   const ACCENTS=["emerald","indigo","amber","rose","cyan"];
-  const validStyle=value=>value==="neo"?"neo":"modern";
+  const STYLES=["modern","material3","neo"];
+  const validStyle=value=>STYLES.includes(value)?value:"modern";
+  const syncStyleClasses=style=>{
+    root.classList.toggle("modern-mode",style==="modern");
+    root.classList.toggle("material3-mode",style==="material3");
+    root.classList.toggle("neo-mode",style==="neo");
+  };
   const validAccent=value=>ACCENTS.includes(value)?value:"emerald";
 
   const sync=()=>{
     const style=validStyle(root.dataset.style||storage.getItem(STYLE_STORAGE_KEY));
     const theme=root.dataset.themePref||root.dataset.theme||storage.getItem(THEME_STORAGE_KEY)||"light";
     root.dataset.style=style;
-    root.classList.toggle("neo-mode",style==="neo");
-    root.classList.toggle("modern-mode",style!=="neo");
+    syncStyleClasses(style);
     document.querySelectorAll("[data-style-choice]").forEach(button=>{
       const active=button.dataset.styleChoice===style;
       button.classList.toggle("active",active);
@@ -45,8 +50,7 @@
   const applyStyle=style=>{
     const value=validStyle(style);
     root.dataset.style=value;
-    root.classList.toggle("neo-mode",value==="neo");
-    root.classList.toggle("modern-mode",value!=="neo");
+    syncStyleClasses(value);
     storage.setItem(STYLE_STORAGE_KEY,value);
     sync();
   };
