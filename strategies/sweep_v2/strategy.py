@@ -1,4 +1,4 @@
-"""Sweep V2 strategy: canonical classification, no lifecycle ownership."""
+"""Sweep 4H strategy: canonical classification, no lifecycle ownership."""
 from __future__ import annotations
 import pandas as pd
 from config import LIVE_ASSET_MAP,LIVE_SYMBOLS
@@ -6,7 +6,7 @@ from strategies.base import Signal,Strategy,StrategyManifest
 from sweep_engine import build_closed_candles
 
 class SweepV2Strategy(Strategy):
-    manifest=StrategyManifest(id="sweep_v2",name="Sweep V2",version="2.1.0",description="Strict two-sided sweep followed by final-close classification with durable diagnostics.",assets=LIVE_SYMBOLS,timeframes=("1h","4h"),schedule="canonical_sweep_schedule",account="sweep_4h",capabilities=("signal","strategy_sl","risk_reward_tp","scheduled_scan","backtest"),parameters={"timeframe":{"type":"strategy","default":"asset_schedule"},"risk_reward":{"type":"number","default":2.0,"min":1.0,"max":10.0,"editable":False}})
+    manifest=StrategyManifest(id="sweep_v2",name="Sweep 4H",version="2.1.0",description="Strict two-sided sweep followed by final-close classification with durable diagnostics.",assets=LIVE_SYMBOLS,timeframes=("1h","4h"),schedule="canonical_sweep_schedule",account="sweep_4h",capabilities=("signal","strategy_sl","risk_reward_tp","scheduled_scan","backtest"),parameters={"timeframe":{"type":"strategy","default":"asset_schedule"},"risk_reward":{"type":"number","default":2.0,"min":1.0,"max":10.0,"editable":False}})
 
     def data_request(self,symbol,*,period="30d"):
         asset=LIVE_ASSET_MAP[symbol]; return ("1h" if asset.market=="NSE" else "30m"),period
