@@ -2,9 +2,13 @@
 from __future__ import annotations
 from typing import Final
 
-APP_VERSION: Final[str] = "3.2.8"
+APP_VERSION: Final[str] = "3.3.0"
 
 RELEASE_HIGHLIGHTS: Final[tuple[str, ...]] = (
+    "🎨 Added a complete Material Design 3 presentation theme with semantic color roles, tonal surfaces, typography, shape and elevation tokens.",
+    "🌓 Material 3 supports independent light and dark presentation schemes across all existing accent choices.",
+    "🧩 Material 3 reuses the existing dashboard DOM, controls, data flow and responsive geometry without changing trading behavior.",
+    "♿ Added Material 3 focus, hover and pressed-state presentation while preserving the existing reduced-motion contract.",
     "✨ Release notes moved into a header button with a modal, freeing a full dashboard section.",
     "🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.",
     "🐛 Fixed the mobile navigation anchoring to the page bottom instead of the screen: the html element no longer matches the theme-button selectors.",
