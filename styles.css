@@ -2396,3 +2396,144 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
     font-size:8.5px!important;
   }
 }
+
+
+/* ---------- Tools: Markets asset presentation ----------------------------- */
+/* Mobile reference style: category badge on the left, flowing assets on the
+   right, with compact alternating rows. Data/rendering remains unchanged. */
+#page-tools .universe-grid{
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid var(--line)!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  background:var(--surface)!important;
+}
+
+#page-tools .universe-grid>.asset-category{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(128px,26%) minmax(0,1fr)!important;
+  column-gap:12px!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:10px 14px!important;
+  border:0!important;
+  border-top:1px solid var(--line)!important;
+  background:var(--surface)!important;
+}
+
+#page-tools .universe-grid>.asset-category:first-child{
+  border-top:0!important;
+}
+
+#page-tools .universe-grid>.asset-category:nth-child(odd){
+  background:var(--surface-2)!important;
+}
+
+#page-tools .asset-category-label{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:48px!important;
+  margin:0!important;
+  padding:7px 8px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  border:1px solid var(--line)!important;
+  border-radius:12px!important;
+  background:var(--surface-2)!important;
+  color:var(--accent-strong)!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  overflow-wrap:anywhere!important;
+}
+
+#page-tools .asset-category-items{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  align-content:center!important;
+  gap:7px 14px!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+#page-tools .asset-category-items>span,
+#page-tools .asset-category-items>span:nth-child(odd),
+#page-tools .asset-category-items>span:nth-child(even){
+  box-sizing:border-box!important;
+  display:block!important;
+  width:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  font-size:11.5px!important;
+  font-weight:700!important;
+  line-height:1.35!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+
+@media(max-width:560px){
+  #page-tools .universe-grid{
+    border-radius:14px!important;
+  }
+
+  #page-tools .universe-grid>.asset-category{
+    grid-template-columns:minmax(112px,26%) minmax(0,1fr)!important;
+    column-gap:12px!important;
+    padding:9px 14px!important;
+  }
+
+  #page-tools .asset-category-label{
+    min-height:48px!important;
+    padding:7px 6px!important;
+    border-radius:11px!important;
+    font-size:9.5px!important;
+  }
+
+  #page-tools .asset-category-items{
+    gap:6px 12px!important;
+  }
+
+  #page-tools .asset-category-items>span,
+  #page-tools .asset-category-items>span:nth-child(odd),
+  #page-tools .asset-category-items>span:nth-child(even){
+    font-size:11px!important;
+    line-height:1.35!important;
+  }
+}
+
+@media(max-width:400px){
+  #page-tools .universe-grid>.asset-category{
+    grid-template-columns:108px minmax(0,1fr)!important;
+    column-gap:10px!important;
+    padding-left:11px!important;
+    padding-right:11px!important;
+  }
+
+  #page-tools .asset-category-items{
+    gap:5px 10px!important;
+  }
+}
