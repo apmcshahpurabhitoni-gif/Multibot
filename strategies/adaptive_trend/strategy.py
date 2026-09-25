@@ -1,4 +1,4 @@
-"""Adaptive Trend Momentum strategy.
+"""Trend Pulse strategy.
 
 The strategy is intentionally self-contained. Operational lifecycle rules are
 owned by the core engine; this module only computes the trading decision and
@@ -18,7 +18,7 @@ def _atr(frame: pd.DataFrame, period: int) -> pd.Series:
 class AdaptiveTrendMomentum(Strategy):
     manifest = StrategyManifest(
         id="adaptive_trend",
-        name="Adaptive Trend Momentum",
+        name="Trend Pulse",
         version="1.0.0",
         description="Daily trend, momentum and Donchian-breakout strategy with ATR volatility filtering.",
         assets=("BTC-USD", "GC=F"),
