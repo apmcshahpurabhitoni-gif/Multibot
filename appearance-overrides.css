@@ -57,6 +57,8 @@ html[data-style="neo"] .settings-toggle,
 html.neo-mode .settings-toggle,
 html[data-style="neo"] .chip-option,
 html.neo-mode .chip-option,
+html[data-style="neo"] .collapse-chev,
+html.neo-mode .collapse-chev,
 html[data-style="neo"] input,
 html.neo-mode input,
 html[data-style="neo"] select,
@@ -90,7 +92,8 @@ html[data-style="neo"] .expand-button:hover,html.neo-mode .expand-button:hover,
 html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-button:hover,
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
 html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
-html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover{
+html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover,
+html[data-style="neo"] .collapse-chev:hover,html.neo-mode .collapse-chev:hover{
   transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button:active,html.neo-mode .primary-button:active,
@@ -104,7 +107,8 @@ html[data-style="neo"] .expand-button:active,html.neo-mode .expand-button:active
 html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-button:active,
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
 html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
-html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active{
+html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active,
+html[data-style="neo"] .collapse-chev:active,html.neo-mode .collapse-chev:active{
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
