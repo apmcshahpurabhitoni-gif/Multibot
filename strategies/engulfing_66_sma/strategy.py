@@ -24,7 +24,7 @@ class Engulfing66SMA(Strategy):
     manifest = StrategyManifest(
         id="engulfing_66_sma",
         name="Engulf 66 SMA",
-        version="1.0.1",
+        version="1.0.2",
         description=(
             "Bullish/bearish engulfing entries near a 66 SMA with ATR body, "
             "slope, confirmation and cooldown filters."
@@ -52,7 +52,7 @@ class Engulfing66SMA(Strategy):
             "cooldown": {"type": "integer", "min": 0, "max": 500, "default": 12},
             "confirm_only": {"type": "boolean", "default": True},
             "stop_atr": {"type": "number", "min": 0.1, "max": 20.0, "default": 1.2},
-            "target_atr": {"type": "number", "min": 0.1, "max": 20.0, "default": 2.0},
+            "target_r": {"type": "number", "min": 0.1, "max": 20.0, "default": 2.0},
         },
     )
 
@@ -184,9 +184,11 @@ class Engulfing66SMA(Strategy):
             return Signal(self.manifest.name, self.manifest.version, symbol, "NO_SIGNAL", timestamp, "1H", final_reason, metadata=final_metadata)
         entry = float(frame["close"].iloc[-1])
         atr_value = float(final_metadata["atr"])
+        stop_distance = cfg["stop_atr"] * atr_value
+        target_distance = stop_distance * cfg["target_r"]
         if final_direction == "BUY":
-            stop_loss, take_profit = entry - cfg["stop_atr"] * atr_value, entry + cfg["target_atr"] * atr_value
+            stop_loss, take_profit = entry - stop_distance, entry + target_distance
         else:
-            stop_loss, take_profit = entry + cfg["stop_atr"] * atr_value, entry - cfg["target_atr"] * atr_value
-        final_metadata.update({"entry": entry, "stop_loss": stop_loss, "take_profit": take_profit})
+            stop_loss, take_profit = entry + stop_distance, entry - target_distance
+        final_metadata.update({"entry": entry, "stop_loss": stop_loss, "take_profit": take_profit, "risk_reward": cfg["target_r"], "risk_inr": 2000.0, "target_inr": 4000.0})
         return Signal(self.manifest.name, self.manifest.version, symbol, final_direction, timestamp, "1H", final_reason, entry, stop_loss, take_profit, final_metadata)
