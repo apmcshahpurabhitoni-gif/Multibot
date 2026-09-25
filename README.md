@@ -4,7 +4,7 @@
 >
 > **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Supabase · Dashboard · Strategy Lab**
 
-[![Version](https://img.shields.io/badge/version-3.2.8-111827?style=for-the-badge)](.)
+[![Version](https://img.shields.io/badge/version-3.3.0-111827?style=for-the-badge)](.)
 [![Mode](https://img.shields.io/badge/mode-PAPER-16a34a?style=for-the-badge)](.)
 [![Provider](https://img.shields.io/badge/data-Yahoo%20Finance-7c3aed?style=for-the-badge)](.)
 [![Python](https://img.shields.io/badge/python-3.11%2B-2563eb?style=for-the-badge)](.)
@@ -23,9 +23,24 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 ---
 
-## 🆕 What's New — v3.2.8
+## 🆕 What's New — v3.3.0
 
 **Single source of truth:** `release_notes.py`
+
+- 🎨 Added a Material Design 3 presentation theme built on the existing dashboard DOM and component contracts.
+- 🌓 Material 3 has independent light/dark semantic schemes and preserves all five existing accent choices.
+- 🧩 Material 3 changes presentation only: trading logic, API contracts, persistence, Telegram flow and responsive structure remain unchanged.
+- ♿ Material 3 adds semantic focus, hover and pressed states while preserving the existing reduced-motion behavior.
+
+### 🎨 Interface styles
+
+MULTIBOT2 now has three presentation systems using the same application structure:
+
+- **Modern** — existing general-purpose dashboard presentation.
+- **Material 3** — Google Material Design 3-inspired semantic color roles, tonal surfaces, typography hierarchy, shape tokens, restrained elevation and component state layers.
+- **Neo Brutalism** — existing high-contrast presentation.
+
+Material 3 is presentation-only. It does not introduce a second DOM, component framework, storage key, API path or trading behavior. The existing `mavis-style` preference is reused, and the existing responsive breakpoints remain authoritative.
 
 - ✨ Release notes moved into a header button with a modal, freeing a full dashboard section.
 - 🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.
@@ -465,4 +480,4 @@ For strategy-only work, give it:
 🎨 Presentation separated from trading logic
 ```
 
-**MULTIBOT2 v3.2.8 — modular paper trading with canonical market data, professional research UI and a single release source.** 🚀
+**MULTIBOT2 v3.3.0 — modular paper trading with canonical market data, Material 3 presentation and a single release source.** 🚀

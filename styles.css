@@ -3481,3 +3481,540 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 }
 
 
+
+
+/* ==========================================================================
+   MATERIAL 3 PRESENTATION LAYER — Ponytail-safe, presentation only
+   Contract:
+   - one existing DOM
+   - no component/layout rewrites
+   - semantic M3 roles mapped onto existing dashboard tokens
+   - no effect on Modern or Neo selectors
+   - existing breakpoints and reduced-motion contract remain authoritative
+   ========================================================================== */
+
+/* ---------- M3.01 Semantic theme tokens ---------------------------------- */
+html[data-style="material3"]{
+  --m3-primary:#006c4c;
+  --m3-on-primary:#ffffff;
+  --m3-primary-container:#8af8c9;
+  --m3-on-primary-container:#002117;
+
+  --m3-secondary:#4d6359;
+  --m3-on-secondary:#ffffff;
+  --m3-secondary-container:#cee9dc;
+  --m3-on-secondary-container:#092018;
+
+  --m3-tertiary:#3d6374;
+  --m3-on-tertiary:#ffffff;
+  --m3-tertiary-container:#c1e8fa;
+  --m3-on-tertiary-container:#001f2a;
+
+  --m3-error:#ba1a1a;
+  --m3-on-error:#ffffff;
+  --m3-error-container:#ffdad6;
+  --m3-on-error-container:#410002;
+
+  --m3-background:#fafdf9;
+  --m3-on-background:#191c1a;
+  --m3-surface:#fafdf9;
+  --m3-on-surface:#191c1a;
+  --m3-surface-variant:#dce5df;
+  --m3-on-surface-variant:#404944;
+  --m3-outline:#707974;
+  --m3-outline-variant:#c0c9c3;
+
+  --m3-surface-container-lowest:#ffffff;
+  --m3-surface-container-low:#f3f6f3;
+  --m3-surface-container:#edefed;
+  --m3-surface-container-high:#e7eae8;
+  --m3-surface-container-highest:#e1e4e2;
+
+  --m3-inverse-surface:#2e312f;
+  --m3-inverse-on-surface:#eff1ee;
+  --m3-inverse-primary:#6cdbad;
+
+  --m3-radius-xs:4px;
+  --m3-radius-sm:8px;
+  --m3-radius-md:12px;
+  --m3-radius-lg:16px;
+  --m3-radius-xl:28px;
+  --m3-radius-full:999px;
+
+  --m3-elevation-0:none;
+  --m3-elevation-1:0 1px 2px rgba(25,28,26,.10),0 1px 3px rgba(25,28,26,.08);
+  --m3-elevation-2:0 2px 6px rgba(25,28,26,.12),0 1px 2px rgba(25,28,26,.08);
+  --m3-elevation-3:0 4px 10px rgba(25,28,26,.14),0 2px 3px rgba(25,28,26,.10);
+
+  --m3-state-hover:rgba(0,108,76,.08);
+  --m3-state-focus:rgba(0,108,76,.12);
+  --m3-state-pressed:rgba(0,108,76,.12);
+
+  --surface:var(--m3-surface);
+  --surface-2:var(--m3-surface-container);
+  --surface-3:var(--m3-surface-container-high);
+  --bg:var(--m3-background);
+  --text:var(--m3-on-surface);
+  --text-soft:var(--m3-on-surface-variant);
+  --muted:var(--m3-on-surface-variant);
+  --line:var(--m3-outline-variant);
+  --line-strong:var(--m3-outline);
+  --accent:var(--m3-primary);
+  --accent-strong:var(--m3-primary);
+  --accent-fill:var(--m3-primary);
+  --on-accent:var(--m3-on-primary);
+  --accent-soft:var(--m3-primary-container);
+  --accent-softer:rgba(0,108,76,.06);
+  --positive:#146c43;
+  --positive-soft:#d8f3e5;
+  --negative:#ba1a1a;
+  --negative-soft:#ffdad6;
+  --warning:#7b5800;
+  --warning-soft:#ffdf9e;
+  --border-w:1px;
+  --radius:var(--m3-radius-lg);
+  --radius-sm:var(--m3-radius-sm);
+  --radius-xs:var(--m3-radius-xs);
+  --shadow:var(--m3-elevation-2);
+  --shadow-soft:var(--m3-elevation-1);
+
+  --m3-body-large:16px;
+  --m3-body-medium:14px;
+  --m3-body-small:12px;
+  --m3-label-large:14px;
+  --m3-label-medium:12px;
+  --m3-title-large:22px;
+  --m3-title-medium:16px;
+  --m3-headline-small:24px;
+  --m3-headline-large:32px;
+}
+
+html[data-theme="dark"][data-style="material3"]{
+  --m3-primary:#6cdbad;
+  --m3-on-primary:#00382a;
+  --m3-primary-container:#00513b;
+  --m3-on-primary-container:#8af8c9;
+
+  --m3-secondary:#b2ccbf;
+  --m3-on-secondary:#1d352b;
+  --m3-secondary-container:#344c42;
+  --m3-on-secondary-container:#cee9dc;
+
+  --m3-tertiary:#a5ccdd;
+  --m3-on-tertiary:#063544;
+  --m3-tertiary-container:#244c5a;
+  --m3-on-tertiary-container:#c1e8fa;
+
+  --m3-error:#ffb4ab;
+  --m3-on-error:#690005;
+  --m3-error-container:#93000a;
+  --m3-on-error-container:#ffdad6;
+
+  --m3-background:#111412;
+  --m3-on-background:#e1e4e1;
+  --m3-surface:#111412;
+  --m3-on-surface:#e1e4e1;
+  --m3-surface-variant:#404944;
+  --m3-on-surface-variant:#c0c9c3;
+  --m3-outline:#8a938d;
+  --m3-outline-variant:#404944;
+
+  --m3-surface-container-lowest:#0c0f0d;
+  --m3-surface-container-low:#191c1a;
+  --m3-surface-container:#1d201e;
+  --m3-surface-container-high:#272b28;
+  --m3-surface-container-highest:#323633;
+
+  --m3-inverse-surface:#e1e4e1;
+  --m3-inverse-on-surface:#2e312f;
+  --m3-inverse-primary:#006c4c;
+
+  --m3-elevation-1:0 1px 2px rgba(0,0,0,.28),0 1px 3px rgba(0,0,0,.20);
+  --m3-elevation-2:0 2px 6px rgba(0,0,0,.30),0 1px 2px rgba(0,0,0,.22);
+  --m3-elevation-3:0 4px 10px rgba(0,0,0,.34),0 2px 3px rgba(0,0,0,.24);
+
+  --m3-state-hover:rgba(108,219,173,.08);
+  --m3-state-focus:rgba(108,219,173,.12);
+  --m3-state-pressed:rgba(108,219,173,.12);
+
+  --positive:#72dda7;
+  --positive-soft:#173b2b;
+  --negative:#ffb4ab;
+  --negative-soft:#5c0b0b;
+  --warning:#e8bd5c;
+  --warning-soft:#4b3a05;
+  --accent-softer:rgba(108,219,173,.07);
+}
+
+/* ---------- M3.02 Accent schemes ----------------------------------------- */
+html[data-style="material3"][data-accent="indigo"]{
+  --m3-primary:#4f46e5;
+  --m3-on-primary:#ffffff;
+  --m3-primary-container:#e0e0ff;
+  --m3-on-primary-container:#17145c;
+  --m3-secondary:#5d5d72;
+  --m3-secondary-container:#e4e1f9;
+  --m3-on-secondary-container:#1a1a2e;
+  --m3-state-hover:rgba(79,70,229,.08);
+  --m3-state-focus:rgba(79,70,229,.12);
+  --m3-state-pressed:rgba(79,70,229,.12);
+}
+html[data-style="material3"][data-accent="amber"]{
+  --m3-primary:#8a5000;
+  --m3-on-primary:#ffffff;
+  --m3-primary-container:#ffddb0;
+  --m3-on-primary-container:#2c1700;
+  --m3-secondary:#735943;
+  --m3-secondary-container:#ffddc2;
+  --m3-on-secondary-container:#29180d;
+  --m3-state-hover:rgba(138,80,0,.08);
+  --m3-state-focus:rgba(138,80,0,.12);
+  --m3-state-pressed:rgba(138,80,0,.12);
+}
+html[data-style="material3"][data-accent="rose"]{
+  --m3-primary:#a61b46;
+  --m3-on-primary:#ffffff;
+  --m3-primary-container:#ffd9e2;
+  --m3-on-primary-container:#3f0017;
+  --m3-secondary:#765662;
+  --m3-secondary-container:#ffd9e3;
+  --m3-on-secondary-container:#2c151d;
+  --m3-state-hover:rgba(166,27,70,.08);
+  --m3-state-focus:rgba(166,27,70,.12);
+  --m3-state-pressed:rgba(166,27,70,.12);
+}
+html[data-style="material3"][data-accent="cyan"]{
+  --m3-primary:#006874;
+  --m3-on-primary:#ffffff;
+  --m3-primary-container:#9eeffd;
+  --m3-on-primary-container:#001f24;
+  --m3-secondary:#4a6267;
+  --m3-secondary-container:#cde7ec;
+  --m3-on-secondary-container:#051f23;
+  --m3-state-hover:rgba(0,104,116,.08);
+  --m3-state-focus:rgba(0,104,116,.12);
+  --m3-state-pressed:rgba(0,104,116,.12);
+}
+
+html[data-theme="dark"][data-style="material3"][data-accent="indigo"]{
+  --m3-primary:#bec2ff;
+  --m3-on-primary:#29277a;
+  --m3-primary-container:#3f3f90;
+  --m3-on-primary-container:#e0e0ff;
+}
+html[data-theme="dark"][data-style="material3"][data-accent="amber"]{
+  --m3-primary:#ffb95c;
+  --m3-on-primary:#472a00;
+  --m3-primary-container:#673e00;
+  --m3-on-primary-container:#ffddb0;
+}
+html[data-theme="dark"][data-style="material3"][data-accent="rose"]{
+  --m3-primary:#ffb0c5;
+  --m3-on-primary:#65002a;
+  --m3-primary-container:#840037;
+  --m3-on-primary-container:#ffd9e2;
+}
+html[data-theme="dark"][data-style="material3"][data-accent="cyan"]{
+  --m3-primary:#83e6f4;
+  --m3-on-primary:#00363d;
+  --m3-primary-container:#004f58;
+  --m3-on-primary-container:#9eeffd;
+}
+html[data-theme="dark"][data-style="material3"]{
+  --accent:var(--m3-primary);
+  --accent-strong:var(--m3-primary);
+  --accent-fill:var(--m3-primary);
+  --on-accent:var(--m3-on-primary);
+  --accent-soft:var(--m3-primary-container);
+}
+
+/* ---------- M3.03 Shell / navigation ------------------------------------- */
+html[data-style="material3"] body{
+  background:var(--m3-background);
+  color:var(--m3-on-background);
+  font-family:var(--font);
+  transition:background .2s ease,color .2s ease;
+}
+html[data-style="material3"] .topbar{
+  background:var(--m3-surface-container);
+  border:1px solid var(--m3-outline-variant);
+  border-radius:var(--m3-radius-lg);
+  box-shadow:var(--m3-elevation-1);
+}
+html[data-style="material3"] .desktop-nav{
+  background:var(--m3-surface-container);
+  border:1px solid var(--m3-outline-variant);
+  border-radius:var(--m3-radius-lg);
+  box-shadow:var(--m3-elevation-1);
+}
+html[data-style="material3"] .nav-button{
+  border:0;
+  border-radius:var(--m3-radius-full);
+  color:var(--m3-on-surface-variant);
+  background:transparent;
+  box-shadow:none;
+  min-height:40px;
+  transition:background .16s ease,color .16s ease,box-shadow .16s ease;
+}
+html[data-style="material3"] .nav-button:hover{
+  background:var(--m3-state-hover);
+  color:var(--m3-on-surface);
+}
+html[data-style="material3"] .nav-button.active{
+  background:var(--m3-primary-container);
+  color:var(--m3-on-primary-container);
+  box-shadow:none;
+}
+html[data-style="material3"] .mobile-nav{
+  background:color-mix(in srgb,var(--m3-surface-container) 94%,transparent);
+  border-top:1px solid var(--m3-outline-variant);
+  box-shadow:0 -2px 8px rgba(0,0,0,.08);
+}
+
+/* ---------- M3.04 Typography --------------------------------------------- */
+html[data-style="material3"] .page-heading h1{
+  font-size:var(--m3-headline-large);
+  line-height:1.2;
+  letter-spacing:-.02em;
+  font-weight:600;
+}
+html[data-style="material3"] .section-heading h2,
+html[data-style="material3"] .workspace-heading h2{
+  font-size:var(--m3-title-large);
+  line-height:1.25;
+  font-weight:600;
+}
+html[data-style="material3"] .eyebrow{
+  color:var(--m3-on-surface-variant);
+  letter-spacing:.08em;
+  font-weight:600;
+}
+html[data-style="material3"] .section-note,
+html[data-style="material3"] .page-heading p{
+  color:var(--m3-on-surface-variant);
+}
+
+/* ---------- M3.05 Surface / card language -------------------------------- */
+html[data-style="material3"] .metric-card,
+html[data-style="material3"] .chart-card,
+html[data-style="material3"] .signal-card,
+html[data-style="material3"] .trade-card,
+html[data-style="material3"] .history-workspace,
+html[data-style="material3"] .signals-workspace,
+html[data-style="material3"] .calendar-workspace,
+html[data-style="material3"] .hero,
+html[data-style="material3"] .release-modal-card{
+  background:var(--m3-surface-container-low);
+  color:var(--m3-on-surface);
+  border:1px solid var(--m3-outline-variant);
+  border-radius:var(--m3-radius-lg);
+  box-shadow:var(--m3-elevation-1);
+}
+html[data-style="material3"] .metric-card:hover,
+html[data-style="material3"] .chart-card:hover,
+html[data-style="material3"] .signal-card:hover,
+html[data-style="material3"] .trade-card:hover{
+  box-shadow:var(--m3-elevation-2);
+  transform:none;
+}
+html[data-style="material3"] .hero{
+  background:var(--m3-surface-container);
+}
+html[data-style="material3"] .section-block{
+  background:transparent;
+}
+
+/* ---------- M3.06 Buttons / controls / chips ------------------------------ */
+html[data-style="material3"] .primary-button,
+html[data-style="material3"] .secondary-button,
+html[data-style="material3"] .text-button,
+html[data-style="material3"] .icon-button,
+html[data-style="material3"] .chip-option{
+  box-shadow:none;
+  transition:background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+html[data-style="material3"] .primary-button{
+  min-height:40px;
+  padding:0 20px;
+  border:0;
+  border-radius:var(--m3-radius-full);
+  background:var(--m3-primary);
+  color:var(--m3-on-primary);
+  font-weight:600;
+}
+html[data-style="material3"] .primary-button:hover{
+  background:color-mix(in srgb,var(--m3-primary) 92%,var(--m3-on-surface));
+  box-shadow:var(--m3-elevation-1);
+}
+html[data-style="material3"] .primary-button:active{box-shadow:none;transform:none}
+html[data-style="material3"] .secondary-button{
+  min-height:40px;
+  padding:0 18px;
+  border:1px solid var(--m3-outline);
+  border-radius:var(--m3-radius-full);
+  background:transparent;
+  color:var(--m3-primary);
+  font-weight:600;
+}
+html[data-style="material3"] .secondary-button:hover{
+  background:var(--m3-state-hover);
+  border-color:var(--m3-primary);
+}
+html[data-style="material3"] .text-button{
+  min-height:40px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--m3-radius-full);
+  background:transparent;
+  color:var(--m3-primary);
+  font-weight:600;
+}
+html[data-style="material3"] .text-button:hover{background:var(--m3-state-hover)}
+html[data-style="material3"] .icon-button{
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:var(--m3-radius-full);
+  background:transparent;
+  color:var(--m3-on-surface-variant);
+}
+html[data-style="material3"] .icon-button:hover{background:var(--m3-state-hover);color:var(--m3-on-surface)}
+html[data-style="material3"] .chip-option{
+  min-height:36px;
+  padding:0 14px;
+  border:1px solid var(--m3-outline);
+  border-radius:var(--m3-radius-full);
+  background:transparent;
+  color:var(--m3-on-surface-variant);
+  font-weight:500;
+}
+html[data-style="material3"] .chip-option:hover{background:var(--m3-state-hover)}
+html[data-style="material3"] .chip-option.active{
+  border-color:var(--m3-primary);
+  background:var(--m3-primary-container);
+  color:var(--m3-on-primary-container);
+}
+html[data-style="material3"] .chip-option:active{background:var(--m3-state-pressed)}
+html[data-style="material3"] button:focus-visible,
+html[data-style="material3"] a:focus-visible,
+html[data-style="material3"] input:focus-visible,
+html[data-style="material3"] select:focus-visible{
+  outline:2px solid var(--m3-primary);
+  outline-offset:2px;
+  box-shadow:0 0 0 4px var(--m3-state-focus);
+}
+
+/* ---------- M3.07 Inputs / data surfaces --------------------------------- */
+html[data-style="material3"] input,
+html[data-style="material3"] select{
+  min-height:40px;
+  border:1px solid var(--m3-outline);
+  border-radius:var(--m3-radius-sm);
+  background:var(--m3-surface-container-lowest);
+  color:var(--m3-on-surface);
+  padding:0 12px;
+}
+html[data-style="material3"] input:hover,
+html[data-style="material3"] select:hover{
+  border-color:var(--m3-on-surface);
+}
+html[data-style="material3"] .workspace-heading,
+html[data-style="material3"] .chart-head,
+html[data-style="material3"] .calendar-agenda-bar{
+  color:var(--m3-on-surface);
+}
+html[data-style="material3"] .empty-state{
+  color:var(--m3-on-surface-variant);
+}
+
+/* ---------- M3.08 Tools — same M3 component language, geometry frozen ---- */
+html[data-style="material3"] #page-tools .tool-card,
+html[data-style="material3"] #page-tools .tools-appearance{
+  background:var(--m3-surface-container-low);
+  border:1px solid var(--m3-outline-variant);
+  border-radius:var(--m3-radius-lg);
+  box-shadow:var(--m3-elevation-1);
+}
+html[data-style="material3"] #page-tools .tool-card>.section-heading,
+html[data-style="material3"] #page-tools .tools-appearance>.section-heading{
+  background:var(--m3-surface-container);
+  border-bottom:1px solid var(--m3-outline-variant);
+}
+html[data-style="material3"] #page-tools .tool-card>.tool-body{
+  background:var(--m3-surface-container-low);
+}
+html[data-style="material3"] #page-tools .account-grid,
+html[data-style="material3"] #page-tools .rule-list,
+html[data-style="material3"] #page-tools .universe-grid,
+html[data-style="material3"] #page-tools .tool-runtime .diagnostic-grid,
+html[data-style="material3"] #page-tools .tool-runtime .schedule-inline,
+html[data-style="material3"] #page-tools .tool-backtest .backtest-controls,
+html[data-style="material3"] #page-tools .tool-backtest .backtest-status{
+  background:var(--m3-surface-container-lowest);
+  border-color:var(--m3-outline-variant);
+  box-shadow:none;
+}
+html[data-style="material3"] #page-tools .collapse-chev{
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+  border:1px solid var(--m3-outline)!important;
+  border-radius:var(--m3-radius-full)!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html[data-style="material3"] #page-tools .collapse-chev:hover{
+  background:var(--m3-state-hover)!important;
+}
+html[data-style="material3"] #page-tools .tools-appearance>.settings-row{
+  background:var(--m3-surface-container-lowest)!important;
+  border-color:var(--m3-outline-variant)!important;
+}
+html[data-style="material3"] #page-tools .asset-category-label{
+  background:var(--m3-surface-container);
+  color:var(--m3-on-surface);
+}
+html[data-style="material3"] #page-tools .asset-category-items>span{
+  border-color:var(--m3-outline-variant)!important;
+}
+
+/* ---------- M3.09 Semantic states ---------------------------------------- */
+html[data-style="material3"] .positive,
+html[data-style="material3"] .buy,
+html[data-style="material3"] .fresh{
+  color:var(--positive);
+}
+html[data-style="material3"] .negative,
+html[data-style="material3"] .sell{
+  color:var(--negative);
+}
+html[data-style="material3"] .warning,
+html[data-style="material3"] .stale{
+  color:var(--warning);
+}
+html[data-style="material3"] .status-badge{
+  border-color:var(--m3-outline-variant);
+  background:var(--m3-surface-container);
+  color:var(--m3-on-surface-variant);
+}
+
+/* ---------- M3.10 Modal -------------------------------------------------- */
+html[data-style="material3"] .release-modal{
+  background:rgba(0,0,0,.42);
+}
+html[data-style="material3"] .release-modal-card{
+  max-width:560px;
+  box-shadow:var(--m3-elevation-3);
+}
+
+/* ---------- M3.11 Reduced motion ---------------------------------------- */
+html[data-style="material3"][data-reduce-motion="true"] *,
+html[data-style="material3"][data-reduce-motion="true"] *::before,
+html[data-style="material3"][data-reduce-motion="true"] *::after{
+  transition:none!important;
+  animation:none!important;
+  scroll-behavior:auto!important;
+}
+
+/* Keep the existing responsive geometry; M3 changes presentation only. */
