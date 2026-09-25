@@ -31,6 +31,10 @@ BUILD = os.getenv(
 DASHBOARD_URL = (
     "https://multibot2-t74l.onrender.com/dashboard"
 )
+ARCHITECTURE_URL = (
+    "https://github.com/apmcshahpurabhitoni-gif/Multibot/blob/main/"
+    "agent/skills/archify/multibot2-architecture.html"
+)
 
 
 logging.basicConfig(
@@ -49,11 +53,13 @@ def telegram_send(
     token: str,
     chat_id: str,
     text: str,
+    parse_mode: str | None = None,
 ) -> None:
     payload = parse.urlencode(
         {
             "chat_id": chat_id,
             "text": text,
+            **({"parse_mode": parse_mode} if parse_mode else {}),
         }
     ).encode()
 
@@ -114,8 +120,8 @@ def startup_message() -> str:
         "/dashboard — Open the live dashboard",
         "/help — Show the command guide",
         "",
-        "🌐 DASHBOARD",
-        f"👉 {DASHBOARD_URL}",
+        f"🔗 <a href=\"{DASHBOARD_URL}\">Dashboard</a>",
+        f"📐 <a href=\"{ARCHITECTURE_URL}\">Architecture</a>",
         BR,
     ]
     return "\n".join(lines)
@@ -149,6 +155,7 @@ def _send_notice(
             token,
             chat_id,
             text,
+            parse_mode="HTML" if label == "startup" else None,
         )
 
         logger.info(
