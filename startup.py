@@ -32,8 +32,7 @@ DASHBOARD_URL = (
     "https://multibot2-t74l.onrender.com/dashboard"
 )
 ARCHITECTURE_URL = (
-    "https://github.com/apmcshahpurabhitoni-gif/Multibot/blob/main/"
-    "agent/skills/archify/multibot2-architecture.html"
+    "https://multibot2-t74l.onrender.com/architecture"
 )
 
 
