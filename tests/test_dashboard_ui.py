@@ -182,3 +182,27 @@ def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scr
         'overflow-wrap:anywhere',
     ):
         assert token in CSS
+
+
+def test_dashboard_pass1_foundation_contract_is_defined_without_migrating_components():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    for token in (
+        "--ui-space-1",
+        "--ui-space-6",
+        "--ui-section-gap",
+        "--ui-grid-gap",
+        "--ui-card-pad",
+        "--ui-control-height",
+        "--ui-radius-medium",
+        "--ui-border-width",
+        "--ui-mobile-nav-height",
+        "--ui-collapse-size",
+        "--ui-collapse-radius",
+        "--ui-collapse-border",
+        "--ui-collapse-icon-size",
+        "--ui-collapse-icon-weight",
+    ):
+        assert token in foundation
+    assert "--ui-collapse-size:40px" in foundation
+    assert "--ui-collapse-radius:10px" in foundation
+    assert "--ui-collapse-icon-size:9px" in foundation
