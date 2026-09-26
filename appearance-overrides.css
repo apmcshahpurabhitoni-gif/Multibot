@@ -49,8 +49,6 @@ html[data-style="neo"] .filter-button,
 html.neo-mode .filter-button,
 html[data-style="neo"] .impact-filter,
 html.neo-mode .impact-filter,
-html[data-style="neo"] .expand-button,
-html.neo-mode .expand-button,
 html[data-style="neo"] .trade-detail-button,
 html.neo-mode .trade-detail-button,
 html[data-style="neo"] .settings-toggle,
@@ -86,7 +84,6 @@ html[data-style="neo"] .text-button:hover,html.neo-mode .text-button:hover,
 html[data-style="neo"] .nav-button:hover,html.neo-mode .nav-button:hover,
 html[data-style="neo"] .filter-button:hover,html.neo-mode .filter-button:hover,
 html[data-style="neo"] .impact-filter:hover,html.neo-mode .impact-filter:hover,
-html[data-style="neo"] .expand-button:hover,html.neo-mode .expand-button:hover,
 html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-button:hover,
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
 html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
@@ -100,7 +97,6 @@ html[data-style="neo"] .text-button:active,html.neo-mode .text-button:active,
 html[data-style="neo"] .nav-button:active,html.neo-mode .nav-button:active,
 html[data-style="neo"] .filter-button:active,html.neo-mode .filter-button:active,
 html[data-style="neo"] .impact-filter:active,html.neo-mode .impact-filter:active,
-html[data-style="neo"] .expand-button:active,html.neo-mode .expand-button:active,
 html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-button:active,
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
 html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
@@ -878,242 +874,7 @@ html.neo-mode .empty-state{border-width:2px!important}
 #page-calendar .currency-code,#page-calendar .impact-pill{
   flex:none!important;min-height:28px!important;display:inline-flex!important;align-items:center!important;
 }
-#page-calendar .calendar-meta .expand-button{
-  width:40px!important;height:40px!important;min-width:40px!important;margin-left:auto!important;
-  border-radius:var(--ui-control-r)!important;
-}
-#page-calendar .calendar-title{
-  display:block!important;min-width:0!important;margin:0 50px 9px 76px!important;
-  font-size:13px!important;line-height:1.3!important;font-weight:700!important;overflow-wrap:anywhere!important;
-}
-#page-calendar .calendar-details{
-  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;
-  margin:0 10px 10px 76px!important;padding:7px 0 0!important;border-top:var(--ui-border)!important;
-}
-#page-calendar .calendar-details>span{
-  min-width:0!important;padding:6px 8px!important;border:var(--ui-border)!important;
-  border-radius:var(--ui-control-r)!important;background:var(--surface-2)!important;font-size:9.5px!important;
-}
-#page-calendar .calendar-details b{font-size:10.5px!important}
-@media(max-width:560px){
-  #page-calendar .calendar-agenda-status{padding:9px 12px!important;align-items:stretch!important}
-  #page-calendar .calendar-agenda-status .inline-status{min-height:34px!important}
-  #page-calendar .calendar-source{align-self:center!important}
-  #page-calendar .calendar-summary-grid{padding:8px!important;gap:8px!important}
-  #page-calendar .calendar-summary-grid .metric-card{min-height:56px!important;padding:8px 10px!important}
-  #page-calendar .calendar-date-list{padding:8px!important}
-  #page-calendar .calendar-date-toggle{min-height:64px!important;margin-bottom:8px!important}
-  #page-calendar .calendar-date-toggle i{width:40px!important;height:40px!important}
-  #page-calendar .calendar-meta{min-height:50px!important;padding:8px 9px 4px!important;gap:7px!important}
-  #page-calendar .calendar-time-value{flex-basis:56px!important;font-size:13px!important}
-  #page-calendar .calendar-title{margin:0 48px 9px 72px!important;font-size:13px!important}
-  #page-calendar .calendar-details{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-left:72px!important;margin-right:9px!important}
-  #page-calendar .calendar-details>span{padding:6px!important}
-}
-@media(max-width:390px){
-  #page-calendar .calendar-agenda-status{flex-wrap:wrap!important}
-  #page-calendar .calendar-status{flex-basis:100%!important}
-  #page-calendar .calendar-source{margin-left:0!important}
-  #page-calendar .calendar-summary-grid .metric-card{padding-inline:8px!important}
-  #page-calendar .calendar-meta .impact-pill{display:none!important}
-  #page-calendar .calendar-title{margin-left:69px!important}
-  #page-calendar .calendar-details{grid-template-columns:1fr!important;margin-left:69px!important}
-}
-
-
-/* ==========================================================================
-   CALENDAR COMPACT V2
-   History / Signals are the geometry reference. Calendar content is dense:
-   no oversized rows, no oversized type, no large empty status/source area.
-   ========================================================================== */
-
-/* Status/source area: compact, contained, never allowed to create a tall blank panel. */
-#page-calendar #calendarStatus{
-  min-width:0!important;
-  min-height:44px!important;
-  height:44px!important;
-  margin:0!important;
-  padding:6px 12px!important;
-  display:flex!important;
-  align-items:center!important;
-  overflow:hidden!important;
-}
-#page-calendar #calendarStatus .inline-status{
-  min-width:0!important;
-  width:100%!important;
-  min-height:32px!important;
-  height:32px!important;
-  padding:6px 10px!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:7px!important;
-  overflow:hidden!important;
-}
-#page-calendar #calendarStatus .inline-status b{
-  flex:none!important;
-  font-size:10.5px!important;
-}
-#page-calendar #calendarStatus .inline-status small{
-  min-width:0!important;
-  flex:1 1 auto!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  white-space:nowrap!important;
-  font-size:10.5px!important;
-  line-height:1.2!important;
-}
-
-/* The provider/source link should be a small footer row, not an empty half-card. */
-#page-calendar .calendar-source{
-  min-height:36px!important;
-  height:36px!important;
-  margin:0!important;
-  padding:0 16px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  border-bottom:var(--ui-border)!important;
-}
-#page-calendar .calendar-source a,
-#page-calendar .calendar-source button{
-  min-height:28px!important;
-  padding:4px 0!important;
-  font-size:11px!important;
-}
-
-/* Summary metrics follow History's compact metric geometry. */
-#page-calendar .calendar-summary-grid{
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:8px!important;
-  padding:8px 12px!important;
-}
-#page-calendar .calendar-summary-grid .metric-card{
-  min-height:46px!important;
-  height:46px!important;
-  padding:7px 10px!important;
-  border-radius:12px!important;
-  box-shadow:none!important;
-}
-#page-calendar .calendar-summary-grid .metric-card span{
-  font-size:10.5px!important;
-  line-height:1.15!important;
-  letter-spacing:.045em!important;
-}
-#page-calendar .calendar-summary-grid .metric-card strong{
-  font-size:13px!important;
-}
-
-/* Agenda heading = same density as History section headings. */
-#page-calendar .calendar-agenda-bar{
-  min-height:50px!important;
-  height:50px!important;
-  padding:10px 14px!important;
-}
-#page-calendar .calendar-agenda-bar .eyebrow{
-  font-size:10.5px!important;
-}
-#page-calendar .calendar-agenda-bar .workspace-count{
-  font-size:11px!important;
-}
-
-/* Date group: compact 52px row, exactly like Signals / History. */
-#page-calendar .calendar-date-list{
-  padding:8px!important;
-}
-#page-calendar .calendar-date-group{
-  margin:0 0 8px!important;
-}
-#page-calendar .calendar-date-toggle{
-  min-height:52px!important;
-  height:52px!important;
-  margin:0!important;
-  padding:8px 12px!important;
-  border-radius:12px!important;
-  box-shadow:none!important;
-}
-#page-calendar .calendar-date-toggle span{
-  min-width:0!important;
-  display:grid!important;
-  gap:2px!important;
-}
-#page-calendar .calendar-date-toggle b{
-  font-size:12.5px!important;
-  line-height:1.15!important;
-  font-weight:700!important;
-}
-#page-calendar .calendar-date-toggle small{
-  font-size:10.5px!important;
-  line-height:1.15!important;
-}
-#page-calendar .calendar-date-toggle i{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  border-radius:11px!important;
-}
-
-/* Collapsed event: compact two-row card, not a large panel. */
-#page-calendar .calendar-date-events{
-  gap:7px!important;
-  padding:7px 0 0!important;
-}
-#page-calendar .calendar-item{
-  min-height:0!important;
-  height:auto!important;
-  padding:0!important;
-  border-radius:12px!important;
-  box-shadow:none!important;
-  overflow:hidden!important;
-}
-#page-calendar .calendar-event{
-  min-width:0!important;
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr)!important;
-}
-#page-calendar .calendar-meta{
-  min-width:0!important;
-  min-height:40px!important;
-  height:40px!important;
-  margin:0!important;
-  padding:6px 9px 3px!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:7px!important;
-}
-#page-calendar .calendar-time-value{
-  flex:0 0 54px!important;
-  width:54px!important;
-  font-size:12.5px!important;
-  line-height:1!important;
-  font-weight:700!important;
-}
-#page-calendar .calendar-meta .news-dot{
-  width:8px!important;
-  height:8px!important;
-  min-width:8px!important;
-}
-#page-calendar .currency-code,
-#page-calendar .impact-pill{
-  min-height:26px!important;
-  height:26px!important;
-  padding:5px 9px!important;
-  border-radius:9px!important;
-  font-size:10.5px!important;
-  line-height:1!important;
-}
-#page-calendar .calendar-meta .expand-button{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  min-height:36px!important;
-  margin-left:auto!important;
-  border-radius:11px!important;
-}
-#page-calendar .calendar-meta .expand-button::before{
-  width:8px!important;
-  height:8px!important;
-  border-width:2px!important;
-}
+#page-calendar .calendar-meta .expand-button{margin-left:auto!important}
 
 /* Event title stays inside the card and uses the same text scale as History rows. */
 #page-calendar .calendar-title,
