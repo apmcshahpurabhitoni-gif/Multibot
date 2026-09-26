@@ -206,3 +206,26 @@ def test_dashboard_pass1_foundation_contract_is_defined_without_migrating_compon
     assert "--ui-collapse-size:40px" in foundation
     assert "--ui-collapse-radius:10px" in foundation
     assert "--ui-collapse-icon-size:9px" in foundation
+
+
+def test_dashboard_pass2_uses_one_collapse_control_contract():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+    live=(ROOT / "dashboard-live-wiring.js").read_text(encoding="utf-8")
+    styles=(ROOT / "styles.css").read_text(encoding="utf-8")
+    assert ".collapse-control::after" in foundation
+    assert "transform:translateY(-2px) rotate(45deg)" in foundation
+    assert "rotate(180deg)" not in foundation
+    assert "rotate(180deg)" not in styles
+    assert "aria-hidden=\"true\" tabindex=\"-1\"" not in app
+    assert "class=\"collapse-chev" not in html
+    assert "class=\"chev collapse-control\"" not in app
+    assert "class=\"chev collapse-control\"" not in live
+    assert "collapse-control" in html
+
+
+def test_dashboard_pass2_tool_controls_are_semantic_buttons():
+    html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
+    assert "<button class=\"collapse-control\" type=\"button\"" in html
+    assert "aria-expanded=\"false\"" in html
