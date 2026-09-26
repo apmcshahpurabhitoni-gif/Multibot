@@ -54,7 +54,7 @@ All collapsible UI will converge on one control contract:
 - aria-expanded reflects state
 - reduced-motion must be respected
 
-Pass 1 defines these tokens. Pass 2 migrates existing controls to them.
+The contract is active. Existing collapsible controls are migrated to it; future controls must use the same class and tokens.
 
 ## App shell
 
