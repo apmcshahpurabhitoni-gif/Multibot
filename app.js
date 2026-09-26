@@ -59,7 +59,7 @@ function renderHistoryScanRow(row){
     </div>
   </article>`;
 }
-function renderHistoryDateGroups(rows,kind){const groups=new Map();rows.forEach(row=>{const date=dateKey(kind==="trade"?tradeDateValue(row.trade):scanDateValue(row.scan));if(!groups.has(date))groups.set(date,[]);groups.get(date).push(row);});const ordered=[...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0])),openSet=kind==="trade"?state.historyTradeDates:state.historyScanDates;if(!state.groupInit.has(kind)){state.groupInit.add(kind);if(!openSet.size&&ordered[0]&&kind==="trade")openSet.add(historyDateKey(kind,ordered[0][0]));}return ordered.map(([date,items])=>{const key=historyDateKey(kind,date),open=openSet.has(key),noun=kind==="trade"?"trade":"scan";return `<section class="history-date-group ${open?"is-open":""}"><button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(dateLabel(date))}</b><small>${items.length} ${noun}${items.length===1?"":"s"}</small></span><i aria-hidden="true" class="collapse-control"></i></button>${open?`<div class="history-date-rows">${kind==="trade"?items.map(row=>renderTradeRow(row.trade,row.index)).join(""):items.map(row=>renderHistoryScanRow(row.scan)).join("")}</div>`:""}</section>`;}).join("");}
+function renderHistoryDateGroups(rows,kind){const groups=new Map();rows.forEach(row=>{const date=dateKey(kind==="trade"?tradeDateValue(row.trade):scanDateValue(row.scan));if(!groups.has(date))groups.set(date,[]);groups.get(date).push(row);});const ordered=[...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0])),openSet=kind==="trade"?state.historyTradeDates:state.historyScanDates;if(!state.groupInit.has(kind)){state.groupInit.add(kind);if(!openSet.size&&ordered[0]&&kind==="trade")openSet.add(historyDateKey(kind,ordered[0][0]));}return ordered.map(([date,items])=>{const key=historyDateKey(kind,date),open=openSet.has(key),noun=kind==="trade"?"trade":"scan";return `<section class="history-date-group ${open?"is-open":""}"><button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(dateLabel(date))}</b><small>${items.length} ${noun}${items.length===1?"":"s"}</small></span><i aria-hidden="true" class="collapse-control ${open?"is-open":""}"></i></button>${open?`<div class="history-date-rows">${kind==="trade"?items.map(row=>renderTradeRow(row.trade,row.index)).join(""):items.map(row=>renderHistoryScanRow(row.scan)).join("")}</div>`:""}</section>`;}).join("");}
 function renderOpenHistoryRow(trade,index){
   const plan=trade?.plan||trade;
   const side=String(plan.side||trade.type||"").toUpperCase();
@@ -163,7 +163,7 @@ function calendarDateGroups(days){
     return `<section class="calendar-date-group ${open?"is-open":""}">
       <button class="calendar-date-toggle" type="button" data-calendar-date-group="${escapeHtml(key)}" aria-expanded="${open}">
         <span><b>${today}${escapeHtml(day.label||dateLabel(day.date))}</b><small>${items.length} scheduled event${items.length===1?"":"s"} · High ${number(day.counts?.high,0)} · Medium ${number(day.counts?.medium,0)}</small></span>
-        <i aria-hidden="true" class="collapse-control"></i>
+        <i aria-hidden="true" class="collapse-control ${open?"is-open":""}"></i>
       </button>
       ${open?`<div class="calendar-date-events">${calendarTimeline(items)}</div>`:""}
     </section>`;
