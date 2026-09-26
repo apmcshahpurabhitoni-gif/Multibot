@@ -90,8 +90,7 @@ html[data-style="neo"] .expand-button:hover,html.neo-mode .expand-button:hover,
 html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-button:hover,
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
 html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
-html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover,
-html[data-style="neo"] .collapse-chev:hover,html.neo-mode .collapse-chev:hover{
+html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover{
   transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button:active,html.neo-mode .primary-button:active,
@@ -105,35 +104,8 @@ html[data-style="neo"] .expand-button:active,html.neo-mode .expand-button:active
 html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-button:active,
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
 html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
-html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active,
-html[data-style="neo"] .collapse-chev:active,html.neo-mode .collapse-chev:active{
+html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active{
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
-}
-
-/* Ponytail: tool collapsers use the same 30px interactive control as date-group toggles. */
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev{
-  width:30px!important;
-  height:30px!important;
-  min-width:30px!important;
-  min-height:30px!important;
-  padding:0!important;
-  border:2px solid var(--line-strong)!important;
-  border-radius:8px!important;
-  box-shadow:2px 2px 0 var(--line-strong)!important;
-  background:var(--surface)!important;
-  transform:translate(0,0);
-  transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading:hover .collapse-chev{
-  transform:translate(-1px,-1px)!important;
-  box-shadow:3px 3px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev:active,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev:active{
-  transform:translate(2px,2px)!important;
-  box-shadow:0 0 0 var(--line-strong)!important;
 }
 
 /* --- Reduced motion + compact mirrors --- */
@@ -339,28 +311,7 @@ button,input,select{font-family:var(--font)}
   line-height:1!important;
 }
 
-.icon-button,
-.expand-button{
-  width:var(--ui-control-h)!important;
-  height:var(--ui-control-h)!important;
-  min-width:var(--ui-control-h)!important;
-  min-height:var(--ui-control-h)!important;
-  border-radius:var(--ui-control-r)!important;
-}
-
-.expand-button{
-  font-size:0!important;
-}
-.expand-button::before{
-  content:"";
-  width:9px;height:9px;
-  border-right:2px solid currentColor;
-  border-bottom:2px solid currentColor;
-  transform:rotate(45deg) translate(-1px,-1px);
-  transition:transform .18s ease;
-}
-.expand-button.is-open::before{transform:rotate(225deg) translate(-1px,-1px)}
-html[data-reduce-motion="true"] .expand-button::before{transition:none}
+.icon-button{width:var(--ui-control-h)!important;height:var(--ui-control-h)!important;min-width:var(--ui-control-h)!important;min-height:var(--ui-control-h)!important;border-radius:var(--ui-control-r)!important}
 
 /* ---------- Shared pills/status contract -------------------------------- */
 .status-badge,
