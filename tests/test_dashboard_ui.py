@@ -246,3 +246,11 @@ def test_dashboard_pass2_tool_controls_are_semantic_buttons():
     html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
     assert "<button class=\"collapse-control\" type=\"button\"" in html
     assert "aria-expanded=\"false\"" in html
+
+
+def test_all_date_group_collapse_controls_receive_open_state_class():
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+    live=(ROOT / "dashboard-live-wiring.js").read_text(encoding="utf-8")
+    marker='<i aria-hidden="true" class="collapse-control ${open?"is-open":""}"></i>'
+    assert app.count(marker) == 3
+    assert live.count(marker) == 1
