@@ -1714,105 +1714,66 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
 
 
 /* ==========================================================================
-   COLLAPSIBLE CONTROL — THEME-ONLY OVERRIDE
-   Geometry is frozen in foundation.css. Themes may change visual treatment,
-   never size/radius/border type. This final compatibility layer neutralizes
-   legacy page-specific collapse sizing left from earlier UI passes.
+   COLLAPSIBLE CONTROL — SINGLE VISUAL/STATE CONTRACT
+   Geometry comes from foundation.css. This layer supplies only theme
+   appearance plus the shared state selectors used by every expandable family.
    ========================================================================== */
-.collapse-control,
-.expand-button,
-.signal-date-toggle > .chev,
-.history-date-toggle > .chev,
-.calendar-date-toggle > .chev,
-.trade-date-toggle > .chev,
-
-
 html[data-style="neo"] .collapse-control,
 html.neo-mode .collapse-control{
   border:2px solid var(--line-strong)!important;
   border-radius:var(--ui-collapse-radius)!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control:hover,
 html.neo-mode .collapse-control:hover{
-  transform:translate(-1px,-1px)!important;
+  transform:none!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control:active,
 html.neo-mode .collapse-control:active{
-  transform:translate(2px,2px)!important;
+  transform:none!important;
   box-shadow:0 0 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control::after,
 html.neo-mode .collapse-control::after{
   border-right-width:2px!important;
   border-bottom-width:2px!important;
 }
 
-/* No legacy page is allowed to resize the shared collapse control. */
-#page-calendar .calendar-date-toggle i.collapse-control,
-#page-calendar .calendar-meta .expand-button.collapse-control,
-#page-signals .signal-date-toggle .collapse-control,
-#page-history .history-date-toggle .collapse-control{
-  width:var(--ui-collapse-size)!important;
-  height:var(--ui-collapse-size)!important;
-  min-width:var(--ui-collapse-size)!important;
-  min-height:var(--ui-collapse-size)!important;
-  border-radius:var(--ui-collapse-radius)!important;
+/* All date-group families share one 52px row and one 40px control. */
+#page-signals .signal-date-toggle,
+#page-history .history-date-toggle,
+#page-calendar .calendar-date-toggle{
+  min-height:52px!important;
+  height:52px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:8px 12px!important;
+  border-radius:var(--ui-inner-r)!important;
 }
-
-/* --------------------------------------------------------------------------
-   Canonical collapse-control compatibility layer.
-   Restores the complete appearance layer while enforcing the active
-   ExpandableControl geometry from foundation.css.
-   -------------------------------------------------------------------------- */
-.collapse-control{
-  box-sizing:border-box!important;
+#page-signals .signal-date-toggle .collapse-control,
+#page-history .history-date-toggle .collapse-control,
+#page-calendar .calendar-date-toggle .collapse-control{
   width:var(--ui-collapse-size)!important;
   min-width:var(--ui-collapse-size)!important;
   max-width:var(--ui-collapse-size)!important;
   height:var(--ui-collapse-size)!important;
   min-height:var(--ui-collapse-size)!important;
   max-height:var(--ui-collapse-size)!important;
-  flex:0 0 var(--ui-collapse-size)!important;
-  margin:0!important;
-  padding:0!important;
-  border:var(--ui-collapse-border)!important;
   border-radius:var(--ui-collapse-radius)!important;
-  display:grid!important;
-  place-items:center!important;
-  position:relative!important;
-  transform:none!important;
-  overflow:hidden!important;
-  cursor:pointer;
 }
-.collapse-control::before{
-  content:none!important;
-  display:none!important;
-  transform:none!important;
-}
+
+/* The state owner differs by markup, but the visual state is identical:
+   Tools uses the control's aria-expanded; date groups use the parent button. */
 .collapse-control::after{
-  content:""!important;
-  width:var(--ui-collapse-icon-size)!important;
-  height:var(--ui-collapse-icon-size)!important;
-  box-sizing:border-box!important;
-  border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
-  border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
-  display:block!important;
   transform:translateY(-2px) rotate(45deg)!important;
-  transition:transform 160ms ease!important;
 }
 .collapse-control.is-open::after,
-[aria-expanded="true"].collapse-control::after{
+[aria-expanded="true"].collapse-control::after,
+[aria-expanded="true"] > .collapse-control::after{
   transform:translateY(2px) rotate(-135deg)!important;
-}
-.expand-button.collapse-control{
-  appearance:none!important;
-  -webkit-appearance:none!important;
 }
 html[data-reduce-motion="true"] .collapse-control::after{
   transition:none!important;
 }
+
