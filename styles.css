@@ -342,10 +342,6 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .filter-button:hover,.impact-filter:hover,.trade-tab:hover,.history-tab:hover,.signal-tab:hover{color:var(--text);border-color:var(--line-strong);transform:translateY(-1px)}
 .filter-button:active,.impact-filter:active,.trade-tab:active,.history-tab:active,.signal-tab:active{transform:translateY(0) scale(.97)}
 .filter-button.active,.impact-filter.active,.trade-tab.active,.signal-tab.active,.history-tab.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
-.expand-button{display:grid;place-items:center;flex:none;color:var(--text-soft)}
-.expand-button:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong)}
-.expand-button.is-open{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
-.expand-button:hover{background:var(--accent-soft);color:var(--accent-strong)}
 
 /* ---------- 9b. Unified chevron: one glyph for every collapsible ----------- */
 /* Chevron glyph geometry is owned by foundation.css .collapse-control. */
@@ -357,8 +353,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .signal-card.incomplete{border-left-color:var(--warning)}
 .signal-card.incomplete .signal-side{color:var(--warning)}
 .card-main{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;min-height:44px;cursor:pointer;border-radius:inherit;transition:background .15s ease,transform .15s ease}
-.card-main:hover{background:var(--surface-2)}
-.card-main:hover .expand-button{border-color:var(--accent);color:var(--accent-strong)}
+.card-main:hover{background:var(--surface-2)}.card-main:hover .expand-button{border-color:var(--accent);color:var(--accent-strong)}
 .card-main:active{transform:scale(.995)}
 .signal-leading{display:flex;align-items:center;gap:12px;min-width:0}
 .direction-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;background:var(--surface-2);font-size:10px}
@@ -483,8 +478,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .impact-pill.high{color:var(--negative);background:var(--negative-soft)}
 .impact-pill.medium{color:var(--warning);background:var(--warning-soft)}
 .impact-pill.low{color:var(--muted);background:var(--surface-2)}
-.impact-pill.holiday{color:var(--accent-strong);background:var(--accent-soft)}
-.calendar-meta .expand-button{margin-left:auto;width:32px;height:32px}
+.impact-pill.holiday{color:var(--accent-strong);background:var(--accent-soft)}.calendar-meta .expand-button{margin-left:auto;}
 .calendar-title{display:block!important;margin:2px 40px 0 55px;font-size:11.5px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
 .calendar-details{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 0 55px;padding-top:6px;border-top:1px solid var(--line)}
 .calendar-details>span{font-size:10px;color:var(--muted);white-space:nowrap}
@@ -700,9 +694,7 @@ body.drawer-open{overflow:hidden}
 .empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:2px dashed var(--line-strong);border-radius:var(--radius-sm);background:var(--surface)}
 .empty-state span{font-size:20px;color:var(--accent-strong)}
 .empty-state strong{font-size:14px;font-weight:850}
-.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}
-
-/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
+.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
 html[data-style="neo"] .primary-button,
 html[data-style="neo"] .secondary-button,
 html[data-style="neo"] .icon-button,
@@ -710,13 +702,12 @@ html[data-style="neo"] .text-button,
 html[data-style="neo"] .nav-button,
 html[data-style="neo"] .filter-button,
 html[data-style="neo"] .impact-filter,
-html[data-style="neo"] .expand-button,
 html[data-style="neo"] .settings-toggle,
 html[data-style="neo"] .trade-detail-button,
 html[data-style="neo"] .appearance-option,
 html[data-style="neo"] select,
 html[data-style="neo"] input{
-  border:2px solid var(--line-strong)!important;border-radius:7px!important;box-shadow:3px 3px 0 var(--line-strong);
+  border:2px solid var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button{background:var(--accent-fill);color:var(--on-accent);border-color:var(--line-strong)!important}
 html[data-style="neo"] .nav-button.active,
@@ -752,28 +743,6 @@ html[data-style="neo"] .scan-history-row,
 html[data-style="neo"] .calendar-item{
   border:2px solid var(--line-strong)!important;border-radius:8px!important;box-shadow:3px 3px 0 var(--line-strong);
 }
-html[data-style="neo"] .primary-button:hover,
-html[data-style="neo"] .secondary-button:hover,
-html[data-style="neo"] .icon-button:hover,
-html[data-style="neo"] .text-button:hover,
-html[data-style="neo"] .nav-button:hover,
-html[data-style="neo"] .filter-button:hover,
-html[data-style="neo"] .impact-filter:hover,
-html[data-style="neo"] .expand-button:hover,
-html[data-style="neo"] .settings-toggle:hover,
-html[data-style="neo"] .trade-detail-button:hover,
-html[data-style="neo"] .appearance-option:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important}
-html[data-style="neo"] .primary-button:active,
-html[data-style="neo"] .secondary-button:active,
-html[data-style="neo"] .icon-button:active,
-html[data-style="neo"] .text-button:active,
-html[data-style="neo"] .nav-button:active,
-html[data-style="neo"] .filter-button:active,
-html[data-style="neo"] .impact-filter:active,
-html[data-style="neo"] .expand-button:active,
-html[data-style="neo"] .settings-toggle:active,
-html[data-style="neo"] .trade-detail-button:active,
-html[data-style="neo"] .appearance-option:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important}
 html[data-style="neo"] .metric-card strong,
 html[data-style="neo"] .tool-card h2,
 html[data-style="neo"] .section-block h2,
@@ -1883,15 +1852,14 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   border-radius:8px!important;
   font-size:10px!important;
   line-height:1!important;
-}
-#page-calendar .calendar-meta .expand-button{
+}#page-calendar .calendar-meta .expand-button{
   flex:0 0 34px!important;
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
+  
+  
+  min-
+  min-
   margin-left:auto!important;
-  border-radius:10px!important;
+  
 }
 #page-calendar .calendar-meta 
 /* Event title is now a first-class hierarchy level.
@@ -2011,11 +1979,10 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   }
   #page-calendar .calendar-meta .impact-pill{
     display:inline-flex!important;
-  }
-  #page-calendar .calendar-meta .expand-button{
-    width:32px!important;
-    height:32px!important;
-    min-width:32px!important;
+  }#page-calendar .calendar-meta .expand-button{
+    
+    
+    min-
   }
   #page-calendar .calendar-details{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
