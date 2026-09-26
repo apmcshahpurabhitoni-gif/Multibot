@@ -171,13 +171,10 @@ main{
   max-width:100%;
   overflow-wrap:anywhere;
   word-break:break-word;
-}
-
-/* ---------- Shared control contract -------------------------------------- */
+}/* ---------- Shared control contract -------------------------------------- */
 .secondary-button,
 .primary-button,
 .icon-button,
-.expand-button,
 .filter-button,
 .impact-filter,
 .trade-tab,
@@ -478,11 +475,6 @@ html[data-reduce-motion="true"] .page.active{
 #page-overview .overview-signals .direction-icon{
   width:22px;
   height:22px;
-}
-
-#page-overview .overview-signals .expand-button{
-  width:30px;
-  height:30px;
 }
 
 #page-overview .overview-signals .expand-content{
@@ -2597,12 +2589,11 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   }
   #page-signals .signal-date-rows .card-state{
     gap:8px!important;
-  }
-  #page-signals .signal-date-rows .expand-button{
-    width:40px!important;
-    height:40px!important;
-    min-width:40px!important;
-    min-height:40px!important;
+  }#page-signals .signal-date-rows .expand-button{
+    
+    
+    min-
+    min-
   }
 }
 @media(hover:none){
@@ -2618,13 +2609,12 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     min-height:56px!important;
     height:56px!important;
     padding:7px 9px!important;
-  }
-  #page-signals .signal-date-rows .expand-button{
-    width:34px!important;
-    height:34px!important;
-    min-width:34px!important;
-    min-height:34px!important;
-    border-radius:8px!important;
+  }#page-signals .signal-date-rows .expand-button{
+    
+    
+    min-
+    min-
+    
   }
   #page-signals .signal-date-rows .direction-icon{
     width:26px!important;
@@ -2727,13 +2717,12 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     font-size:10px!important;
     min-height:22px!important;
     padding:2px 8px!important;
-  }
-  #page-signals .signal-date-rows .expand-button{
-    width:40px!important;
-    height:40px!important;
-    min-width:40px!important;
-    min-height:40px!important;
-    border-radius:8px!important;
+  }#page-signals .signal-date-rows .expand-button{
+    
+    
+    min-
+    min-
+    
   }
 
   /* Expanded data keeps the same label/value hierarchy: label muted,
@@ -2819,13 +2808,12 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     min-height:20px!important;
     padding:2px 7px!important;
     font-size:9.5px!important;
-  }
-  #page-signals .signal-date-rows .expand-button{
-    width:34px!important;
-    height:34px!important;
-    min-width:34px!important;
-    min-height:34px!important;
-    border-radius:8px!important;
+  }#page-signals .signal-date-rows .expand-button{
+    
+    
+    min-
+    min-
+    
   }
 
   /* Two columns of complete label/value pairs. Both label and value start
