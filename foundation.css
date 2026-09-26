@@ -3414,10 +3414,14 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 /* ---------- Pass 2: canonical ExpandableControl -------------------------- */
 .collapse-control{position:relative;display:grid;place-items:center;box-sizing:border-box;width:var(--ui-collapse-size)!important;height:var(--ui-collapse-size)!important;min-width:var(--ui-collapse-size)!important;min-height:var(--ui-collapse-size)!important;flex:0 0 var(--ui-collapse-size)!important;border:var(--ui-collapse-border)!important;border-radius:var(--ui-collapse-radius)!important;background:var(--surface-2);color:var(--text-soft);transform:none!important;transition:background .15s ease,color .15s ease,border-color .15s ease}
 .collapse-control::after{content:"";width:var(--ui-collapse-icon-size);height:var(--ui-collapse-icon-size);box-sizing:border-box;border-right:var(--ui-collapse-icon-weight) solid currentColor;border-bottom:var(--ui-collapse-icon-weight) solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s ease}
-.collapse-control.is-open::after,.is-open > .collapse-control::after,.is-open .collapse-control::after{transform:translateY(2px) rotate(-135deg)}
+.collapse-control.is-open::after,.collapse-control[aria-expanded="true"]::after,.is-open > .collapse-control::after,.is-open .collapse-control::after,[aria-expanded="true"] > .collapse-control::after{transform:translateY(2px) rotate(-135deg)}
 .collapse-control:hover,.collapse-control:focus-visible{color:var(--accent-strong);border-color:var(--accent)!important;background:var(--accent-soft)}
 .collapse-control:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.collapse-control,.collapse-control::after{transition:none!important}}
 html[data-style="neo"] .collapse-control,html.neo-mode .collapse-control{border:2px solid var(--line-strong)!important;border-radius:var(--ui-collapse-radius)!important;box-shadow:2px 2px 0 var(--line-strong)}
 html[data-style="neo"] .collapse-control:hover,html[data-style="neo"] .collapse-control:focus-visible,html.neo-mode .collapse-control:hover,html.neo-mode .collapse-control:focus-visible{transform:none!important;box-shadow:3px 3px 0 var(--line-strong)}
 html[data-style="neo"] .collapse-control:active,html.neo-mode .collapse-control:active{transform:none!important;box-shadow:0 0 0 var(--line-strong)}
+
+/* Shared date-group contract: Signals, History and Calendar use the same row/control geometry. */
+#page-signals .signal-date-toggle,#page-history .history-date-toggle,#page-calendar .calendar-date-toggle{min-height:52px;height:52px;width:100%;}
+#page-signals .signal-date-toggle .collapse-control,#page-history .history-date-toggle .collapse-control,#page-calendar .calendar-date-toggle .collapse-control{width:var(--ui-collapse-size);min-width:var(--ui-collapse-size);max-width:var(--ui-collapse-size);height:var(--ui-collapse-size);min-height:var(--ui-collapse-size);max-height:var(--ui-collapse-size);}
