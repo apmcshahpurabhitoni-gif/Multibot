@@ -32,6 +32,35 @@
   /* Fixed navigation clearance */
   --f-mobile-nav-h:60px;
   --f-mobile-nav-clearance:76px;
+
+  /* Canonical UI contract — migration aliases for later component passes.
+     Existing --f-* values remain the current runtime contract in Pass 1. */
+  --ui-space-1:var(--f-space-1);
+  --ui-space-2:var(--f-space-2);
+  --ui-space-3:var(--f-space-3);
+  --ui-space-4:var(--f-space-4);
+  --ui-space-5:var(--f-space-5);
+  --ui-space-6:var(--f-space-6);
+  --ui-section-gap:var(--f-section-gap);
+  --ui-grid-gap:var(--f-grid-gap);
+  --ui-card-gap:var(--f-card-gap);
+  --ui-section-pad:var(--f-section-pad);
+  --ui-card-pad:var(--f-card-pad);
+  --ui-control-height:var(--f-control-h);
+  --ui-content-max:var(--f-content-max);
+  --ui-radius-medium:var(--f-radius);
+  --ui-radius-small:var(--f-radius-sm);
+  --ui-border-width:var(--f-border-w);
+  --ui-mobile-nav-height:var(--f-mobile-nav-h);
+  --ui-mobile-nav-clearance:var(--f-mobile-nav-clearance);
+
+  /* Final ExpandableControl geometry. Pass 1 defines the contract only;
+     component migration happens in Pass 2. */
+  --ui-collapse-size:40px;
+  --ui-collapse-radius:10px;
+  --ui-collapse-border:1px solid var(--line);
+  --ui-collapse-icon-size:9px;
+  --ui-collapse-icon-weight:2px;
 }
 
 /* ---------- Geometry reset ------------------------------------------------ */
