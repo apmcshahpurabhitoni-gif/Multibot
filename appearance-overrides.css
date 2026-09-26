@@ -1765,14 +1765,6 @@ html.neo-mode .collapse-control::after{
 
 /* The state owner differs by markup, but the visual state is identical:
    Tools uses the control's aria-expanded; date groups use the parent button. */
-.collapse-control::after{
-  transform:translateY(-2px) rotate(45deg)!important;
-}
-.collapse-control.is-open::after,
-[aria-expanded="true"].collapse-control::after,
-[aria-expanded="true"] > .collapse-control::after{
-  transform:translateY(2px) rotate(-135deg)!important;
-}
 html[data-reduce-motion="true"] .collapse-control::after{
   transition:none!important;
 }
