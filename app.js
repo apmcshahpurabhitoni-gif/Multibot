@@ -228,7 +228,9 @@ function initAppearance(){const theme=localStorage.getItem("mavis-theme")||"ligh
 function bindEvent(id,event,handler){const el=$(id);if(!el){console.warn(`Dashboard control missing: #${id}`);return;}el.addEventListener(event,handler);}
 function openReleaseModal(){const modal=$("releaseModal");if(!modal)return;modal.classList.add("open");document.body.classList.add("release-open");const close=$("releaseModalClose");if(close)close.focus();}
 function closeReleaseModal(){const modal=$("releaseModal");if(!modal||!modal.classList.contains("open"))return;modal.classList.remove("open");document.body.classList.remove("release-open");}
-function syncToolCollapseControl(card){const control=card?.querySelector(".collapse-control");if(!control)return;const open=card.classList.contains("is-open");control.setAttribute("aria-expanded",String(open));control.setAttribute("aria-label",(open?"Collapse ":"Expand ")+(card.dataset.toolKey||"section"));control.classList.toggle("is-open",open);}\nfunction syncAllToolCollapseControls(){document.querySelectorAll("[data-tool-collapse]").forEach(syncToolCollapseControl);}\nfunction bindEvents(){
+function syncToolCollapseControl(card){const control=card?.querySelector(".collapse-control");if(!control)return;const open=card.classList.contains("is-open");control.setAttribute("aria-expanded",String(open));control.setAttribute("aria-label",(open?"Collapse ":"Expand ")+(card.dataset.toolKey||"section"));control.classList.toggle("is-open",open);}
+function syncAllToolCollapseControls(){document.querySelectorAll("[data-tool-collapse]").forEach(syncToolCollapseControl);}
+function bindEvents(){
 $$('[data-page]').forEach(button=>button.addEventListener("click",()=>setPage(button.dataset.page)));
 $$('[data-page-link]').forEach(button=>button.addEventListener("click",()=>setPage(button.dataset.pageLink)));
 bindEvent("refreshButton","click",loadDashboard);
