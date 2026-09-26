@@ -342,24 +342,16 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .filter-button:hover,.impact-filter:hover,.trade-tab:hover,.history-tab:hover,.signal-tab:hover{color:var(--text);border-color:var(--line-strong);transform:translateY(-1px)}
 .filter-button:active,.impact-filter:active,.trade-tab:active,.history-tab:active,.signal-tab:active{transform:translateY(0) scale(.97)}
 .filter-button.active,.impact-filter.active,.trade-tab.active,.signal-tab.active,.history-tab.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
-.expand-button{
-  display:grid;place-items:center;flex:none;width:26px;height:26px;
-  border:var(--border-w) solid var(--line-strong);border-radius:8px;background:var(--surface);
-  font-size:11px;line-height:1;color:var(--text-soft);transition:background .15s ease,color .15s ease,transform .2s ease,border-color .15s ease;
-}
+.expand-button{display:grid;place-items:center;flex:none;color:var(--text-soft)}
 .expand-button:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong)}
-.expand-button.is-open{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.expand-button.is-open{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .expand-button:hover{background:var(--accent-soft);color:var(--accent-strong)}
 
 /* ---------- 9b. Unified chevron: one glyph for every collapsible ----------- */
 /* Pure CSS arrow — identical size, weight and motion in Modern and Neo.
    Container boxes (.expand-button, date-toggle i, .collapse-chev) provide the
    frame; .chev only draws the arrow and rotates when its group is open. */
-.chev{display:grid;place-items:center}
-.chev::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .2s ease}
-.expand-button.is-open .chev::after,.is-open .signal-date-toggle .chev::after,.is-open .history-date-toggle .chev::after,.is-open .calendar-date-toggle .chev::after,.is-open .trade-date-toggle .chev::after{transform:rotate(-135deg);margin-top:2px}
-.collapse-chev::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .2s ease}
-.tool-collapse.is-open .collapse-chev::after{transform:rotate(-135deg);margin-top:2px}
+/* Chevron glyph geometry is owned by foundation.css .collapse-control. */
 
 /* ---------- 10. Cards: signals & trades ------------------------------------ */
 .signal-card,.trade-card{border-left:4px solid var(--line-strong)}
@@ -421,7 +413,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .signal-date-toggle b,.history-date-toggle b,.calendar-date-toggle b,.trade-date-toggle b{font-size:12px;font-weight:850;line-height:1.2}
 .signal-date-toggle small,.history-date-toggle small,.calendar-date-toggle small,.trade-date-toggle small{font-size:10px;color:var(--muted);font-weight:700}
 .signal-date-toggle i,.history-date-toggle i,.calendar-date-toggle i,.trade-date-toggle i{display:grid;place-items:center;width:30px;height:30px;font-style:normal;font-size:12px;line-height:1;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:8px;flex:none;transition:transform .2s ease,background .15s ease,color .15s ease}
-.signal-date-group.is-open .signal-date-toggle i,.history-date-group.is-open .history-date-toggle i,.calendar-date-group.is-open .calendar-date-toggle i,.trade-date-group.is-open .trade-date-toggle i{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.signal-date-group.is-open .signal-date-toggle .collapse-control,.history-date-group.is-open .history-date-toggle .collapse-control,.calendar-date-group.is-open .calendar-date-toggle .collapse-control,.trade-date-group.is-open .trade-date-toggle .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .signal-date-toggle,.history-date-toggle,.calendar-date-toggle,.trade-date-toggle{padding:8px 8px}
 .signal-date-group.is-open>.signal-date-toggle,.history-date-group.is-open>.history-date-toggle,.calendar-date-group.is-open>.calendar-date-toggle,.trade-date-group.is-open>.trade-date-toggle{background:var(--accent-softer)}
 .signal-date-rows,.history-date-rows,.calendar-date-events,.trade-date-rows{position:relative;z-index:1;display:grid;gap:6px;padding:6px 5px 8px}
@@ -668,13 +660,13 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .tool-collapse>.section-heading:hover{background:var(--surface-2)}
 .tool-collapse.is-open>.section-heading{background:transparent}
 .tool-collapse.is-open>.section-heading h2{color:var(--text)}
-.tool-collapse.is-open>.section-heading .collapse-chev{background:var(--accent-soft)}
+.tool-collapse.is-open>.section-heading .collapse-control{background:var(--accent-soft)}
 
 /* ---------- 12b. Collapsible tool sections + release modal --------------- */
 .tool-collapse>.section-heading{cursor:pointer;user-select:none;margin:0;min-height:40px}
 .tool-collapse>.section-heading:hover h2{color:var(--accent-strong)}
-.tool-collapse>.section-heading .collapse-chev{display:grid;place-items:center;flex:none;width:26px;height:26px;font-style:normal;font-size:11px;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:7px;transition:transform .2s ease,background .15s ease,color .15s ease,border-color .15s ease}
-.tool-collapse>.section-heading:hover .collapse-chev{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.tool-collapse>.section-heading .collapse-control{display:grid;place-items:center;flex:none;width:26px;height:26px;font-style:normal;font-size:11px;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:7px;transition:transform .2s ease,background .15s ease,color .15s ease,border-color .15s ease}
+.tool-collapse>.section-heading:hover .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse.is-open>.section-heading .collapse-chev{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse>.tool-body{padding-top:8px}
 .tool-collapse:not(.is-open)>.tool-body{display:none}
