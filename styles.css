@@ -667,7 +667,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .tool-collapse>.section-heading:hover h2{color:var(--accent-strong)}
 .tool-collapse>.section-heading .collapse-control{display:grid;place-items:center;flex:none;width:26px;height:26px;font-style:normal;font-size:11px;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:7px;transition:transform .2s ease,background .15s ease,color .15s ease,border-color .15s ease}
 .tool-collapse>.section-heading:hover .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
-.tool-collapse.is-open>.section-heading .collapse-chev{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.tool-collapse.is-open>.section-heading .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse>.tool-body{padding-top:8px}
 .tool-collapse:not(.is-open)>.tool-body{display:none}
 .release-modal{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(8,12,10,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s ease}
