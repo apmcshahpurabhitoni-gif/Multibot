@@ -225,6 +225,23 @@ def test_dashboard_pass2_uses_one_collapse_control_contract():
     assert "collapse-control" in html
 
 
+def test_dashboard_pass2_collapse_state_is_shared_across_tools_and_date_groups():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    appearance=(ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+
+    assert '[aria-expanded="true"] > .collapse-control::after' in foundation
+    assert '.collapse-control[aria-expanded="true"]::after' in foundation
+    assert '#page-signals .signal-date-toggle .collapse-control' in foundation
+    assert '#page-history .history-date-toggle .collapse-control' in foundation
+    assert '#page-calendar .calendar-date-toggle .collapse-control' in foundation
+    assert 'transform:translateY(-2px) rotate(45deg)!important' not in appearance
+    assert 'transform:translateY(2px) rotate(-135deg)!important' not in appearance
+    assert 'data-signal-date' in app
+    assert 'data-history-date' in app
+    assert 'data-calendar-date-group' in app
+
+
 def test_dashboard_pass2_tool_controls_are_semantic_buttons():
     html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
     assert "<button class=\"collapse-control\" type=\"button\"" in html
