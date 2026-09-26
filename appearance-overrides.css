@@ -57,8 +57,8 @@ html[data-style="neo"] .settings-toggle,
 html.neo-mode .settings-toggle,
 html[data-style="neo"] .chip-option,
 html.neo-mode .chip-option,
-html[data-style="neo"] .collapse-chev,
-html.neo-mode .collapse-chev,
+html[data-style="neo"] .collapse-control,
+html.neo-mode .collapse-control,
 html[data-style="neo"] input,
 html.neo-mode input,
 html[data-style="neo"] select,
@@ -93,7 +93,7 @@ html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-bu
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
 html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
 html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover,
-html[data-style="neo"] .collapse-chev:hover,html.neo-mode .collapse-chev:hover{
+html[data-style="neo"] .collapse-control:hover,html.neo-mode .collapse-control:hover{
   transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button:active,html.neo-mode .primary-button:active,
@@ -108,13 +108,13 @@ html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-b
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
 html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
 html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active,
-html[data-style="neo"] .collapse-chev:active,html.neo-mode .collapse-chev:active{
+html[data-style="neo"] .collapse-control:active,html.neo-mode .collapse-control:active{
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
 /* Ponytail: tool collapsers use the same 30px interactive control as date-group toggles. */
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev{
+html[data-style="neo"] .tool-collapse>.section-heading .collapse-control,
+html.neo-mode .tool-collapse>.section-heading .collapse-control{
   width:30px!important;
   height:30px!important;
   min-width:30px!important;
@@ -127,13 +127,13 @@ html.neo-mode .tool-collapse>.section-heading .collapse-chev{
   transform:translate(0,0);
   transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
 }
-html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading:hover .collapse-chev{
+html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-control,
+html.neo-mode .tool-collapse>.section-heading:hover .collapse-control{
   transform:translate(-1px,-1px)!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev:active,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev:active{
+html[data-style="neo"] .tool-collapse>.section-heading .collapse-control:active,
+html.neo-mode .tool-collapse>.section-heading .collapse-control:active{
   transform:translate(2px,2px)!important;
   box-shadow:0 0 0 var(--line-strong)!important;
 }
@@ -353,16 +353,7 @@ button,input,select{font-family:var(--font)}
 .expand-button{
   font-size:0!important;
 }
-.expand-button::before{
-  content:"";
-  width:9px;height:9px;
-  border-right:2px solid currentColor;
-  border-bottom:2px solid currentColor;
-  transform:rotate(45deg) translate(-1px,-1px);
-  transition:transform .18s ease;
-}
-.expand-button.is-open::before{transform:rotate(225deg) translate(-1px,-1px)}
-html[data-reduce-motion="true"] .expand-button::before{transition:none}
+
 
 /* ---------- Shared pills/status contract -------------------------------- */
 .status-badge,
@@ -1160,11 +1151,7 @@ html.neo-mode .empty-state{border-width:2px!important}
   margin-left:auto!important;
   border-radius:11px!important;
 }
-#page-calendar .calendar-meta .expand-button::before{
-  width:8px!important;
-  height:8px!important;
-  border-width:2px!important;
-}
+
 
 /* Event title stays inside the card and uses the same text scale as History rows. */
 #page-calendar .calendar-title,
@@ -1738,17 +1725,7 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
 .history-date-toggle > .chev,
 .calendar-date-toggle > .chev,
 .trade-date-toggle > .chev,
-.tool-collapse > .section-heading > .collapse-chev{
-  width:var(--ui-collapse-size)!important;
-  height:var(--ui-collapse-size)!important;
-  min-width:var(--ui-collapse-size)!important;
-  min-height:var(--ui-collapse-size)!important;
-  flex-basis:var(--ui-collapse-size)!important;
-  border-radius:var(--ui-collapse-radius)!important;
-  border:var(--ui-collapse-border)!important;
-  box-shadow:none!important;
-  transform:none!important;
-}
+
 
 html[data-style="neo"] .collapse-control,
 html.neo-mode .collapse-control{
