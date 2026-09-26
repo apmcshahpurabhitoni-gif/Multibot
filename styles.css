@@ -348,9 +348,6 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .expand-button:hover{background:var(--accent-soft);color:var(--accent-strong)}
 
 /* ---------- 9b. Unified chevron: one glyph for every collapsible ----------- */
-/* Pure CSS arrow — identical size, weight and motion in Modern and Neo.
-   Container boxes (.expand-button, date-toggle i, .collapse-chev) provide the
-   frame; .chev only draws the arrow and rotates when its group is open. */
 /* Chevron glyph geometry is owned by foundation.css .collapse-control. */
 
 /* ---------- 10. Cards: signals & trades ------------------------------------ */
@@ -1189,7 +1186,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-collapse.is-open>.section-heading,
 #page-tools .tool-collapse>.section-heading:hover{background:transparent}
 #page-tools .tool-collapse>.section-heading h2{color:var(--text)}
-#page-tools .tool-collapse.is-open>.section-heading .collapse-chev{background:var(--accent-soft);color:var(--accent-strong)}
+#page-tools .tool-collapse.is-open>.section-heading .collapse-control{background:var(--accent-soft);color:var(--accent-strong)}
 
 @media(max-width:760px){
   #page-tools .tools-layout{gap:8px}
@@ -1267,7 +1264,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-right:0!important;
   flex:0 0 auto!important;
 }
-#page-tools .tool-collapse>.section-heading>.collapse-chev{
+#page-tools .tool-collapse>.section-heading>.collapse-control{
   margin-left:0!important;
   flex:0 0 auto!important;
 }
@@ -1355,7 +1352,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-right:0!important;
   flex:0 0 auto!important;
 }
-#page-tools .tool-universe>.section-heading>.collapse-chev{
+#page-tools .tool-universe>.section-heading>.collapse-control{
   flex:0 0 auto!important;
 }
 #page-tools .universe-grid{
@@ -1435,7 +1432,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-left:auto!important;
   margin-right:0!important;
 }
-#page-tools .tool-collapse>.section-heading>.collapse-chev{
+#page-tools .tool-collapse>.section-heading>.collapse-control{
   margin-left:0!important;
   flex:0 0 auto!important;
 }
@@ -1896,11 +1893,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-left:auto!important;
   border-radius:10px!important;
 }
-#page-calendar .calendar-meta .expand-button::before{
-  width:7px!important;
-  height:7px!important;
-}
-
+#page-calendar .calendar-meta 
 /* Event title is now a first-class hierarchy level.
    Allow two lines so long titles are readable instead of clipped. */
 #page-calendar .calendar-title,
@@ -3187,27 +3180,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   background:var(--surface)!important;
 }
 
-/* 8. Collapse controls share one visual language -------------------------- */
-#page-tools .collapse-chev{
-  box-sizing:border-box!important;
-  width:40px!important;
-  height:40px!important;
-  min-width:40px!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-  background:var(--surface-2)!important;
-  color:var(--muted)!important;
-}
-
-#page-tools .tool-tag{
-  min-height:32px!important;
-  padding:6px 10px!important;
-  border:1px solid var(--line)!important;
-  border-radius:999px!important;
-  background:var(--surface-2)!important;
-  color:var(--text-soft)!important;
-}
-
 /* 9. Mobile: preserve the same geometry rather than introducing new rules */
 @media(max-width:560px){
   #page-tools .tool-card>.section-heading,
@@ -3432,16 +3404,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-runtime .schedule-inline span{
   min-height:46px!important;
   height:46px!important;
-}
-
-/* Collapse controls are deliberately identical everywhere */
-#page-tools .collapse-chev{
-  width:40px!important;
-  height:40px!important;
-  min-width:40px!important;
-  border-radius:10px!important;
-  border:1px solid var(--line)!important;
-  background:var(--surface-2)!important;
 }
 
 @media(max-width:560px){
@@ -3945,19 +3907,6 @@ html[data-style="material3"] #page-tools .tool-backtest .backtest-status{
   background:var(--m3-surface-container-lowest);
   border-color:var(--m3-outline-variant);
   box-shadow:none;
-}
-html[data-style="material3"] #page-tools .collapse-chev{
-  width:30px!important;
-  height:30px!important;
-  min-width:30px!important;
-  min-height:30px!important;
-  border:1px solid var(--m3-outline)!important;
-  border-radius:var(--m3-radius-full)!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-html[data-style="material3"] #page-tools .collapse-chev:hover{
-  background:var(--m3-state-hover)!important;
 }
 html[data-style="material3"] #page-tools .tools-appearance>.settings-row{
   background:var(--m3-surface-container-lowest)!important;
