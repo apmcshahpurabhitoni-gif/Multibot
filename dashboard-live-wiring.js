@@ -13,7 +13,7 @@
   const dateLabel=key=>{if(key==="unknown")return "Unknown date";const d=new Date(`${key}T00:00:00`);return Number.isNaN(d.getTime())?"Unknown date":new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"short",day:"2-digit",month:"short",year:"numeric"}).format(d);};
   const openGroups=new Set(),scanGroups=new Set(),groupInit=new Set();
   let lastSnapshot=null;
-  const groupToggle=(kind,key,open,label,sub)=>`<button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(label)}</b><small>${escapeHtml(sub)}</small></span><i aria-hidden="true" class="collapse-control">⌄</i></button>`;
+  const groupToggle=(kind,key,open,label,sub)=>`<button class="history-date-toggle" type="button" data-history-date="${escapeHtml(key)}" data-history-kind="${kind}" aria-expanded="${open}"><span><b>${escapeHtml(label)}</b><small>${escapeHtml(sub)}</small></span><i aria-hidden="true" class="collapse-control"></i></button>`;
   const dateGroups=(rows,kind,groups,rowRenderer,dateOf,noun)=>{
     const byDate=new Map();
     rows.forEach(row=>{const key=dateKey(dateOf(row));if(!byDate.has(key))byDate.set(key,[]);byDate.get(key).push(row);});
