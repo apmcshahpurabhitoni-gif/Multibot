@@ -33,8 +33,11 @@ def test_final_frontend_contract_uses_safe_json_and_separated_backtest_semantics
     css=(ROOT/"styles.css").read_text(encoding="utf-8")
     assert "function readJsonResponse" in app
     assert 'readJsonResponse(response,"Backtest API")' in app
-    assert "Signals generated during this test" in app
+    # Backtest presentation separates completed trades from generated signals:
+    # the backtest signals panel is no longer part of the frontend contract.
+    assert "Completed trades" in app
+    assert "Backtest equity curve" in app
+    assert "backtest-signal-list" not in app
     assert "Detected opportunities" not in app
-    assert "Signal details unavailable" in app
     assert "max-height:560px !important" in css
     assert "overflow-y:auto !important" in css

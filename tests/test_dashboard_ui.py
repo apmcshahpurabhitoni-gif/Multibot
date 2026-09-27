@@ -166,6 +166,9 @@ def test_backtest_ratio_metrics_are_bounded():
 
 
 def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scrollable():
+    # Containment geometry is owned by foundation.css and component layout by
+    # styles.css (see DESIGN.md), so assert the contract across both surfaces.
+    surfaces = CSS + (ROOT / "foundation.css").read_text(encoding="utf-8")
     for token in (
         '--section-gap',
         '--card-pad',
@@ -181,7 +184,7 @@ def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scr
         'min-width:0',
         'overflow-wrap:anywhere',
     ):
-        assert token in CSS
+        assert token in surfaces
 
 
 def test_dashboard_pass1_foundation_contract_is_defined_without_migrating_components():
