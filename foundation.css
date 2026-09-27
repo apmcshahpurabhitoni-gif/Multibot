@@ -54,12 +54,12 @@
   --ui-mobile-nav-height:var(--f-mobile-nav-h);
   --ui-mobile-nav-clearance:var(--f-mobile-nav-clearance);
 
-  /* Final ExpandableControl geometry. Pass 1 defines the contract only;
-     component migration happens in Pass 2. */
+  /* Single source of truth for every expand/collapse control.
+     Nothing else may define a competing control size or radius. */
   --ui-collapse-size:40px;
   --ui-collapse-radius:10px;
   --ui-collapse-border:1px solid var(--line);
-  --ui-collapse-icon-size:9px;
+  --ui-collapse-icon-size:9px; /* one glyph for every expand control */
   --ui-collapse-icon-weight:2px;
 }
 
