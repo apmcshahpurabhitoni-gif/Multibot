@@ -254,3 +254,23 @@ def test_all_date_group_collapse_controls_receive_open_state_class():
     marker='<i aria-hidden="true" class="collapse-control ${open?"is-open":""}"></i>'
     assert app.count(marker) == 3
     assert live.count(marker) == 1
+
+
+def test_dashboard_has_one_expandable_control_geometry():
+    foundation = (ROOT / "foundation.css").read_text(encoding="utf-8")
+    styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # One source of truth for the size and radius of every expandable control.
+    assert '--ui-collapse-size:40px' in foundation
+    assert '--ui-collapse-radius:10px' in foundation
+    assert 'border-radius:var(--ui-collapse-radius)!important' in foundation
+    assert '--ui-control-h:var(--ui-collapse-size)' in appearance
+    assert '--ui-control-r:var(--ui-collapse-radius)' in appearance
+
+    # No layer may re-declare a competing control size or radius.
+    assert 'width:26px;height:26px' not in styles
+    assert 'width:30px!important' not in appearance
+    assert 'border-radius:11px' not in appearance
+    assert '.topbar .icon-button{width' not in appearance
+    assert '.topbar .icon-button{width:34px' not in appearance

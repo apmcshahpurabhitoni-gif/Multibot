@@ -8,7 +8,7 @@
 
 /* --- Compact topbar controls (appearance contract) --- */
 .topbar .header-meta{display:flex;align-items:center;flex-wrap:nowrap;gap:8px}
-.topbar .icon-button{width:34px;height:34px;min-width:34px;min-height:34px!important;padding:0!important;flex:0 0 34px;border:2px solid var(--line)!important;border-radius:9px;line-height:1;font-size:15px}
+.topbar .icon-button{padding:0!important;border:2px solid var(--line)!important;line-height:1;font-size:15px}
 .topbar .icon-button:hover{transform:translateY(-1px)}
 
 /* --- Appearance option grids (theme / style / accent pickers) --- */
@@ -39,8 +39,6 @@ html[data-style="neo"] .primary-button,
 html.neo-mode .primary-button,
 html[data-style="neo"] .secondary-button,
 html.neo-mode .secondary-button,
-html[data-style="neo"] .icon-button,
-html.neo-mode .icon-button,
 html[data-style="neo"] .text-button,
 html.neo-mode .text-button,
 html[data-style="neo"] .nav-button,
@@ -49,8 +47,6 @@ html[data-style="neo"] .filter-button,
 html.neo-mode .filter-button,
 html[data-style="neo"] .impact-filter,
 html.neo-mode .impact-filter,
-html[data-style="neo"] .expand-button,
-html.neo-mode .expand-button,
 html[data-style="neo"] .trade-detail-button,
 html.neo-mode .trade-detail-button,
 html[data-style="neo"] .settings-toggle,
@@ -65,6 +61,17 @@ html[data-style="neo"] select,
 html.neo-mode select{
   border:2px solid var(--line-strong)!important;border-radius:7px!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;background:var(--surface);
+}
+
+/* ExpandableControl siblings: the contract owns size and radius, Neo supplies
+   only the ink border, the hard shadow and the surface background. */
+html[data-style="neo"] .icon-button,
+html.neo-mode .icon-button,
+html[data-style="neo"] .expand-button,
+html.neo-mode .expand-button{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+  background:var(--surface);
 }
 html[data-style="neo"] .primary-button,html.neo-mode .primary-button{background:var(--accent-fill)!important;color:var(--on-accent)!important}
 html[data-style="neo"] .nav-button.active,html.neo-mode .nav-button.active,
@@ -112,31 +119,10 @@ html[data-style="neo"] .collapse-control:active,html.neo-mode .collapse-control:
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
-/* Ponytail: tool collapsers use the same 30px interactive control as date-group toggles. */
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-control,
-html.neo-mode .tool-collapse>.section-heading .collapse-control{
-  width:30px!important;
-  height:30px!important;
-  min-width:30px!important;
-  min-height:30px!important;
-  padding:0!important;
-  border:2px solid var(--line-strong)!important;
-  border-radius:8px!important;
-  box-shadow:2px 2px 0 var(--line-strong)!important;
-  background:var(--surface)!important;
-  transform:translate(0,0);
-  transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-control,
-html.neo-mode .tool-collapse>.section-heading:hover .collapse-control{
-  transform:translate(-1px,-1px)!important;
-  box-shadow:3px 3px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-control:active,
-html.neo-mode .tool-collapse>.section-heading .collapse-control:active{
-  transform:translate(2px,2px)!important;
-  box-shadow:0 0 0 var(--line-strong)!important;
-}
+/* Tool collapse controls use the same ExpandableControl contract as every other
+   page (40px, 10px radius, one border). The Neo trigger treatment comes from the
+   shared html[data-style="neo"] .collapse-control rules; this file no longer
+   defines a competing control size or radius anywhere. */
 
 /* --- Reduced motion + compact mirrors --- */
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{
@@ -148,7 +134,6 @@ html[data-compact="true"] .section-block,html[data-compact="true"] .tool-card{pa
 /* --- Small screens --- */
 @media(max-width:560px){
   .topbar .header-meta{gap:5px}
-  .topbar .icon-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px}
   .appearance-style-grid{grid-template-columns:1fr}
   .appearance-accent-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
@@ -170,16 +155,12 @@ html.neo-mode .app{
   outline:0!important;
   box-shadow:none!important;
 }
+/* Size and radius come from the shared ExpandableControl contract; Neo only
+   supplies the flat ink treatment for the topbar utility buttons. */
 html[data-style="neo"] .topbar .icon-button,
 html.neo-mode .topbar .icon-button{
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
-  flex:0 0 34px!important;
   padding:0!important;
   border:2px solid var(--line)!important;
-  border-radius:9px!important;
   box-shadow:none!important;
   transform:none;
 }
@@ -205,11 +186,11 @@ html.neo-mode .topbar .icon-button:active{
 :root{
   --ui-page-gap:16px;
   --ui-section-gap:12px;
-  --ui-control-h:40px;
+  --ui-control-h:var(--ui-collapse-size);
   --ui-row-h:64px;
   --ui-outer-r:18px;
   --ui-inner-r:12px;
-  --ui-control-r:12px;
+  --ui-control-r:var(--ui-collapse-radius);
   --ui-pill-h:28px;
   --ui-pad-x:16px;
   --ui-pad-y:12px;
@@ -343,11 +324,11 @@ button,input,select{font-family:var(--font)}
 
 .icon-button,
 .expand-button{
-  width:var(--ui-control-h)!important;
-  height:var(--ui-control-h)!important;
-  min-width:var(--ui-control-h)!important;
-  min-height:var(--ui-control-h)!important;
-  border-radius:var(--ui-control-r)!important;
+  width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  border-radius:var(--ui-collapse-radius)!important;
 }
 
 .expand-button{
@@ -730,7 +711,7 @@ button,input,select{font-family:var(--font)}
   :root{
     --ui-outer-r:18px;
     --ui-inner-r:12px;
-    --ui-control-h:40px;
+    --ui-control-h:var(--ui-collapse-size);
     --ui-pad-x:14px;
   }
   .page-heading{gap:10px!important}
@@ -899,7 +880,7 @@ html.neo-mode .empty-state{border-width:2px!important}
 #page-calendar .calendar-date-toggle b{font-size:13px!important;font-weight:750!important}
 #page-calendar .calendar-date-toggle small{font-size:10.5px!important;line-height:1.25!important}
 #page-calendar .calendar-date-toggle i{
-  width:40px!important;height:40px!important;border-radius:var(--ui-control-r)!important;flex:none!important;
+  width:var(--ui-collapse-size)!important;height:var(--ui-collapse-size)!important;border-radius:var(--ui-collapse-radius)!important;flex:none!important;
 }
 #page-calendar .calendar-date-events{display:grid!important;gap:8px!important;padding:0 0 8px!important}
 #page-calendar .calendar-item{
@@ -921,8 +902,7 @@ html.neo-mode .empty-state{border-width:2px!important}
   flex:none!important;min-height:28px!important;display:inline-flex!important;align-items:center!important;
 }
 #page-calendar .calendar-meta .expand-button{
-  width:40px!important;height:40px!important;min-width:40px!important;margin-left:auto!important;
-  border-radius:var(--ui-control-r)!important;
+  margin-left:auto!important;
 }
 #page-calendar .calendar-title{
   display:block!important;min-width:0!important;margin:0 50px 9px 76px!important;
@@ -1087,12 +1067,6 @@ html.neo-mode .empty-state{border-width:2px!important}
   font-size:10.5px!important;
   line-height:1.15!important;
 }
-#page-calendar .calendar-date-toggle i{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  border-radius:11px!important;
-}
 
 /* Collapsed event: compact two-row card, not a large panel. */
 #page-calendar .calendar-date-events{
@@ -1142,14 +1116,6 @@ html.neo-mode .empty-state{border-width:2px!important}
   border-radius:9px!important;
   font-size:10.5px!important;
   line-height:1!important;
-}
-#page-calendar .calendar-meta .expand-button{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  min-height:36px!important;
-  margin-left:auto!important;
-  border-radius:11px!important;
 }
 
 
@@ -1252,10 +1218,6 @@ html.neo-mode .empty-state{border-width:2px!important}
     height:52px!important;
     padding:8px 10px!important;
   }
-  #page-calendar .calendar-date-toggle i{
-    width:36px!important;
-    height:36px!important;
-  }
   #page-calendar .calendar-meta{
     min-height:39px!important;
     height:39px!important;
@@ -1273,11 +1235,6 @@ html.neo-mode .empty-state{border-width:2px!important}
     height:25px!important;
     padding:5px 8px!important;
     font-size:10px!important;
-  }
-  #page-calendar .calendar-meta .expand-button{
-    width:36px!important;
-    height:36px!important;
-    min-width:36px!important;
   }
   #page-calendar .calendar-title,
   #page-calendar .calendar-event>.calendar-title{

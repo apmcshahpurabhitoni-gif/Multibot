@@ -656,7 +656,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 /* ---------- 12b. Collapsible tool sections + release modal --------------- */
 .tool-collapse>.section-heading{cursor:pointer;user-select:none;margin:0;min-height:40px}
 .tool-collapse>.section-heading:hover h2{color:var(--accent-strong)}
-.tool-collapse>.section-heading .collapse-control{display:grid;place-items:center;flex:none;width:26px;height:26px;font-style:normal;font-size:11px;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:7px;transition:transform .2s ease,background .15s ease,color .15s ease,border-color .15s ease}
+.tool-collapse>.section-heading .collapse-control{display:grid;place-items:center;flex:none;font-style:normal;font-size:0;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);transition:background .15s ease,color .15s ease,border-color .15s ease}
 .tool-collapse>.section-heading:hover .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse.is-open>.section-heading .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse>.tool-body{padding-top:8px}
@@ -876,7 +876,6 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 @media(max-width:430px){
   .brand-copy small{font-size:9px}
   .status-badge{font-size:9px;min-height:30px;padding:5px 9px}
-  .icon-button{width:38px;height:38px;min-width:38px}
   .hero-pills span{font-size:9px;padding:6px 9px}
   .metric-card strong{font-size:14px}
   .card-main{gap:8px;padding:6px 9px}
