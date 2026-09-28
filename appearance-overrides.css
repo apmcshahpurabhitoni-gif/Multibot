@@ -1189,6 +1189,255 @@ html .text-button[class]{
   line-height:1.15!important;
 }
 
+/* ==========================================================================
+   ROUND-2 DESIGN CONTRACT — corners, tone, control state, small print.
+   ========================================================================== */
+
+/* --- One chevron, one state ----------------------------------------------
+   foundation.css opens the glyph with `.is-open .collapse-control::after`, a
+   DESCENDANT selector. That leaked the open glyph onto every chevron nested
+   inside an expanded container — the per-signal and per-event buttons — which
+   is why those arrows never appeared to rotate. Re-assert the closed glyph for
+   controls that are themselves closed; a control carrying its own open state is
+   excluded, so opening one still rotates through the shared 0.2s transition. */
+.is-open .collapse-control:not(.is-open):not([aria-expanded="true"])::after{
+  transform:translateY(-2px) rotate(45deg);
+}
+
+/* --- Small box, full-size pointer target ---------------------------------
+   The visual control is compact; the pointer target stays 44px. */
+.collapse-control::before,
+.topbar .icon-button::before{
+  content:""!important;
+  position:absolute!important;
+  top:50%!important;
+  left:50%!important;
+  width:var(--ui-collapse-tap)!important;
+  height:var(--ui-collapse-tap)!important;
+  transform:translate(-50%,-50%)!important;
+  border-radius:inherit;
+}
+
+/* --- One ExpandableControl, at every width -------------------------------
+   foundation.css still owns this rule, but that file ends one closing brace
+   short, so everything after the stray brace is swallowed: the canonical
+   `.collapse-control` box AND its chevron never reach the parser. A phone
+   only looked correct because the `max-width:560px` / `max-width:760px`
+   queries re-supply the same geometry, which is why the defect is invisible
+   at 390px and obvious at 1440px, where the control collapses to an empty
+   14x4 box with no chevron at all. Re-declared here, in a file that parses,
+   with the same token values, so every control on every page and every width
+   is 32x32 with one chevron that rotates. Neo still supplies its own ink
+   treatment: its selectors are more specific than this rule. */
+html .collapse-control{
+  position:relative!important;
+  display:grid!important;
+  place-items:center!important;
+  box-sizing:border-box!important;
+  width:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  max-width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  max-height:var(--ui-collapse-size)!important;
+  flex:0 0 var(--ui-collapse-size)!important;
+  font-style:normal;
+  font-size:0;
+  color:var(--muted);
+  background:var(--surface-2);
+  border:var(--ui-collapse-border)!important;
+  border-radius:var(--ui-collapse-radius)!important;
+  transform:none!important;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+html .collapse-control::after{
+  content:""!important;
+  display:block!important;
+  width:var(--ui-collapse-icon-size)!important;
+  height:var(--ui-collapse-icon-size)!important;
+  box-sizing:border-box!important;
+  border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
+  border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
+  transform:translateY(-2px) rotate(45deg);
+  transition:transform .2s ease;
+}
+html .collapse-control.is-open::after,
+html .collapse-control[aria-expanded="true"]::after{
+  transform:translateY(2px) rotate(-135deg);
+}
+html .collapse-control:hover,
+html .collapse-control:focus-visible{
+  color:var(--accent-strong);
+  border-color:var(--accent)!important;
+  background:var(--accent-soft);
+}
+html .collapse-control:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  html .collapse-control,
+  html .collapse-control::after{transition:none!important}
+}
+
+/* --- Tools sections: one accordion at every width ------------------------
+   The Tools section behaviour (body collapse + pointer cursor) is authored
+   inside `max-width:760px` / `max-width:560px` media queries, so above that
+   width the section body never collapsed and the heading advertised a
+   disclosure it could not deliver. The control itself is handled by the shared
+   contract above; this makes the accordion behave identically on a phone and
+   on a desktop. */
+html #page-tools .tool-collapse>.section-heading{cursor:pointer}
+html #page-tools .tool-collapse:not(.is-open)>.tool-body{display:none!important}
+
+/* --- Cards own their corners ---------------------------------------------
+   A full-bleed tinted band inside a rounded card was a square poking through a
+   rounded corner: the "square border with a rounded grey fill" mix. Clip (never
+   scroll) the card so every band inherits the card radius. */
+#page-overview .section-block[class],
+#page-signals .signals-workspace[class],
+#page-history .history-workspace[class],
+#page-calendar .calendar-workspace[class],
+#page-tools .tool-card[class],
+#page-tools .tool-body[class]{
+  overflow:clip!important;
+}
+
+/* --- A boundary has to change tone ---------------------------------------
+   A row group already sitting on the tinted body must not repaint that same
+   tint, or three levels collapse into one flat grey mass held together by
+   decorative hairlines. */
+#page-tools .asset-category[class],
+#page-tools .backtest-controls[class]{
+  background:transparent!important;
+}
+
+/* --- Small print belongs to one tier -------------------------------------
+   `small` declared no size of its own, so it inherited the browser's 1.2 ratio
+   and rendered at 9.16667px / 10.4167px. Pin it to the 10.5px tier; every
+   class-qualified `small` rule is more specific and keeps its own snapped size. */
+small{
+  font-size:10.5px!important;
+}
+
+/* --- Type-scale floor -----------------------------------------------------
+   The dashboard declared 27 font sizes. Everything below the smallest step of
+   the scale collapsed onto it here, so the sub-10px tier (7.5 / 8 / 8.2 / 8.5 /
+   8.7 / 9px) is gone and no label renders under 9.5px.
+   The declarations themselves live in regions of this file and of
+   foundation.css/styles.css that the editing tools cannot reach, so the
+   selectors are named explicitly and prefixed with `html` to carry one extra
+   type-selector of specificity over the rule being replaced. */
+html #page-signals .signal-card.expanded .detail-grid span,
+html #page-signals .signal-card.expanded .reason span,
+html #page-signals .signal-card.expanded .reason>span,
+html #page-history .history-scan-identity small,
+html #page-history .history-scan-status,
+html #page-history .history-scan-metrics span,
+html #page-history .history-scan-metrics b,
+html #page-history .history-summary-grid .metric-card span,
+html #page-history .history-summary-grid .metric-card small,
+html .brand-copy small,
+html .mobile-nav .nav-button,
+html .status-badge,
+html .hero-pills span,
+html #page-tools .asset-category-label,
+html #page-tools .tool-universe .asset-category-label,
+html #page-tools .tool-runtime .schedule-inline small,
+html #page-tools .tool-runtime .diagnostic-grid span,
+html #page-tools .tools-appearance .settings-label,
+html #page-tools .tools-appearance .chip-option,
+html #page-calendar .calendar-details>span,
+html #page-calendar .calendar-details>span b,
+html #page-tools .tool-backtest .backtest-metrics>div span,
+html #page-tools .tool-backtest .backtest-section-heading>span,
+html #page-tools .tool-backtest .backtest-rating{
+  font-size:9.5px!important;
+}
+
+/* --- Titles sit on two steps, not five -----------------------------------
+   Card and row titles land on the 14px step, section titles on the 17px
+   display step, so the hierarchy is page 22 > section 17 > title 14 > body 12.5
+   instead of 15 / 13.5 / 13 drifting apart everywhere. */
+/* The rules being replaced live in regions of foundation.css and styles.css
+   that cannot be edited, so these carry a page id to outrank them. */
+html #page-overview .signal-leading strong,
+html #page-signals .signal-leading strong,
+html .signal-leading strong,
+html #page-signals .signal-date-toggle b,
+html #page-history .history-date-toggle b,
+html #page-calendar .calendar-date-toggle b,
+html .signal-date-toggle b,
+html .history-date-toggle b,
+html .calendar-date-toggle b,
+html #page-history .history-summary-grid .metric-card strong,
+html #page-calendar .calendar-summary-grid .metric-card strong,
+html #page-tools .account-grid b{
+  font-size:14px!important;
+}
+html .section-heading h2,
+html #page-overview .section-heading h2,
+html #page-signals .section-heading h2,
+html #page-history .section-heading h2,
+html #page-calendar .section-heading h2,
+html #page-tools .section-heading h2,
+html .hero h2{
+  font-size:17px!important;
+}
+
+/* --- Tools sections: one accordion at every width ------------------------
+   The Tools section geometry (control box, chevron glyph, body collapse and
+   the pointer cursor) is authored inside `max-width:760px` / `max-width:560px`
+   media queries. Above that width the control had no styling at all: it
+   measured 14x4 with `content:none`, so it rendered as a small dead box with
+   no chevron, and the section body never collapsed, leaving a button that
+   could not do anything. This restores the same behaviour, with the same
+   declarations the phone already uses, from 561px up. Scoped to wide viewports
+   deliberately: the mobile cascade is already correct and is left untouched. */
+@media(min-width:561px){
+  html #page-tools .tool-collapse>.section-heading>.collapse-control{
+    display:grid!important;
+    place-items:center!important;
+    position:relative!important;
+    box-sizing:border-box!important;
+    width:var(--ui-collapse-size)!important;
+    min-width:var(--ui-collapse-size)!important;
+    max-width:var(--ui-collapse-size)!important;
+    height:var(--ui-collapse-size)!important;
+    min-height:var(--ui-collapse-size)!important;
+    max-height:var(--ui-collapse-size)!important;
+    flex:0 0 var(--ui-collapse-size)!important;
+    font-style:normal;
+    font-size:0;
+    color:var(--muted);
+    background:var(--surface-2);
+    border:var(--ui-collapse-border)!important;
+    border-radius:var(--ui-collapse-radius)!important;
+    transform:none!important;
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control::after{
+    content:""!important;
+    display:block!important;
+    width:var(--ui-collapse-icon-size)!important;
+    height:var(--ui-collapse-icon-size)!important;
+    box-sizing:border-box!important;
+    border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
+    border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
+    transform:translateY(-2px) rotate(45deg);
+    transition:transform .2s ease;
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control.is-open{
+    color:var(--accent-strong);
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control.is-open::after{
+    transform:translateY(2px) rotate(-135deg);
+  }
+  html #page-tools .tool-collapse>.section-heading{cursor:pointer}
+  html #page-tools .tool-collapse:not(.is-open)>.tool-body{display:none!important}
+}
+
 /* Collapsed event: compact two-row card, not a large panel. */
 #page-calendar .calendar-date-events{
   gap:7px!important;

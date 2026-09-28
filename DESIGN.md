@@ -115,3 +115,28 @@ Every migration must preserve:
 - no horizontal overflow
 
 Playwright/browser validation and visual review are applied after structural migration.
+
+## Known pre-existing defects (documented, outside the UI contract)
+
+These predate the surface/control work and are recorded here so a later pass does not
+rediscover them:
+
+1. **`foundation.css` ends one closing brace short.** Everything after the stray brace is
+   swallowed by the CSS parser. That includes the canonical `.collapse-control` box and its
+   chevron, which is why a phone looked correct (the `max-width:560px` / `max-width:760px`
+   queries re-supply the same geometry) while a desktop viewport rendered the control as an
+   empty `14x4` box with no chevron at all. The rule is therefore **also** declared in
+   `appearance-overrides.css`, which parses; treat that copy as the effective contract until
+   the brace in `foundation.css` is repaired. The same file also still contains the corrupted
+   `expand-button{ min- min- }` rules.
+2. **The Tools section behaviour lives inside mobile-only media queries.** Body collapse and
+   the pointer cursor for `.tool-collapse` were authored under `max-width` queries, so a
+   desktop viewport advertised a disclosure that could not be delivered. Now re-asserted at
+   every width in the appearance layer.
+3. **Editing reach.** `styles.css` (148KB) and the tails of `foundation.css` (91KB) and
+   `appearance-overrides.css` (69KB) cannot be edited past roughly the first 50KB. Rules in
+   those regions are corrected from the appearance layer with page-scoped selectors that
+   outrank them, never by editing the declaration in place.
+4. **Type scale is partial.** The sub-9.5px tier and the fractional rem drift are gone, and
+   titles are snapped to 14px/17px, but the 10/11/12px declarations that dominate the mid
+   range sit in the unreachable tails and still need an in-place pass.
