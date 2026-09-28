@@ -10,8 +10,8 @@
      --accent-fill is the surface color for filled accent controls and
      --on-accent the guaranteed-contrast text on them. */
   --accent:#10b981;
-  --accent-strong:#059669;
-  --accent-fill:#059669; --on-accent:#ffffff;
+  --accent-strong:#047857;
+  --accent-fill:#047857; --on-accent:#ffffff;
   --accent-soft:rgba(16,185,129,.12);
   --accent-softer:rgba(16,185,129,.07);
 
@@ -21,14 +21,14 @@
   --surface-3:#e4e8ef;
   --text:#0f172a;
   --text-soft:#334155;
-  --muted:#64748b;
+  --muted:#5b6b80;
   --line:rgba(15,23,42,.12);
   --line-strong:rgba(15,23,42,.26);
-  --positive:#059669;
+  --positive:#047857;
   --positive-soft:rgba(5,150,105,.12);
-  --negative:#dc2626;
+  --negative:#b91c1c;
   --negative-soft:rgba(220,38,38,.11);
-  --warning:#b45309;
+  --warning:#92400e;
   --warning-soft:rgba(180,83,9,.12);
   --shadow:0 18px 44px rgba(15,23,42,.09);
   --shadow-soft:0 4px 16px rgba(15,23,42,.06);
@@ -135,10 +135,12 @@ html[data-theme="dark"][data-style="neo"]{
   --shadow:3px 3px 0 #000;
   --shadow-soft:2px 2px 0 #000;
 }
+html[data-style="neo"][data-accent="emerald"]{--accent:#10b981;--accent-strong:#047857;--accent-fill:#10b981;--accent-soft:rgba(16,185,129,.16);--accent-softer:rgba(16,185,129,.09)}
 html[data-style="neo"][data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#6366f1;--accent-soft:rgba(99,102,241,.16)}
 html[data-style="neo"][data-accent="amber"]{--accent:#f59e0b;--accent-strong:#d97706;--accent-fill:#f59e0b;--accent-soft:rgba(245,158,11,.18)}
 html[data-style="neo"][data-accent="rose"]{--accent:#e11d48;--accent-strong:#be123c;--accent-fill:#e11d48;--accent-soft:rgba(225,29,72,.15)}
 html[data-style="neo"][data-accent="cyan"]{--accent:#0891b2;--accent-strong:#0e7490;--accent-fill:#0891b2;--accent-soft:rgba(8,145,178,.16)}
+html[data-theme="dark"][data-style="neo"][data-accent="emerald"]{--accent:#34d399;--accent-strong:#6ee7b7;--accent-fill:#34d399;--accent-soft:rgba(52,211,153,.18);--accent-softer:rgba(52,211,153,.09)}
 html[data-theme="dark"][data-style="neo"][data-accent="indigo"]{--accent:#818cf8;--accent-strong:#a5b4fc;--accent-fill:#818cf8}
 html[data-theme="dark"][data-style="neo"][data-accent="amber"]{--accent:#fbbf24;--accent-strong:#fcd34d;--accent-fill:#fbbf24}
 html[data-theme="dark"][data-style="neo"][data-accent="rose"]{--accent:#fb7185;--accent-strong:#fda4af;--accent-fill:#fb7185}
@@ -179,7 +181,7 @@ svg{vertical-align:middle}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;color:inherit;text-decoration:none}
 .brand-mark{
   display:grid;place-items:center;flex:none;width:38px;height:38px;
-  border-radius:11px;background:var(--accent);color:var(--on-accent);
+  border-radius:11px;background:var(--accent-fill);color:var(--on-accent);
   font-size:17px;font-weight:950;letter-spacing:-.02em;
   box-shadow:inset 0 -2px 0 rgba(0,0,0,.18);
 }
@@ -304,7 +306,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .chart-card{padding:14px}
 .chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}
 .chart-head strong,.chart-head small{display:block}
-.chart-head strong{font-size:13px;font-weight:800}
+.chart-head strong{font-size:14px;font-weight:800}
 .chart-head small{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}
 .chart-head>span{color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
 .chart-area{width:100%;min-width:0;min-height:180px;overflow:hidden}
@@ -356,7 +358,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .card-main:hover{background:var(--surface-2)}.card-main:hover .expand-button{border-color:var(--accent);color:var(--accent-strong)}
 .card-main:active{transform:scale(.995)}
 .signal-leading{display:flex;align-items:center;gap:12px;min-width:0}
-.direction-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;background:var(--surface-2);font-size:10px}
+.direction-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:var(--radius-xs);background:var(--surface-2);font-size:10px}
 .signal-leading div{min-width:0}
 .signal-leading strong{display:block;font-size:12px;font-weight:800;overflow-wrap:anywhere}
 .signal-leading small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3;overflow-wrap:anywhere}
@@ -510,7 +512,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
   transition:transform .15s ease,border-color .15s ease,background .15s ease;
 }
 .appearance-option:hover{transform:translateY(-1px);border-color:var(--accent)}
-.appearance-option b{display:block;font-size:13px;font-weight:850}
+.appearance-option b{display:block;font-size:14px;font-weight:850}
 .appearance-option small{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.4}
 .appearance-option.active{border:2px solid var(--accent);padding:12px 14px;background:var(--accent-soft)}
 .appearance-swatch{display:inline-block;width:14px;height:14px;border-radius:5px;border:2px solid var(--line-strong);margin-right:8px;vertical-align:-2px}
@@ -542,7 +544,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .backtest-rating{flex:none;padding:6px 11px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-size:10.5px;font-weight:900;max-width:100%;overflow-wrap:anywhere}
 .backtest-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--grid-gap)}
 .backtest-summary>div{padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
-.backtest-summary b{display:block;margin-top:5px;font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.backtest-summary b{display:block;margin-top:5px;font-size:14px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .backtest-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--grid-gap)}
 .backtest-metrics>div{min-width:0;padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2)}
 .backtest-metrics b{display:block;min-width:0;margin-top:6px;font-size:clamp(17px,2.4vw,23px);line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -679,7 +681,7 @@ html[data-style="neo"] .release-modal-card{border:2px solid var(--line-strong)!i
 .trade-drawer-shell.open{opacity:1;pointer-events:auto}
 .trade-drawer{position:relative;width:min(440px,100%);height:100%;overflow:auto;padding:24px 22px;background:var(--surface);box-shadow:-20px 0 60px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease}
 .trade-drawer-shell.open .trade-drawer{transform:translateX(0)}
-.drawer-close{position:absolute;right:14px;top:14px;width:40px;height:40px;border:var(--border-w) solid var(--line);border-radius:10px;background:var(--surface-2);font-size:20px;line-height:1}
+.drawer-close{position:absolute;right:14px;top:14px;width:40px;height:40px;border:var(--border-w) solid var(--line);border-radius:10px;background:var(--surface-2);font-size:17px;line-height:1}
 .drawer-close:hover{background:var(--negative-soft);color:var(--negative)}
 .trade-drawer h2{margin:6px 0 12px;font-size:22px;letter-spacing:-.03em;font-weight:900;overflow-wrap:anywhere}
 .drawer-status{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
@@ -687,12 +689,12 @@ html[data-style="neo"] .release-modal-card{border:2px solid var(--line-strong)!i
 .drawer-price-grid>div,.drawer-details>div{padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
 .drawer-price-grid b,.drawer-details b{display:block;margin-top:5px;font-size:12.5px;overflow-wrap:anywhere}
 .trade-drawer section{margin-top:22px}
-.trade-drawer h3{font-size:13px;margin:0 0 10px;font-weight:900;letter-spacing:.02em}
+.trade-drawer h3{font-size:14px;margin:0 0 10px;font-weight:900;letter-spacing:.02em}
 body.drawer-open{overflow:hidden}
 
 /* ---------- 14. Empty states ------------------------------------------------ */
 .empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:2px dashed var(--line-strong);border-radius:var(--radius-sm);background:var(--surface)}
-.empty-state span{font-size:20px;color:var(--accent-strong)}
+.empty-state span{font-size:17px;color:var(--accent-strong)}
 .empty-state strong{font-size:14px;font-weight:850}
 .empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
 html[data-style="neo"] .primary-button,

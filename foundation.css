@@ -56,11 +56,12 @@
 
   /* Single source of truth for every expand/collapse control.
      Nothing else may define a competing control size or radius. */
-  --ui-collapse-size:40px;
+  --ui-collapse-size:32px;
   --ui-collapse-radius:10px;
+  --ui-collapse-tap:44px; /* invisible pointer target; never below 44px */
   --ui-collapse-border:1px solid var(--line);
-  --ui-collapse-icon-size:9px; /* one glyph for every expand control */
-  --ui-collapse-icon-weight:2px;
+  --ui-collapse-icon-size:7px; /* one glyph for every expand control */
+  --ui-collapse-icon-weight:1.75px;
 }
 
 /* ---------- Geometry reset ------------------------------------------------ */
@@ -1054,7 +1055,7 @@ html[data-style="neo"] #page-signals .detail-group{
   }
 
   #page-signals .signal-card .detail-grid b{
-    font-size:10.8px;
+    font-size:10.5px;
   }
 }
 
@@ -1475,12 +1476,12 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 
   #page-overview .overview-signals .signal-card.expanded .detail-grid span,
   #page-signals .signal-card.expanded .detail-grid span{
-    font-size:8.2px!important;
+    font-size:9.5px!important;
   }
 
   #page-overview .overview-signals .signal-card.expanded .detail-grid b,
   #page-signals .signal-card.expanded .detail-grid b{
-    font-size:10.7px!important;
+    font-size:10.5px!important;
   }
 
   #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
@@ -1978,7 +1979,7 @@ html[data-style="neo"] #page-history .history-date-toggle{
   }
   #page-history .history-scan-metrics span{
     padding:3px 1px;
-    font-size:7.5px;
+    font-size:9.5px;
   }
   #page-history .history-scan-metrics b{
     font-size:9px;
@@ -2004,7 +2005,7 @@ html[data-style="neo"] #page-history .history-date-toggle{
 }
 .trade-drawer h2{
   margin:5px 0 9px;
-  font-size:20px;
+  font-size:17px;
 }
 .trade-drawer .drawer-status{
   margin-bottom:12px;
@@ -2044,12 +2045,12 @@ html[data-style="neo"] #page-history .history-date-toggle{
     right:10px;
     width:36px;
     height:36px;
-    font-size:18px;
+    font-size:17px;
   }
 }
 @media(max-width:560px){
   .trade-drawer h2{
-    font-size:19px;
+    font-size:17px;
   }
   .trade-drawer .drawer-price-grid>div,
   .trade-drawer .drawer-details>div{
