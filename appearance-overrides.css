@@ -188,8 +188,8 @@ html.neo-mode .topbar .icon-button:active{
   --ui-section-gap:12px;
   --ui-control-h:var(--ui-collapse-size);
   --ui-row-h:64px;
-  --ui-outer-r:18px;
-  --ui-inner-r:12px;
+  --ui-outer-r:var(--f-outer-radius);
+  --ui-inner-r:var(--f-inner-radius);
   --ui-control-r:var(--ui-collapse-radius);
   --ui-pill-h:28px;
   --ui-pad-x:16px;
@@ -601,8 +601,6 @@ button,input,select{font-family:var(--font)}
 }
 #page-tools .asset-category:last-child{border-bottom:0!important}
 #page-tools .asset-category-label{
-  display:block!important;
-  margin-bottom:7px!important;
   font-size:11px!important;
   line-height:1.2!important;
   font-weight:700!important;
@@ -709,8 +707,8 @@ button,input,select{font-family:var(--font)}
 /* ---------- Desktop/mobile shell alignment ------------------------------- */
 @media(max-width:760px){
   :root{
-    --ui-outer-r:18px;
-    --ui-inner-r:12px;
+    --ui-outer-r:var(--f-outer-radius);
+    --ui-inner-r:var(--f-inner-radius);
     --ui-control-h:var(--ui-collapse-size);
     --ui-pad-x:14px;
   }
@@ -893,6 +891,129 @@ html.neo-mode .empty-state{border-width:2px!important}
 #page-calendar .calendar-item.impact-medium{border-left-color:var(--warning)!important}
 #page-calendar .calendar-item.impact-low{border-left-color:var(--positive)!important}
 #page-calendar .calendar-item.impact-holiday{border-left-color:var(--accent)!important}
+
+/* ==========================================================================
+   INNER SURFACE CONTRACT — completes the foundation.css surface parity rules.
+
+   Language: a white outer card always contains one soft-grey body/gutter, and
+   every content row inside that gutter stays white. This is exactly what the
+   Tools workspace and the Calendar already did; Home, Signals and History
+   never received the grey body, which is why their cards read as white
+   rectangles drawn on white paper (a frame inside an identical frame).
+
+   Radius comes from the foundation contract (14px outer / 11px inner), so
+   nothing here re-declares a competing geometry value.
+   ========================================================================== */
+
+/* Home: the nested panel / metric well inside a section card. */
+#page-overview .section-block .chart-card,
+#page-overview .section-block .metric-grid,
+#page-overview #overviewSignals{
+  background:var(--f-inner-bg)!important;
+  border-radius:var(--f-inner-radius)!important;
+  padding:8px!important;
+}
+#page-overview .section-block .chart-card{padding:12px!important}
+
+/* Signals / History: the list body between the card heading and the rows. */
+#page-signals .signals-date-list,
+#page-history .history-date-list,
+#page-history .history-live-list{
+  background:var(--f-inner-bg)!important;
+  border-radius:var(--f-inner-radius)!important;
+}
+
+/* Date headers carry a 40px control; give it the same clearance every other
+   row gets instead of the 6px it had at 52px. They are a control sitting on
+   the grey body, so they take the white control surface exactly like every
+   white control on a Tools body, instead of grey-on-grey. */
+#page-signals .signal-date-toggle[class],
+#page-history .history-date-toggle[class],
+#page-calendar .calendar-date-toggle[class]{
+  min-height:56px!important;
+  height:56px!important;
+  background:var(--surface)!important;
+}
+
+/* One open state for all three date families. Calendar used to open grey while
+   Signals and History opened accent-tinted. */
+#page-signals .signal-date-group.is-open > .signal-date-toggle[class],
+#page-history .history-date-group.is-open > .history-date-toggle[class],
+#page-calendar .calendar-date-group.is-open > .calendar-date-toggle[class]{
+  background:var(--accent-softer)!important;
+}
+
+/* Retire the pre-contract 34px flex floor and let the calendar meta contain
+   the 40px control instead of being 1px shorter than it. */
+#page-calendar .calendar-meta[class]{
+  min-height:40px!important;
+  height:40px!important;
+}
+#page-calendar .calendar-meta .expand-button[class]{
+  flex:0 0 auto!important;
+}
+
+/* The calendar event chevron is the only control whose row (time + badges) is
+   not the whole card. Centre it on the card so it stops sitting above the
+   event title. No transform is used, so the foundation contract's
+   "transform:none" guarantee for expandable controls is preserved. */
+#page-calendar .calendar-item{position:relative!important}
+#page-calendar .calendar-item .expand-button{
+  position:absolute!important;
+  top:calc(50% - 20px)!important;
+  right:9px!important;
+  left:auto!important;
+  margin:0!important;
+  z-index:3!important;
+}
+
+/* ---------- Remaining surface-radius drift --------------------------------
+   These still carried a pre-contract 10px/12px surface radius (or nothing)
+   while every other surface moved to the foundation inner radius. Interactive
+   controls are untouched here: they keep --ui-control-r / --ui-collapse-radius
+   so the single-control geometry from the expandable-control contract stands. */
+#page-overview .section-block .chart-card[class],
+#page-overview .section-block .metric-grid[class],
+#page-overview #overviewSignals[class],
+#page-signals .signals-date-list[class],
+#page-history .history-date-list[class],
+#page-history .history-live-list[class],
+#page-history .history-summary-grid .metric-card[class],
+#page-calendar .calendar-date-list[class],
+#page-calendar .calendar-summary-grid .metric-card[class],
+#page-calendar .calendar-item[class],
+#page-tools .universe-grid[class],
+#page-tools .account-grid[class],
+#page-tools .rule-list[class],
+#page-tools .diagnostic-grid[class],
+#page-tools .schedule-inline[class],
+#page-tools .backtest-controls[class],
+#page-tools .asset-category-label[class]{
+  border-radius:var(--f-inner-radius)!important;
+}
+
+/* .text-button was the one control missing from the shared button contract, so
+   it fell back to --radius-xs and, in Neo, to a hard-coded 7px. */
+html .text-button[class]{
+  border-radius:var(--ui-control-r)!important;
+}
+
+/* Nested chips/panels that were painted the same colour as their parent, so
+   they only existed as a 1px outline.
+   The backtest form and the Runtime grids take the same grey body treatment as
+   the Markets/Accounts/Rules panels they sit beside, which is what lets their
+   controls and tiles be genuinely white instead of white-on-white. */
+#page-overview .hero-pills span{
+  background:var(--f-inner-bg)!important;
+}
+#page-tools .backtest-controls[class],
+#page-tools .diagnostic-grid[class],
+#page-tools .schedule-inline[class]{
+  background:var(--f-inner-bg)!important;
+}
+#page-tools .backtest-controls select{
+  background:var(--surface)!important;
+}
 #page-calendar .calendar-meta{
   min-width:0!important;min-height:50px!important;margin:0!important;
   padding:9px 10px 5px!important;gap:8px!important;
@@ -1219,8 +1340,8 @@ html.neo-mode .empty-state{border-width:2px!important}
     padding:8px 10px!important;
   }
   #page-calendar .calendar-meta{
-    min-height:39px!important;
-    height:39px!important;
+    min-height:40px!important;
+    height:40px!important;
     padding:5px 8px 2px!important;
     gap:6px!important;
   }

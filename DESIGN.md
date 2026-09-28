@@ -56,6 +56,32 @@ All collapsible UI will converge on one control contract:
 
 The contract is active. Existing collapsible controls are migrated to it; future controls must use the same class and tokens.
 
+## Surface contract
+
+The canonical file ownership table above only holds if exactly one layer declares the
+shape values. `appearance-overrides.css` currently carries the winning tokens, so it
+must not re-declare its own literals — it points at the foundation contract:
+
+| Token | Points at | modern | neo | material 3 |
+|---|---|---|---|---|
+| `--ui-outer-r` | `--f-outer-radius` → `--radius` | 14px | 10px | 16px |
+| `--ui-inner-r` | `--f-inner-radius` → `--radius-sm` | 11px | 8px | 8px |
+| `--ui-control-r` / `--ui-collapse-radius` | foundation control contract | 10px | 10px | 10px |
+
+Style-specific outer/inner values come from the style's own `--radius*` tokens. That is
+style identity, not drift. Any literal radius that is not one of the three tiers above is
+a defect.
+
+Surfaces alternate by nesting depth:
+
+- outer card / workspace (one per section): `--surface`, `--ui-outer-r`
+- body, gutter or panel inside that card: `--f-inner-bg` (which is `--surface-2`)
+- content row, tile or control inside the gutter: `--surface`
+
+A card may never be painted the same colour as the surface it sits on; the Tools
+workspace and the Calendar established this language and Home, Signals and History
+follow it.
+
 ## App shell
 
 The bottom navigation is a global occupied region. Pages must not require individual padding hacks to avoid being hidden behind it.
