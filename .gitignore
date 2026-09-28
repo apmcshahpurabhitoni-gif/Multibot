@@ -6,6 +6,11 @@ venv/
 .env
 .env.*
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 *.log
+# Playwright CLI output (may contain credentials)
+.playwright/
+.playwright-cli/
