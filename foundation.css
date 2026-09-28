@@ -1343,7 +1343,6 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
   max-width:100%;
   padding:1px 5px;
   text-align:center;
-  background:color-mix(in srgb,var(--warning) 16%,transparent);
 }
 
 #page-overview .overview-signals .signal-card.expanded .reason,

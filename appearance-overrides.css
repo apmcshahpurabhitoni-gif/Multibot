@@ -1189,6 +1189,65 @@ html .text-button[class]{
   line-height:1.15!important;
 }
 
+/* --- Every mid-card edge is rounded, not just card boundaries -------------
+   overflow:clip rounds a band only where the band meets the card edge. Bands
+   and tiles that end mid-card (summary strips, tool bodies, detail rows,
+   tiles) still painted square corners inside a rounded card — the surviving
+   "square border with a rounded grey fill" mix. Each surface now carries the
+   token of its own level: full-bleed bands the outer radius, card interiors
+   and rows the inner radius, chips the small radius. */
+#page-signals .signals-workspace > .workspace-heading,
+#page-history .history-workspace > .workspace-heading,
+#page-calendar .calendar-workspace > .workspace-heading,
+#page-history .history-summary-grid,
+#page-calendar .calendar-summary-grid,
+#page-calendar .calendar-agenda-status,
+#page-calendar .calendar-agenda-bar,
+#page-tools .tool-collapse > .section-heading,
+#page-tools .tool-collapse.is-open > .tool-body,
+#page-tools .tools-appearance > .section-heading{
+  border-radius:var(--ui-outer-r)!important;
+}
+#page-overview .signal-card .expand-content,
+#page-signals .signal-card .expand-content,
+#page-calendar .calendar-date-group .calendar-details,
+#page-tools .tools-appearance .settings-row,
+#page-tools .account-grid > article,
+#page-tools .rule-list > div{
+  border-radius:var(--ui-inner-r)!important;
+}
+html #page-overview .detail-grid > div,
+html #page-signals .detail-grid > div,
+html #page-overview .detail-grid > div > span,
+html #page-signals .detail-grid > div > span,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid > div,
+html #page-signals .signal-card.expanded .detail-grid > div,
+html #page-tools .tool-runtime .schedule-inline > span,
+html #page-tools .tool-runtime .diagnostic-grid > article{
+  border-radius:var(--radius-xs)!important;
+}
+
+/* --- Banding is not a boundary -------------------------------------------
+   A zebra rule on the universe rows (nth-child odd, higher specificity than
+   the tone rule below) repainted the tint the row group had surrendered, so
+   Tools read as grey rows on a grey body again. The banding goes; the row
+   separator hairline stays. */
+html #page-tools .universe-grid > .asset-category:nth-child(odd),
+html #page-tools .universe-grid > .asset-category:nth-child(even){
+  background:transparent!important;
+}
+
+/* --- Freshness washes are pills -------------------------------------------
+   The signals badge rule declared a wash but no radius, so the pill rendered
+   square; the FRESH badge also carried a stray copy of the warning wash (fixed
+   at the source rule in foundation.css), painting both states the same amber. */
+html #page-overview .detail-grid b.fresh,
+html #page-overview .detail-grid b.stale,
+html #page-signals .detail-grid b.fresh,
+html #page-signals .detail-grid b.stale{
+  border-radius:999px!important;
+}
+
 /* ==========================================================================
    ROUND-2 DESIGN CONTRACT — corners, tone, control state, small print.
    ========================================================================== */
