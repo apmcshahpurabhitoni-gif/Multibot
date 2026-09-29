@@ -1,7 +1,0 @@
-# Copy this folder to strategies/<your_strategy>/ and implement strategy.py.
-id: my_strategy
-name: My Strategy
-version: 1.0.0
-assets: []
-timeframes: []
-capabilities: [signal, backtest]

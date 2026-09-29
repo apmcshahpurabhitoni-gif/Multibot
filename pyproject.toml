@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multibot2"
-version = "3.2.6"
+version = "3.3.0"
 description = "Mavis MULTIBOT2 paper-trading bot"
 requires-python = ">=3.11"
 dependencies = ["pandas>=2.2,<3", "yfinance>=0.2.50,<1", "requests>=2.31,<3", "beautifulsoup4>=4.12,<5"]
 
 [project.optional-dependencies]
-test = ["pytest>=8,<9"]
+test = ["pytest>=8,<10"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
