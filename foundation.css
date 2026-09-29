@@ -3409,7 +3409,7 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 }
 
 /* ---------- End History metric repair ------------------------------------ */
-
+} /* end @media(max-width:560px) - History mobile contract */
 
 /* ---------- Pass 2: canonical ExpandableControl -------------------------- */
 .collapse-control{position:relative;display:grid;place-items:center;box-sizing:border-box;width:var(--ui-collapse-size)!important;height:var(--ui-collapse-size)!important;min-width:var(--ui-collapse-size)!important;min-height:var(--ui-collapse-size)!important;flex:0 0 var(--ui-collapse-size)!important;border:var(--ui-collapse-border)!important;border-radius:var(--ui-collapse-radius)!important;background:var(--surface-2);color:var(--text-soft);transform:none!important;transition:background .15s ease,color .15s ease,border-color .15s ease}

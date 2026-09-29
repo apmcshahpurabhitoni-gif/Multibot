@@ -1,4 +1,4 @@
-# MULTIBOT2 Finalization Rulebook — v3.2.0
+# MULTIBOT2 Finalization Rulebook — v3.3.0
 
 ## 🔒 Locked rules
 

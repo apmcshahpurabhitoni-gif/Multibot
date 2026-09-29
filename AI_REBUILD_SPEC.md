@@ -14,7 +14,7 @@ The project is a **paper-trading multi-strategy engine**. Preserve the locked ru
 
 ```text
 Project: MULTIBOT2
-Version: 3.2.5
+Version: 3.3.0
 Mode: PAPER ONLY
 Market data: Yahoo Finance ONLY
 Timezone: Asia/Kolkata
@@ -949,15 +949,16 @@ If one of those files needs a change for every new strategy, the architecture ha
 # 29. Current release
 
 ```text
-MULTIBOT2 v3.2.5
+MULTIBOT2 v3.3.0
 
 🧩 Automatic strategy discovery
-🧠 Adaptive Trend Momentum
-🔎 Sweep V2 unified under strategy contract
+🧠 Trend Pulse (adaptive_trend)
+🔎 Engulf 66 SMA and Sweep 4H unified under the strategy contract
 📊 11 backtest metrics
 ⭐ 0–100 strategy rating
 🧪 Reproducible versioned experiments
 🤖 AI rebuild specification
 📚 Strategy developer template
 🛡️ Locked paper-trading safety rules
+♿ WCAG AA contrast contract across every style/accent/theme combination
 ```
