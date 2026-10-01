@@ -23,6 +23,26 @@ jobs:
       - name: Compile all Python modules
         run: python -m compileall -q .
       - name: Import all runtime modules
-        run: python -c "import backtest, candles, config, dashboard, db, main, market_data, reminders, signal_gate, strategies, sweep_engine, telegram, trading, yahoo_provider"
+        # Every top-level module is discovered rather than listed by hand: a
+        # hand-maintained list silently stopped covering new modules, so a
+        # broken import could reach main unnoticed.
+        run: |
+          python - <<'PY'
+          import importlib, pathlib, sys
+          root = pathlib.Path(".")
+          modules = sorted(
+              p.stem for p in root.glob("*.py")
+              if p.stem not in {"setup", "conftest"} and not p.stem.startswith("_")
+          )
+          failed = []
+          for name in modules:
+              try:
+                  importlib.import_module(name)
+              except Exception as exc:
+                  failed.append(f"{name}: {type(exc).__name__}: {exc}")
+          print(f"imported {len(modules) - len(failed)}/{len(modules)} runtime modules")
+          if failed:
+              sys.exit("import failures:\n" + "\n".join(failed))
+          PY
       - name: Run complete test suite
         run: pytest

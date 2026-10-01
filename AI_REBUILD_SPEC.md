@@ -14,7 +14,7 @@ The project is a **paper-trading multi-strategy engine**. Preserve the locked ru
 
 ```text
 Project: MULTIBOT2
-Version: 3.2.5
+Version: 3.3.0
 Mode: PAPER ONLY
 Market data: Yahoo Finance ONLY
 Timezone: Asia/Kolkata
@@ -813,58 +813,125 @@ Most important architectural regression test:
 
 # 25. Files and responsibilities
 
+Complete inventory. A rebuild that omits any line here will lose behavior that
+no other section describes.
+
 ```text
+# --- runtime ---------------------------------------------------------------
 main.py
     Runtime orchestration, HTTP endpoints, Telegram command loop.
+startup.py
+    Startup sequencing and keepalive bootstrap.
 
+# --- locked configuration --------------------------------------------------
 config.py
     Locked global rules and asset configuration.
+release_notes.py
+    APP_VERSION, release highlights, Telegram /whatsnew source.
 
+# --- strategy execution ----------------------------------------------------
 strategy_engine.py
     Data request + strategy evaluation boundary.
-
 strategy_service.py
     Shared signal-to-trade lifecycle.
+strategy_scheduler.py
+    Per-strategy scheduling and completed-candle timing.
 
-strategies/base.py
-    Stable Strategy, Manifest, Signal contracts.
-
-strategies/registry.py
-    Automatic discovery.
-
-strategies/adaptive_trend/
-    Adaptive Trend strategy only.
-
-strategies/sweep_v2/
-    Sweep strategy only.
-
-backtest.py
-    Generic backtesting + metrics + rating.
-
-trading.py
-    Generic account/risk/trade primitives.
-
+# --- signal control --------------------------------------------------------
 signal_gate.py
     Freshness and duplicate identity controls.
+signal_lifecycle.py
+    Pipeline status transitions (RECORDED -> SENT -> EXPIRED).
+notification_service.py
+    Telegram/webhook delivery with send accounting.
 
-market_data.py / candles.py
+# --- market data -----------------------------------------------------------
+market_data.py
     Canonical market data handling.
-
+candles.py
+    Candle frame construction and completion rules.
 yahoo_provider.py
-    Yahoo transport.
+    Yahoo transport and durable cache.
 
+# --- trading and research --------------------------------------------------
+trading.py
+    Generic account/risk/trade primitives.
+backtest.py
+    Generic backtesting + metrics + rating.
+sweep_engine.py
+    Sweep calculations.
+
+# --- persistence -----------------------------------------------------------
 db.py
     Supabase/SQLite persistence.
+schema.sql
+    Canonical Supabase DDL (authoritative).
+supabase/schema.sql
+    Byte-mirrored copy of schema.sql; parity enforced by tests/test_schema_parity.py.
 
+# --- news and calendar -----------------------------------------------------
+news.py
+    Economic calendar fetch and parsing.
+news_gate.py
+    News-pause gating decisions.
+calendar_store.py
+    Persisted calendar events.
+reminders.py
+    Follow-up reminder scheduling.
+trade_monitor.py
+    Open-trade supervision and exits.
+
+# --- delivery --------------------------------------------------------------
 telegram.py
     Telegram rendering and transport.
-
 dashboard.py
     Dashboard-safe backend payloads only.
 
-sweep_engine.py
-    Sweep calculations.
+# --- strategy plug-ins -----------------------------------------------------
+strategies/base.py
+    Stable Strategy, Manifest, Signal contracts.
+strategies/registry.py
+    Automatic discovery. discover_strategies() is the only entry point.
+strategies/_template/
+    Scaffold for a new strategy. Copy, rename, edit.
+strategies/adaptive_trend/
+    Trend Pulse strategy only.
+strategies/engulfing_66_sma/
+    Engulf 66 SMA strategy only.
+strategies/sweep_v2/
+    Sweep 4H strategy only.
+
+# --- dashboard -------------------------------------------------------------
+dashboard.html
+    Single-page semantic structure. Five pages.
+app.js
+    Dashboard UI rendering and interaction.
+appearance.js
+    Theme/style/accent state and persistence.
+dashboard-live-wiring.js
+    Read-only presentation bridge over fetched snapshots.
+styles.css
+    Component and page layout.
+foundation.css
+    Canonical geometry and structure tokens.
+appearance-overrides.css
+    Theme appearance layer.
+
+# --- delivery of the build -------------------------------------------------
+pyproject.toml
+    Version, dependency pins, py-modules inventory.
+render.yaml
+    Deployment, env-var contract, health path.
+tests/
+    Contract regression suite.
+tools/check_release_docs.py
+    Version/document consistency gate.
+.github/workflows/tests.yml
+    CI: Python 3.12, editable install, compileall, import discovery, pytest.
 ```
+
+24 root modules, 3 registered strategies, 7 dashboard assets. This list is
+enforced by tests/test_rebuild_spec_inventory.py.
 
 ---
 
@@ -949,15 +1016,57 @@ If one of those files needs a change for every new strategy, the architecture ha
 # 29. Current release
 
 ```text
-MULTIBOT2 v3.2.5
+MULTIBOT2 v3.3.0
 
 🧩 Automatic strategy discovery
-🧠 Adaptive Trend Momentum
-🔎 Sweep V2 unified under strategy contract
+🧠 Trend Pulse (adaptive_trend)
+🔎 Engulf 66 SMA and Sweep 4H unified under the strategy contract
 📊 11 backtest metrics
 ⭐ 0–100 strategy rating
 🧪 Reproducible versioned experiments
 🤖 AI rebuild specification
 📚 Strategy developer template
 🛡️ Locked paper-trading safety rules
+♿ WCAG AA contrast contract across every style/accent/theme combination
 ```
+
+---
+
+# 30. Registered strategy inventory
+
+Three strategies are discovered by `strategies.registry.discover_strategies()`.
+There is no `build_default_registry`; discovery is the only entry point. A
+rebuild that ships fewer or more strategies is wrong.
+
+```text
+Trend Pulse 1.0.0
+    id           adaptive_trend
+    timeframes   1d
+    assets       2
+    account      macro
+    schedule     completed_candle
+
+Engulf 66 SMA 1.0.2
+    id           engulfing_66_sma
+    timeframes   1h
+    assets       25 (LIVE_SYMBOLS)
+    account      macro
+    schedule     completed_candle
+    parameters   sma_length 66, atr_length 14, zone_atr 0.35,
+                 min_body_atr 0.45, max_body_atr 3.5, strict_engulf false,
+                 min_slope_atr 0.15, slope_length 10, cooldown 12,
+                 confirm_only true, stop_atr 1.2, target_r 2.0
+    notes        validate_config() rejects max_body_atr < min_body_atr.
+                 data_request() asks for 1h/60d. Signals are emitted only on
+                 completed candles.
+
+Sweep 4H 2.1.0
+    id           sweep_v2
+    timeframes   1h, 4h
+    assets       25 (LIVE_SYMBOLS)
+    account      sweep_4h
+    schedule     completed_candle
+```
+
+This inventory is asserted against the live registry by
+tests/test_version_consistency.py, so it cannot drift from the code.

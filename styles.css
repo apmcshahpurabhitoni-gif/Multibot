@@ -10,8 +10,8 @@
      --accent-fill is the surface color for filled accent controls and
      --on-accent the guaranteed-contrast text on them. */
   --accent:#10b981;
-  --accent-strong:#059669;
-  --accent-fill:#059669; --on-accent:#ffffff;
+  --accent-strong:#047857;
+  --accent-fill:#047857; --on-accent:#ffffff;
   --accent-soft:rgba(16,185,129,.12);
   --accent-softer:rgba(16,185,129,.07);
 
@@ -21,14 +21,14 @@
   --surface-3:#e4e8ef;
   --text:#0f172a;
   --text-soft:#334155;
-  --muted:#64748b;
+  --muted:#5b6b80;
   --line:rgba(15,23,42,.12);
   --line-strong:rgba(15,23,42,.26);
-  --positive:#059669;
+  --positive:#037353;
   --positive-soft:rgba(5,150,105,.12);
-  --negative:#dc2626;
+  --negative:#b91c1c;
   --negative-soft:rgba(220,38,38,.11);
-  --warning:#b45309;
+  --warning:#92400e;
   --warning-soft:rgba(180,83,9,.12);
   --shadow:0 18px 44px rgba(15,23,42,.09);
   --shadow-soft:0 4px 16px rgba(15,23,42,.06);
@@ -50,7 +50,7 @@
 }
 html[data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#4f46e5;--accent-soft:rgba(99,102,241,.12);--accent-softer:rgba(99,102,241,.07)}
 html[data-accent="amber"]{--accent:#f59e0b;--accent-strong:#b45309;--accent-fill:#b45309;--accent-soft:rgba(245,158,11,.15);--accent-softer:rgba(245,158,11,.08)}
-html[data-accent="rose"]{--accent:#f43f5e;--accent-strong:#e11d48;--accent-fill:#e11d48;--accent-soft:rgba(244,63,94,.12);--accent-softer:rgba(244,63,94,.06)}
+html[data-accent="rose"]{--accent:#f43f5e;--accent-strong:#da1c45;--accent-fill:#e11d48;--accent-soft:rgba(244,63,94,.12);--accent-softer:rgba(244,63,94,.06)}
 html[data-accent="cyan"]{--accent:#06b6d4;--accent-strong:#0e7490;--accent-fill:#0e7490;--accent-soft:rgba(6,182,212,.13);--accent-softer:rgba(6,182,212,.07)}
 
 /* ---------- Dark theme (works with every style + accent) ------------------ */
@@ -102,9 +102,9 @@ html[data-style="neo"]{
   --on-accent:#141414;
   --accent-soft:rgba(255,93,31,.14);
   --accent-softer:rgba(255,93,31,.08);
-  --positive:#0b7a4b;
+  --positive:#096c42;
   --negative:#c81e3d;
-  --warning:#946200;
+  --warning:#7f5400;
   --radius:10px;
   --radius-sm:8px;
   --radius-xs:6px;
@@ -135,10 +135,16 @@ html[data-theme="dark"][data-style="neo"]{
   --shadow:3px 3px 0 #000;
   --shadow-soft:2px 2px 0 #000;
 }
+html[data-style="neo"][data-accent="emerald"]{--accent:#10b981;--accent-strong:#047857;--accent-fill:#10b981;--accent-soft:rgba(16,185,129,.16);--accent-softer:rgba(16,185,129,.09)}
 html[data-style="neo"][data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#6366f1;--accent-soft:rgba(99,102,241,.16)}
-html[data-style="neo"][data-accent="amber"]{--accent:#f59e0b;--accent-strong:#d97706;--accent-fill:#f59e0b;--accent-soft:rgba(245,158,11,.18)}
+html[data-style="neo"][data-accent="amber"]{--accent:#f59e0b;--accent-strong:#a05804;--accent-fill:#f59e0b;--accent-soft:rgba(245,158,11,.18)}
 html[data-style="neo"][data-accent="rose"]{--accent:#e11d48;--accent-strong:#be123c;--accent-fill:#e11d48;--accent-soft:rgba(225,29,72,.15)}
 html[data-style="neo"][data-accent="cyan"]{--accent:#0891b2;--accent-strong:#0e7490;--accent-fill:#0891b2;--accent-soft:rgba(8,145,178,.16)}
+/* Light-only: these two fills are too mid-luminance for the dark Neo on-accent.
+   Scoped to [data-theme="light"] so the dark fills keep their dark on-accent. */
+html[data-theme="light"][data-style="neo"][data-accent="indigo"]{--accent-fill:#6163ec;--on-accent:#ffffff}
+html[data-theme="light"][data-style="neo"][data-accent="rose"]{--on-accent:#ffffff}
+html[data-theme="dark"][data-style="neo"][data-accent="emerald"]{--accent:#34d399;--accent-strong:#6ee7b7;--accent-fill:#34d399;--accent-soft:rgba(52,211,153,.18);--accent-softer:rgba(52,211,153,.09)}
 html[data-theme="dark"][data-style="neo"][data-accent="indigo"]{--accent:#818cf8;--accent-strong:#a5b4fc;--accent-fill:#818cf8}
 html[data-theme="dark"][data-style="neo"][data-accent="amber"]{--accent:#fbbf24;--accent-strong:#fcd34d;--accent-fill:#fbbf24}
 html[data-theme="dark"][data-style="neo"][data-accent="rose"]{--accent:#fb7185;--accent-strong:#fda4af;--accent-fill:#fb7185}
@@ -179,7 +185,7 @@ svg{vertical-align:middle}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;color:inherit;text-decoration:none}
 .brand-mark{
   display:grid;place-items:center;flex:none;width:38px;height:38px;
-  border-radius:11px;background:var(--accent);color:var(--on-accent);
+  border-radius:11px;background:var(--accent-fill);color:var(--on-accent);
   font-size:17px;font-weight:950;letter-spacing:-.02em;
   box-shadow:inset 0 -2px 0 rgba(0,0,0,.18);
 }
@@ -304,7 +310,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .chart-card{padding:14px}
 .chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}
 .chart-head strong,.chart-head small{display:block}
-.chart-head strong{font-size:13px;font-weight:800}
+.chart-head strong{font-size:14px;font-weight:800}
 .chart-head small{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}
 .chart-head>span{color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}
 .chart-area{width:100%;min-width:0;min-height:180px;overflow:hidden}
@@ -342,24 +348,9 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .filter-button:hover,.impact-filter:hover,.trade-tab:hover,.history-tab:hover,.signal-tab:hover{color:var(--text);border-color:var(--line-strong);transform:translateY(-1px)}
 .filter-button:active,.impact-filter:active,.trade-tab:active,.history-tab:active,.signal-tab:active{transform:translateY(0) scale(.97)}
 .filter-button.active,.impact-filter.active,.trade-tab.active,.signal-tab.active,.history-tab.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
-.expand-button{
-  display:grid;place-items:center;flex:none;width:26px;height:26px;
-  border:var(--border-w) solid var(--line-strong);border-radius:8px;background:var(--surface);
-  font-size:11px;line-height:1;color:var(--text-soft);transition:background .15s ease,color .15s ease,transform .2s ease,border-color .15s ease;
-}
-.expand-button:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong)}
-.expand-button.is-open{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
-.expand-button:hover{background:var(--accent-soft);color:var(--accent-strong)}
 
 /* ---------- 9b. Unified chevron: one glyph for every collapsible ----------- */
-/* Pure CSS arrow — identical size, weight and motion in Modern and Neo.
-   Container boxes (.expand-button, date-toggle i, .collapse-chev) provide the
-   frame; .chev only draws the arrow and rotates when its group is open. */
-.chev{display:grid;place-items:center}
-.chev::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .2s ease}
-.expand-button.is-open .chev::after,.is-open .signal-date-toggle .chev::after,.is-open .history-date-toggle .chev::after,.is-open .calendar-date-toggle .chev::after,.is-open .trade-date-toggle .chev::after{transform:rotate(-135deg);margin-top:2px}
-.collapse-chev::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .2s ease}
-.tool-collapse.is-open .collapse-chev::after{transform:rotate(-135deg);margin-top:2px}
+/* Chevron glyph geometry is owned by foundation.css .collapse-control. */
 
 /* ---------- 10. Cards: signals & trades ------------------------------------ */
 .signal-card,.trade-card{border-left:4px solid var(--line-strong)}
@@ -368,11 +359,10 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .signal-card.incomplete{border-left-color:var(--warning)}
 .signal-card.incomplete .signal-side{color:var(--warning)}
 .card-main{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;min-height:44px;cursor:pointer;border-radius:inherit;transition:background .15s ease,transform .15s ease}
-.card-main:hover{background:var(--surface-2)}
-.card-main:hover .expand-button{border-color:var(--accent);color:var(--accent-strong)}
+.card-main:hover{background:var(--surface-2)}.card-main:hover .expand-button{border-color:var(--accent);color:var(--accent-strong)}
 .card-main:active{transform:scale(.995)}
 .signal-leading{display:flex;align-items:center;gap:12px;min-width:0}
-.direction-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;background:var(--surface-2);font-size:10px}
+.direction-icon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:var(--radius-xs);background:var(--surface-2);font-size:10px}
 .signal-leading div{min-width:0}
 .signal-leading strong{display:block;font-size:12px;font-weight:800;overflow-wrap:anywhere}
 .signal-leading small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.3;overflow-wrap:anywhere}
@@ -421,7 +411,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .signal-date-toggle b,.history-date-toggle b,.calendar-date-toggle b,.trade-date-toggle b{font-size:12px;font-weight:850;line-height:1.2}
 .signal-date-toggle small,.history-date-toggle small,.calendar-date-toggle small,.trade-date-toggle small{font-size:10px;color:var(--muted);font-weight:700}
 .signal-date-toggle i,.history-date-toggle i,.calendar-date-toggle i,.trade-date-toggle i{display:grid;place-items:center;width:30px;height:30px;font-style:normal;font-size:12px;line-height:1;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:8px;flex:none;transition:transform .2s ease,background .15s ease,color .15s ease}
-.signal-date-group.is-open .signal-date-toggle i,.history-date-group.is-open .history-date-toggle i,.calendar-date-group.is-open .calendar-date-toggle i,.trade-date-group.is-open .trade-date-toggle i{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.signal-date-group.is-open .signal-date-toggle .collapse-control,.history-date-group.is-open .history-date-toggle .collapse-control,.calendar-date-group.is-open .calendar-date-toggle .collapse-control,.trade-date-group.is-open .trade-date-toggle .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .signal-date-toggle,.history-date-toggle,.calendar-date-toggle,.trade-date-toggle{padding:8px 8px}
 .signal-date-group.is-open>.signal-date-toggle,.history-date-group.is-open>.history-date-toggle,.calendar-date-group.is-open>.calendar-date-toggle,.trade-date-group.is-open>.trade-date-toggle{background:var(--accent-softer)}
 .signal-date-rows,.history-date-rows,.calendar-date-events,.trade-date-rows{position:relative;z-index:1;display:grid;gap:6px;padding:6px 5px 8px}
@@ -494,8 +484,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .impact-pill.high{color:var(--negative);background:var(--negative-soft)}
 .impact-pill.medium{color:var(--warning);background:var(--warning-soft)}
 .impact-pill.low{color:var(--muted);background:var(--surface-2)}
-.impact-pill.holiday{color:var(--accent-strong);background:var(--accent-soft)}
-.calendar-meta .expand-button{margin-left:auto;width:32px;height:32px}
+.impact-pill.holiday{color:var(--accent-strong);background:var(--accent-soft)}.calendar-meta .expand-button{margin-left:auto;}
 .calendar-title{display:block!important;margin:2px 40px 0 55px;font-size:11.5px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
 .calendar-details{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 0 55px;padding-top:6px;border-top:1px solid var(--line)}
 .calendar-details>span{font-size:10px;color:var(--muted);white-space:nowrap}
@@ -527,7 +516,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
   transition:transform .15s ease,border-color .15s ease,background .15s ease;
 }
 .appearance-option:hover{transform:translateY(-1px);border-color:var(--accent)}
-.appearance-option b{display:block;font-size:13px;font-weight:850}
+.appearance-option b{display:block;font-size:14px;font-weight:850}
 .appearance-option small{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.4}
 .appearance-option.active{border:2px solid var(--accent);padding:12px 14px;background:var(--accent-soft)}
 .appearance-swatch{display:inline-block;width:14px;height:14px;border-radius:5px;border:2px solid var(--line-strong);margin-right:8px;vertical-align:-2px}
@@ -559,7 +548,7 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .backtest-rating{flex:none;padding:6px 11px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-size:10.5px;font-weight:900;max-width:100%;overflow-wrap:anywhere}
 .backtest-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--grid-gap)}
 .backtest-summary>div{padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
-.backtest-summary b{display:block;margin-top:5px;font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.backtest-summary b{display:block;margin-top:5px;font-size:14px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .backtest-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--grid-gap)}
 .backtest-metrics>div{min-width:0;padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2)}
 .backtest-metrics b{display:block;min-width:0;margin-top:6px;font-size:clamp(17px,2.4vw,23px);line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -668,14 +657,14 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .tool-collapse>.section-heading:hover{background:var(--surface-2)}
 .tool-collapse.is-open>.section-heading{background:transparent}
 .tool-collapse.is-open>.section-heading h2{color:var(--text)}
-.tool-collapse.is-open>.section-heading .collapse-chev{background:var(--accent-soft)}
+.tool-collapse.is-open>.section-heading .collapse-control{background:var(--accent-soft)}
 
 /* ---------- 12b. Collapsible tool sections + release modal --------------- */
 .tool-collapse>.section-heading{cursor:pointer;user-select:none;margin:0;min-height:40px}
 .tool-collapse>.section-heading:hover h2{color:var(--accent-strong)}
-.tool-collapse>.section-heading .collapse-chev{display:grid;place-items:center;flex:none;width:26px;height:26px;font-style:normal;font-size:11px;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);border-radius:7px;transition:transform .2s ease,background .15s ease,color .15s ease,border-color .15s ease}
-.tool-collapse>.section-heading:hover .collapse-chev{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
-.tool-collapse.is-open>.section-heading .collapse-chev{transform:rotate(180deg);color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.tool-collapse>.section-heading .collapse-control{display:grid;place-items:center;flex:none;font-style:normal;font-size:0;color:var(--muted);background:var(--surface-2);border:var(--border-w) solid var(--line);transition:background .15s ease,color .15s ease,border-color .15s ease}
+.tool-collapse>.section-heading:hover .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
+.tool-collapse.is-open>.section-heading .collapse-control{color:var(--accent-strong);border-color:var(--accent);background:var(--accent-soft)}
 .tool-collapse>.tool-body{padding-top:8px}
 .tool-collapse:not(.is-open)>.tool-body{display:none}
 .release-modal{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(8,12,10,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s ease}
@@ -696,7 +685,7 @@ html[data-style="neo"] .release-modal-card{border:2px solid var(--line-strong)!i
 .trade-drawer-shell.open{opacity:1;pointer-events:auto}
 .trade-drawer{position:relative;width:min(440px,100%);height:100%;overflow:auto;padding:24px 22px;background:var(--surface);box-shadow:-20px 0 60px rgba(0,0,0,.25);transform:translateX(100%);transition:transform .25s ease}
 .trade-drawer-shell.open .trade-drawer{transform:translateX(0)}
-.drawer-close{position:absolute;right:14px;top:14px;width:40px;height:40px;border:var(--border-w) solid var(--line);border-radius:10px;background:var(--surface-2);font-size:20px;line-height:1}
+.drawer-close{position:absolute;right:14px;top:14px;width:40px;height:40px;border:var(--border-w) solid var(--line);border-radius:10px;background:var(--surface-2);font-size:17px;line-height:1}
 .drawer-close:hover{background:var(--negative-soft);color:var(--negative)}
 .trade-drawer h2{margin:6px 0 12px;font-size:22px;letter-spacing:-.03em;font-weight:900;overflow-wrap:anywhere}
 .drawer-status{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
@@ -704,16 +693,14 @@ html[data-style="neo"] .release-modal-card{border:2px solid var(--line-strong)!i
 .drawer-price-grid>div,.drawer-details>div{padding:12px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
 .drawer-price-grid b,.drawer-details b{display:block;margin-top:5px;font-size:12.5px;overflow-wrap:anywhere}
 .trade-drawer section{margin-top:22px}
-.trade-drawer h3{font-size:13px;margin:0 0 10px;font-weight:900;letter-spacing:.02em}
+.trade-drawer h3{font-size:14px;margin:0 0 10px;font-weight:900;letter-spacing:.02em}
 body.drawer-open{overflow:hidden}
 
 /* ---------- 14. Empty states ------------------------------------------------ */
 .empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:2px dashed var(--line-strong);border-radius:var(--radius-sm);background:var(--surface)}
-.empty-state span{font-size:20px;color:var(--accent-strong)}
+.empty-state span{font-size:17px;color:var(--accent-strong)}
 .empty-state strong{font-size:14px;font-weight:850}
-.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}
-
-/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
+.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
 html[data-style="neo"] .primary-button,
 html[data-style="neo"] .secondary-button,
 html[data-style="neo"] .icon-button,
@@ -721,13 +708,12 @@ html[data-style="neo"] .text-button,
 html[data-style="neo"] .nav-button,
 html[data-style="neo"] .filter-button,
 html[data-style="neo"] .impact-filter,
-html[data-style="neo"] .expand-button,
 html[data-style="neo"] .settings-toggle,
 html[data-style="neo"] .trade-detail-button,
 html[data-style="neo"] .appearance-option,
 html[data-style="neo"] select,
 html[data-style="neo"] input{
-  border:2px solid var(--line-strong)!important;border-radius:7px!important;box-shadow:3px 3px 0 var(--line-strong);
+  border:2px solid var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button{background:var(--accent-fill);color:var(--on-accent);border-color:var(--line-strong)!important}
 html[data-style="neo"] .nav-button.active,
@@ -763,28 +749,6 @@ html[data-style="neo"] .scan-history-row,
 html[data-style="neo"] .calendar-item{
   border:2px solid var(--line-strong)!important;border-radius:8px!important;box-shadow:3px 3px 0 var(--line-strong);
 }
-html[data-style="neo"] .primary-button:hover,
-html[data-style="neo"] .secondary-button:hover,
-html[data-style="neo"] .icon-button:hover,
-html[data-style="neo"] .text-button:hover,
-html[data-style="neo"] .nav-button:hover,
-html[data-style="neo"] .filter-button:hover,
-html[data-style="neo"] .impact-filter:hover,
-html[data-style="neo"] .expand-button:hover,
-html[data-style="neo"] .settings-toggle:hover,
-html[data-style="neo"] .trade-detail-button:hover,
-html[data-style="neo"] .appearance-option:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important}
-html[data-style="neo"] .primary-button:active,
-html[data-style="neo"] .secondary-button:active,
-html[data-style="neo"] .icon-button:active,
-html[data-style="neo"] .text-button:active,
-html[data-style="neo"] .nav-button:active,
-html[data-style="neo"] .filter-button:active,
-html[data-style="neo"] .impact-filter:active,
-html[data-style="neo"] .expand-button:active,
-html[data-style="neo"] .settings-toggle:active,
-html[data-style="neo"] .trade-detail-button:active,
-html[data-style="neo"] .appearance-option:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important}
 html[data-style="neo"] .metric-card strong,
 html[data-style="neo"] .tool-card h2,
 html[data-style="neo"] .section-block h2,
@@ -918,7 +882,6 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 @media(max-width:430px){
   .brand-copy small{font-size:9px}
   .status-badge{font-size:9px;min-height:30px;padding:5px 9px}
-  .icon-button{width:38px;height:38px;min-width:38px}
   .hero-pills span{font-size:9px;padding:6px 9px}
   .metric-card strong{font-size:14px}
   .card-main{gap:8px;padding:6px 9px}
@@ -1197,7 +1160,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-collapse.is-open>.section-heading,
 #page-tools .tool-collapse>.section-heading:hover{background:transparent}
 #page-tools .tool-collapse>.section-heading h2{color:var(--text)}
-#page-tools .tool-collapse.is-open>.section-heading .collapse-chev{background:var(--accent-soft);color:var(--accent-strong)}
+#page-tools .tool-collapse.is-open>.section-heading .collapse-control{background:var(--accent-soft);color:var(--accent-strong)}
 
 @media(max-width:760px){
   #page-tools .tools-layout{gap:8px}
@@ -1275,7 +1238,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-right:0!important;
   flex:0 0 auto!important;
 }
-#page-tools .tool-collapse>.section-heading>.collapse-chev{
+#page-tools .tool-collapse>.section-heading>.collapse-control{
   margin-left:0!important;
   flex:0 0 auto!important;
 }
@@ -1363,7 +1326,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-right:0!important;
   flex:0 0 auto!important;
 }
-#page-tools .tool-universe>.section-heading>.collapse-chev{
+#page-tools .tool-universe>.section-heading>.collapse-control{
   flex:0 0 auto!important;
 }
 #page-tools .universe-grid{
@@ -1443,7 +1406,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin-left:auto!important;
   margin-right:0!important;
 }
-#page-tools .tool-collapse>.section-heading>.collapse-chev{
+#page-tools .tool-collapse>.section-heading>.collapse-control{
   margin-left:0!important;
   flex:0 0 auto!important;
 }
@@ -1894,21 +1857,16 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   border-radius:8px!important;
   font-size:10px!important;
   line-height:1!important;
-}
-#page-calendar .calendar-meta .expand-button{
+}#page-calendar .calendar-meta .expand-button{
   flex:0 0 34px!important;
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
+  
+  
+  min-
+  min-
   margin-left:auto!important;
-  border-radius:10px!important;
+  
 }
-#page-calendar .calendar-meta .expand-button::before{
-  width:7px!important;
-  height:7px!important;
-}
-
+#page-calendar .calendar-meta 
 /* Event title is now a first-class hierarchy level.
    Allow two lines so long titles are readable instead of clipped. */
 #page-calendar .calendar-title,
@@ -2026,11 +1984,10 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   }
   #page-calendar .calendar-meta .impact-pill{
     display:inline-flex!important;
-  }
-  #page-calendar .calendar-meta .expand-button{
-    width:32px!important;
-    height:32px!important;
-    min-width:32px!important;
+  }#page-calendar .calendar-meta .expand-button{
+    
+    
+    min-
   }
   #page-calendar .calendar-details{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
@@ -3195,27 +3152,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   background:var(--surface)!important;
 }
 
-/* 8. Collapse controls share one visual language -------------------------- */
-#page-tools .collapse-chev{
-  box-sizing:border-box!important;
-  width:40px!important;
-  height:40px!important;
-  min-width:40px!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-  background:var(--surface-2)!important;
-  color:var(--muted)!important;
-}
-
-#page-tools .tool-tag{
-  min-height:32px!important;
-  padding:6px 10px!important;
-  border:1px solid var(--line)!important;
-  border-radius:999px!important;
-  background:var(--surface-2)!important;
-  color:var(--text-soft)!important;
-}
-
 /* 9. Mobile: preserve the same geometry rather than introducing new rules */
 @media(max-width:560px){
   #page-tools .tool-card>.section-heading,
@@ -3440,16 +3376,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-runtime .schedule-inline span{
   min-height:46px!important;
   height:46px!important;
-}
-
-/* Collapse controls are deliberately identical everywhere */
-#page-tools .collapse-chev{
-  width:40px!important;
-  height:40px!important;
-  min-width:40px!important;
-  border-radius:10px!important;
-  border:1px solid var(--line)!important;
-  background:var(--surface-2)!important;
 }
 
 @media(max-width:560px){
@@ -3953,19 +3879,6 @@ html[data-style="material3"] #page-tools .tool-backtest .backtest-status{
   background:var(--m3-surface-container-lowest);
   border-color:var(--m3-outline-variant);
   box-shadow:none;
-}
-html[data-style="material3"] #page-tools .collapse-chev{
-  width:30px!important;
-  height:30px!important;
-  min-width:30px!important;
-  min-height:30px!important;
-  border:1px solid var(--m3-outline)!important;
-  border-radius:var(--m3-radius-full)!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-html[data-style="material3"] #page-tools .collapse-chev:hover{
-  background:var(--m3-state-hover)!important;
 }
 html[data-style="material3"] #page-tools .tools-appearance>.settings-row{
   background:var(--m3-surface-container-lowest)!important;

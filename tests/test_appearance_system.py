@@ -27,7 +27,17 @@ def test_appearance_bridge_is_loaded_after_app():
 
 
 def test_appearance_controls_are_compact_without_redesigning_shell():
-    assert '.topbar .icon-button{width:34px;height:34px;min-width:34px' in CSS
+    foundation = (ROOT / "foundation.css").read_text(encoding="utf-8")
+    # The topbar utility buttons are ExpandableControl siblings: one size and one
+    # radius from the foundation contract, and no per-viewport geometry override.
+    assert '--ui-collapse-size:32px' in foundation
+    assert '--ui-collapse-radius:10px' in foundation
+    assert '--ui-control-h:var(--ui-collapse-size)' in CSS
+    assert '--ui-control-r:var(--ui-collapse-radius)' in CSS
+    assert '.topbar .icon-button{padding:0!important;border:2px solid var(--line)!important' in CSS
+    assert '.topbar .icon-button{width' not in CSS
+    # Neo supplies the flat ink treatment only; it must not resize the control.
+    assert 'html.neo-mode .topbar .icon-button{\n  padding:0!important;' in CSS
     assert '.topbar .header-meta{display:flex;align-items:center;flex-wrap:nowrap' in CSS
     assert '@media(max-width:560px)' in CSS
     assert '.appearance-style-grid{display:grid' in CSS

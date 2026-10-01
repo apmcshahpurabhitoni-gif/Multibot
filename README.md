@@ -27,10 +27,18 @@ It is deliberately **paper only**. It does not place live broker orders.
 
 **Single source of truth:** `release_notes.py`
 
-- 🎨 Added a Material Design 3 presentation theme built on the existing dashboard DOM and component contracts.
-- 🌓 Material 3 has independent light/dark semantic schemes and preserves all five existing accent choices.
-- 🧩 Material 3 changes presentation only: trading logic, API contracts, persistence, Telegram flow and responsive structure remain unchanged.
-- ♿ Material 3 adds semantic focus, hover and pressed states while preserving the existing reduced-motion behavior.
+- 🎨 Added a complete Material Design 3 presentation theme with semantic color roles, tonal surfaces, typography, shape and elevation tokens.
+- 🌓 Material 3 supports independent light and dark presentation schemes across all existing accent choices.
+- 🧩 Material 3 reuses the existing dashboard DOM, controls, data flow and responsive geometry without changing trading behavior.
+- ♿ Added Material 3 focus, hover and pressed-state presentation while preserving the existing reduced-motion contract.
+- ✨ Release notes moved into a header button with a modal, freeing a full dashboard section.
+- 🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.
+- 🐛 Fixed the mobile navigation anchoring to the page bottom instead of the screen: the html element no longer matches the theme-button selectors.
+- 🎨 Rebalanced the color system: neutral slate surfaces replace the green-tinted palette and all five accent choices are cleaner in light and dark themes.
+- 📲 The fixed bottom navigation now also covers tablet widths, so there is no viewport range without navigation.
+- 📱 Backtest trades and generated signals are bounded, touch-scrollable panels that no longer stretch the mobile page or sit behind navigation.
+- 🗂️ Signals and History date groups use consistent spacing and borders so headings and dates are never hidden or clipped.
+- 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.
 
 ### 🎨 Interface styles
 
@@ -41,15 +49,6 @@ MULTIBOT2 now has three presentation systems using the same application structur
 - **Neo Brutalism** — existing high-contrast presentation.
 
 Material 3 is presentation-only. It does not introduce a second DOM, component framework, storage key, API path or trading behavior. The existing `mavis-style` preference is reused, and the existing responsive breakpoints remain authoritative.
-
-- ✨ Release notes moved into a header button with a modal, freeing a full dashboard section.
-- 🎯 Modern style now matches Neo Brutalism's tactile feel: hover lift and press feedback on every interactive control.
-- 🐛 Fixed the mobile navigation anchoring to the page bottom instead of the screen: the html element no longer matches the theme-button selectors.
-- 🎨 Rebalanced the color system: neutral slate surfaces replace the green-tinted palette and all five accent choices are cleaner in light and dark themes.
-- 📲 The fixed bottom navigation now also covers tablet widths, so there is no viewport range without navigation.
-- 📱 Backtest trades and generated signals are bounded, touch-scrollable panels that no longer stretch the mobile page or sit behind navigation.
-- 🗂️ Signals and History date groups use consistent spacing and borders so headings and dates are never hidden or clipped.
-- 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.
 
 ## 🧭 Architecture at a glance
 

@@ -166,6 +166,9 @@ def test_backtest_ratio_metrics_are_bounded():
 
 
 def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scrollable():
+    # Containment geometry is owned by foundation.css and component layout by
+    # styles.css (see DESIGN.md), so assert the contract across both surfaces.
+    surfaces = CSS + (ROOT / "foundation.css").read_text(encoding="utf-8")
     for token in (
         '--section-gap',
         '--card-pad',
@@ -181,4 +184,187 @@ def test_dashboard_consistency_pass_keeps_sections_contained_and_trade_lists_scr
         'min-width:0',
         'overflow-wrap:anywhere',
     ):
-        assert token in CSS
+        assert token in surfaces
+
+
+def test_dashboard_pass1_foundation_contract_is_defined_without_migrating_components():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    for token in (
+        "--ui-space-1",
+        "--ui-space-6",
+        "--ui-section-gap",
+        "--ui-grid-gap",
+        "--ui-card-pad",
+        "--ui-control-height",
+        "--ui-radius-medium",
+        "--ui-border-width",
+        "--ui-mobile-nav-height",
+        "--ui-collapse-size",
+        "--ui-collapse-radius",
+        "--ui-collapse-border",
+        "--ui-collapse-icon-size",
+        "--ui-collapse-icon-weight",
+    ):
+        assert token in foundation
+    assert "--ui-collapse-size:32px" in foundation
+    assert "--ui-collapse-radius:10px" in foundation
+    assert "--ui-collapse-icon-size:7px" in foundation
+
+
+def test_dashboard_pass2_uses_one_collapse_control_contract():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+    live=(ROOT / "dashboard-live-wiring.js").read_text(encoding="utf-8")
+    styles=(ROOT / "styles.css").read_text(encoding="utf-8")
+    assert ".collapse-control::after" in foundation
+    assert "transform:translateY(-2px) rotate(45deg)" in foundation
+    assert "rotate(180deg)" not in foundation
+    assert "rotate(180deg)" not in styles
+    assert "aria-hidden=\"true\" tabindex=\"-1\"" not in app
+    assert "class=\"collapse-chev" not in html
+    assert "class=\"chev collapse-control\"" not in app
+    assert "class=\"chev collapse-control\"" not in live
+    assert "collapse-control" in html
+
+
+def test_dashboard_pass2_collapse_state_is_shared_across_tools_and_date_groups():
+    foundation=(ROOT / "foundation.css").read_text(encoding="utf-8")
+    appearance=(ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+
+    assert '[aria-expanded="true"] > .collapse-control::after' in foundation
+    assert '.collapse-control[aria-expanded="true"]::after' in foundation
+    assert '#page-signals .signal-date-toggle .collapse-control' in foundation
+    assert '#page-history .history-date-toggle .collapse-control' in foundation
+    assert '#page-calendar .calendar-date-toggle .collapse-control' in foundation
+    assert 'transform:translateY(-2px) rotate(45deg)!important' not in appearance
+    assert 'transform:translateY(2px) rotate(-135deg)!important' not in appearance
+    assert 'data-signal-date' in app
+    assert 'data-history-date' in app
+    assert 'data-calendar-date-group' in app
+
+
+def test_dashboard_pass2_tool_controls_are_semantic_buttons():
+    html=(ROOT / "dashboard.html").read_text(encoding="utf-8")
+    assert "<button class=\"collapse-control\" type=\"button\"" in html
+    assert "aria-expanded=\"false\"" in html
+
+
+def test_all_date_group_collapse_controls_receive_open_state_class():
+    app=(ROOT / "app.js").read_text(encoding="utf-8")
+    live=(ROOT / "dashboard-live-wiring.js").read_text(encoding="utf-8")
+    marker='<i aria-hidden="true" class="collapse-control ${open?"is-open":""}"></i>'
+    assert app.count(marker) == 3
+    assert live.count(marker) == 1
+
+
+def test_dashboard_has_one_expandable_control_geometry():
+    foundation = (ROOT / "foundation.css").read_text(encoding="utf-8")
+    styles = (ROOT / "styles.css").read_text(encoding="utf-8")
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # One source of truth for the size and radius of every expandable control.
+    assert '--ui-collapse-size:32px' in foundation
+    assert '--ui-collapse-radius:10px' in foundation
+    assert 'border-radius:var(--ui-collapse-radius)!important' in foundation
+    assert '--ui-control-h:var(--ui-collapse-size)' in appearance
+    assert '--ui-control-r:var(--ui-collapse-radius)' in appearance
+
+    # No layer may re-declare a competing control size or radius.
+    assert 'width:26px;height:26px' not in styles
+    assert 'width:30px!important' not in appearance
+    assert 'border-radius:11px' not in appearance
+    assert '.topbar .icon-button{width' not in appearance
+    assert '.topbar .icon-button{width:34px' not in appearance
+
+
+def test_expandable_control_keeps_a_full_size_pointer_target():
+    foundation = (ROOT / "foundation.css").read_text(encoding="utf-8")
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # A compact visual control must not shrink the touch target below 44px.
+    assert '--ui-collapse-tap:44px' in foundation
+    assert '.collapse-control::before' in appearance
+    assert '.topbar .icon-button::before' in appearance
+    # Sized explicitly rather than by insets: an inset box resolves against the
+    # padding box, so borders would eat into the target.
+    assert 'width:var(--ui-collapse-tap)!important' in appearance
+    assert 'height:var(--ui-collapse-tap)!important' in appearance
+    assert 'transform:translate(-50%,-50%)!important' in appearance
+
+
+def test_open_glyph_never_leaks_onto_a_nested_collapsed_control():
+    foundation = (ROOT / "foundation.css").read_text(encoding="utf-8")
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # foundation.css opens the glyph with a DESCENDANT selector, so every chevron
+    # nested inside an expanded day group inherited the open glyph and could not
+    # rotate. The appearance layer re-asserts the closed glyph for controls that
+    # are themselves closed, with more specificity than the rule it neutralises.
+    assert '.is-open .collapse-control::after' in foundation
+    assert '.is-open .collapse-control:not(.is-open):not([aria-expanded="true"])::after' in appearance
+    assert 'transform:translateY(-2px) rotate(45deg)' in appearance
+
+
+
+def test_surfaces_share_one_corner_and_tone_contract():
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # A card owns its corners, so a full-bleed band cannot show square corners
+    # through a rounded one.
+    for card in (
+        '#page-overview .section-block[class]',
+        '#page-signals .signals-workspace[class]',
+        '#page-history .history-workspace[class]',
+        '#page-calendar .calendar-workspace[class]',
+        '#page-tools .tool-card[class]',
+    ):
+        assert card in appearance
+    assert 'overflow:clip!important' in appearance
+
+    # A boundary must change tone: a row group already on the tinted body does
+    # not repaint that same tint.
+    assert '#page-tools .asset-category[class]' in appearance
+    assert 'background:transparent!important' in appearance
+
+
+def test_type_scale_floor_is_enforced_in_the_appearance_layer():
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # `small` had no size of its own and inherited the browser's 1.2 ratio
+    # (9.16667px / 10.4167px), and a sub-10px tier had grown around it.
+    assert 'small{' in appearance
+    assert 'font-size:10.5px!important' in appearance
+    assert 'font-size:9.5px!important' in appearance
+    assert 'html #page-tools .asset-category-label,' in appearance
+    assert 'html #page-tools .tool-backtest .backtest-rating' in appearance
+
+
+def test_tools_section_control_follows_the_contract_above_the_mobile_gate():
+    appearance = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
+
+    # The Tools section geometry is authored inside max-width media queries, so a
+    # wide viewport rendered the control as a 14x4 dead box with no chevron and a
+    # body that never collapsed. The contract is re-asserted from 561px up.
+    assert "@media(min-width:561px){" in appearance
+    assert "html #page-tools .tool-collapse>.section-heading>.collapse-control{" in appearance
+    assert 'html #page-tools .tool-collapse>.section-heading>.collapse-control::after{' in appearance
+    assert 'content:""!important' in appearance
+    assert 'width:var(--ui-collapse-size)!important' in appearance
+    assert "html #page-tools .tool-collapse:not(.is-open)>.tool-body{display:none!important}" in appearance
+
+
+
+def test_accent_map_resolves_for_every_style_including_neo_emerald():
+    css = CSS
+
+    for accent in ("emerald", "indigo", "amber", "rose", "cyan"):
+        assert f'html[data-accent="{accent}"]' in css or accent == "emerald"
+        assert f'html[data-style="neo"][data-accent="{accent}"]' in css
+        assert f'html[data-theme="dark"][data-style="neo"][data-accent="{accent}"]' in css
+
+    # Text and solid fills use the accessible accent, not the vivid decorative one.
+    assert '--accent-fill:#047857' in css
+    assert '--accent-strong:#047857' in css
+    assert 'background:var(--accent-fill)' in css

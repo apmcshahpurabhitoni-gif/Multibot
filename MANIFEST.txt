@@ -1,4 +1,4 @@
-MULTIBOT2 v3.2.0
+MULTIBOT2 v3.3.0
 ================
 
 Architecture
@@ -9,11 +9,12 @@ Architecture
 - Generic registry-driven backtesting.
 
 Built-in strategies
-- Adaptive Trend Momentum 1.0.0: BTC-USD + GC=F, 1D.
-- Sweep V2 2.0.1: 19-asset canonical sweep schedules.
+- Trend Pulse 1.0.0 (adaptive_trend): 2 assets, 1D.
+- Engulf 66 SMA 1.0.2 (engulfing_66_sma): 25 assets, 1h.
+- Sweep 4H 2.1.0 (sweep_v2): 25 assets, 1h/4h canonical sweep schedules.
 
 Locked rules
-- Paper only, Yahoo only, 19 assets, ₹100,000, ₹2,000 risk, 1x leverage.
+- Paper only, Yahoo only, 25 assets, ₹100,000, ₹2,000 risk, 1x leverage.
 - Freshness exactly 1 hour.
 - Maximum two sends per signal identity.
 - Supabase authoritative + SQLite fallback.

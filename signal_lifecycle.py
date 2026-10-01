@@ -15,22 +15,25 @@ def signal_key(signal, gate, symbol):
 
 def dashboard_signal(event, send_state=None, delivery=None, now=None):
     current=pd.Timestamp.now(tz="Asia/Kolkata") if now is None else pd.Timestamp(now)
-    ts=pd.Timestamp(event["timestamp"])
-    if ts.tzinfo is None: ts=ts.tz_localize("Asia/Kolkata")
-    signal=Signal(
-        str(event.get("strategy","")),
-        str(event.get("version","")),
-        str(event.get("symbol","")),
-        str(event.get("direction","NO_SIGNAL")),
-        ts,
-        str(event.get("timeframe","")),
-        str(event.get("reason","")),
-    )
+    # One malformed historical row must never 500 the entire dashboard API.
+    # The parse itself has to sit inside the guard: an unparseable timestamp
+    # raises before signal_status() is ever reached, and SQLite (the fallback
+    # store) declares timestamp as free-form TEXT with no format validation.
     try:
+        ts=pd.Timestamp(event["timestamp"])
+        if ts.tzinfo is None: ts=ts.tz_localize("Asia/Kolkata")
+        signal=Signal(
+            str(event.get("strategy","")),
+            str(event.get("version","")),
+            str(event.get("symbol","")),
+            str(event.get("direction","NO_SIGNAL")),
+            ts,
+            str(event.get("timeframe","")),
+            str(event.get("reason","")),
+        )
         freshness, age_hours = signal_status(signal, now=current)
         age=max(0,int(age_hours*60))
     except (ValueError, TypeError, OverflowError) as exc:
-        # One malformed historical row must never 500 the entire dashboard API.
         import logging
         logging.getLogger(__name__).warning("Malformed signal row degraded to STALE | key=%s error=%s",event.get("signal_id") or event.get("timestamp"),exc)
         freshness, age = "STALE", 0

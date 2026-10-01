@@ -8,7 +8,7 @@
 
 /* --- Compact topbar controls (appearance contract) --- */
 .topbar .header-meta{display:flex;align-items:center;flex-wrap:nowrap;gap:8px}
-.topbar .icon-button{width:34px;height:34px;min-width:34px;min-height:34px!important;padding:0!important;flex:0 0 34px;border:2px solid var(--line)!important;border-radius:9px;line-height:1;font-size:15px}
+.topbar .icon-button{padding:0!important;border:2px solid var(--line)!important;line-height:1;font-size:15px}
 .topbar .icon-button:hover{transform:translateY(-1px)}
 
 /* --- Appearance option grids (theme / style / accent pickers) --- */
@@ -39,8 +39,6 @@ html[data-style="neo"] .primary-button,
 html.neo-mode .primary-button,
 html[data-style="neo"] .secondary-button,
 html.neo-mode .secondary-button,
-html[data-style="neo"] .icon-button,
-html.neo-mode .icon-button,
 html[data-style="neo"] .text-button,
 html.neo-mode .text-button,
 html[data-style="neo"] .nav-button,
@@ -49,22 +47,31 @@ html[data-style="neo"] .filter-button,
 html.neo-mode .filter-button,
 html[data-style="neo"] .impact-filter,
 html.neo-mode .impact-filter,
-html[data-style="neo"] .expand-button,
-html.neo-mode .expand-button,
 html[data-style="neo"] .trade-detail-button,
 html.neo-mode .trade-detail-button,
 html[data-style="neo"] .settings-toggle,
 html.neo-mode .settings-toggle,
 html[data-style="neo"] .chip-option,
 html.neo-mode .chip-option,
-html[data-style="neo"] .collapse-chev,
-html.neo-mode .collapse-chev,
+html[data-style="neo"] .collapse-control,
+html.neo-mode .collapse-control,
 html[data-style="neo"] input,
 html.neo-mode input,
 html[data-style="neo"] select,
 html.neo-mode select{
   border:2px solid var(--line-strong)!important;border-radius:7px!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;background:var(--surface);
+}
+
+/* ExpandableControl siblings: the contract owns size and radius, Neo supplies
+   only the ink border, the hard shadow and the surface background. */
+html[data-style="neo"] .icon-button,
+html.neo-mode .icon-button,
+html[data-style="neo"] .expand-button,
+html.neo-mode .expand-button{
+  border:2px solid var(--line-strong)!important;
+  box-shadow:2px 2px 0 var(--line-strong)!important;
+  background:var(--surface);
 }
 html[data-style="neo"] .primary-button,html.neo-mode .primary-button{background:var(--accent-fill)!important;color:var(--on-accent)!important}
 html[data-style="neo"] .nav-button.active,html.neo-mode .nav-button.active,
@@ -93,7 +100,7 @@ html[data-style="neo"] .trade-detail-button:hover,html.neo-mode .trade-detail-bu
 html[data-style="neo"] .settings-toggle:hover,html.neo-mode .settings-toggle:hover,
 html[data-style="neo"] .appearance-option:hover,html.neo-mode .appearance-option:hover,
 html[data-style="neo"] .chip-option:hover,html.neo-mode .chip-option:hover,
-html[data-style="neo"] .collapse-chev:hover,html.neo-mode .collapse-chev:hover{
+html[data-style="neo"] .collapse-control:hover,html.neo-mode .collapse-control:hover{
   transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--line-strong)!important;
 }
 html[data-style="neo"] .primary-button:active,html.neo-mode .primary-button:active,
@@ -108,35 +115,14 @@ html[data-style="neo"] .trade-detail-button:active,html.neo-mode .trade-detail-b
 html[data-style="neo"] .settings-toggle:active,html.neo-mode .settings-toggle:active,
 html[data-style="neo"] .appearance-option:active,html.neo-mode .appearance-option:active,
 html[data-style="neo"] .chip-option:active,html.neo-mode .chip-option:active,
-html[data-style="neo"] .collapse-chev:active,html.neo-mode .collapse-chev:active{
+html[data-style="neo"] .collapse-control:active,html.neo-mode .collapse-control:active{
   transform:translate(3px,3px);box-shadow:0 0 0 var(--line-strong)!important;
 }
 
-/* Ponytail: tool collapsers use the same 30px interactive control as date-group toggles. */
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev{
-  width:30px!important;
-  height:30px!important;
-  min-width:30px!important;
-  min-height:30px!important;
-  padding:0!important;
-  border:2px solid var(--line-strong)!important;
-  border-radius:8px!important;
-  box-shadow:2px 2px 0 var(--line-strong)!important;
-  background:var(--surface)!important;
-  transform:translate(0,0);
-  transition:transform .12s ease,box-shadow .12s ease,background .12s ease!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading:hover .collapse-chev,
-html.neo-mode .tool-collapse>.section-heading:hover .collapse-chev{
-  transform:translate(-1px,-1px)!important;
-  box-shadow:3px 3px 0 var(--line-strong)!important;
-}
-html[data-style="neo"] .tool-collapse>.section-heading .collapse-chev:active,
-html.neo-mode .tool-collapse>.section-heading .collapse-chev:active{
-  transform:translate(2px,2px)!important;
-  box-shadow:0 0 0 var(--line-strong)!important;
-}
+/* Tool collapse controls use the same ExpandableControl contract as every other
+   page (40px, 10px radius, one border). The Neo trigger treatment comes from the
+   shared html[data-style="neo"] .collapse-control rules; this file no longer
+   defines a competing control size or radius anywhere. */
 
 /* --- Reduced motion + compact mirrors --- */
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{
@@ -148,7 +134,6 @@ html[data-compact="true"] .section-block,html[data-compact="true"] .tool-card{pa
 /* --- Small screens --- */
 @media(max-width:560px){
   .topbar .header-meta{gap:5px}
-  .topbar .icon-button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px}
   .appearance-style-grid{grid-template-columns:1fr}
   .appearance-accent-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
@@ -170,16 +155,12 @@ html.neo-mode .app{
   outline:0!important;
   box-shadow:none!important;
 }
+/* Size and radius come from the shared ExpandableControl contract; Neo only
+   supplies the flat ink treatment for the topbar utility buttons. */
 html[data-style="neo"] .topbar .icon-button,
 html.neo-mode .topbar .icon-button{
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
-  flex:0 0 34px!important;
   padding:0!important;
   border:2px solid var(--line)!important;
-  border-radius:9px!important;
   box-shadow:none!important;
   transform:none;
 }
@@ -205,11 +186,11 @@ html.neo-mode .topbar .icon-button:active{
 :root{
   --ui-page-gap:16px;
   --ui-section-gap:12px;
-  --ui-control-h:40px;
+  --ui-control-h:var(--ui-collapse-size);
   --ui-row-h:64px;
-  --ui-outer-r:18px;
-  --ui-inner-r:12px;
-  --ui-control-r:12px;
+  --ui-outer-r:var(--f-outer-radius);
+  --ui-inner-r:var(--f-inner-radius);
+  --ui-control-r:var(--ui-collapse-radius);
   --ui-pill-h:28px;
   --ui-pad-x:16px;
   --ui-pad-y:12px;
@@ -343,26 +324,17 @@ button,input,select{font-family:var(--font)}
 
 .icon-button,
 .expand-button{
-  width:var(--ui-control-h)!important;
-  height:var(--ui-control-h)!important;
-  min-width:var(--ui-control-h)!important;
-  min-height:var(--ui-control-h)!important;
-  border-radius:var(--ui-control-r)!important;
+  width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  border-radius:var(--ui-collapse-radius)!important;
 }
 
 .expand-button{
   font-size:0!important;
 }
-.expand-button::before{
-  content:"";
-  width:9px;height:9px;
-  border-right:2px solid currentColor;
-  border-bottom:2px solid currentColor;
-  transform:rotate(45deg) translate(-1px,-1px);
-  transition:transform .18s ease;
-}
-.expand-button.is-open::before{transform:rotate(225deg) translate(-1px,-1px)}
-html[data-reduce-motion="true"] .expand-button::before{transition:none}
+
 
 /* ---------- Shared pills/status contract -------------------------------- */
 .status-badge,
@@ -629,8 +601,6 @@ html[data-reduce-motion="true"] .expand-button::before{transition:none}
 }
 #page-tools .asset-category:last-child{border-bottom:0!important}
 #page-tools .asset-category-label{
-  display:block!important;
-  margin-bottom:7px!important;
   font-size:11px!important;
   line-height:1.2!important;
   font-weight:700!important;
@@ -737,9 +707,9 @@ html[data-reduce-motion="true"] .expand-button::before{transition:none}
 /* ---------- Desktop/mobile shell alignment ------------------------------- */
 @media(max-width:760px){
   :root{
-    --ui-outer-r:18px;
-    --ui-inner-r:12px;
-    --ui-control-h:40px;
+    --ui-outer-r:var(--f-outer-radius);
+    --ui-inner-r:var(--f-inner-radius);
+    --ui-control-h:var(--ui-collapse-size);
     --ui-pad-x:14px;
   }
   .page-heading{gap:10px!important}
@@ -908,7 +878,7 @@ html.neo-mode .empty-state{border-width:2px!important}
 #page-calendar .calendar-date-toggle b{font-size:13px!important;font-weight:750!important}
 #page-calendar .calendar-date-toggle small{font-size:10.5px!important;line-height:1.25!important}
 #page-calendar .calendar-date-toggle i{
-  width:40px!important;height:40px!important;border-radius:var(--ui-control-r)!important;flex:none!important;
+  width:var(--ui-collapse-size)!important;height:var(--ui-collapse-size)!important;border-radius:var(--ui-collapse-radius)!important;flex:none!important;
 }
 #page-calendar .calendar-date-events{display:grid!important;gap:8px!important;padding:0 0 8px!important}
 #page-calendar .calendar-item{
@@ -921,6 +891,129 @@ html.neo-mode .empty-state{border-width:2px!important}
 #page-calendar .calendar-item.impact-medium{border-left-color:var(--warning)!important}
 #page-calendar .calendar-item.impact-low{border-left-color:var(--positive)!important}
 #page-calendar .calendar-item.impact-holiday{border-left-color:var(--accent)!important}
+
+/* ==========================================================================
+   INNER SURFACE CONTRACT — completes the foundation.css surface parity rules.
+
+   Language: a white outer card always contains one soft-grey body/gutter, and
+   every content row inside that gutter stays white. This is exactly what the
+   Tools workspace and the Calendar already did; Home, Signals and History
+   never received the grey body, which is why their cards read as white
+   rectangles drawn on white paper (a frame inside an identical frame).
+
+   Radius comes from the foundation contract (14px outer / 11px inner), so
+   nothing here re-declares a competing geometry value.
+   ========================================================================== */
+
+/* Home: the nested panel / metric well inside a section card. */
+#page-overview .section-block .chart-card,
+#page-overview .section-block .metric-grid,
+#page-overview #overviewSignals{
+  background:var(--f-inner-bg)!important;
+  border-radius:var(--f-inner-radius)!important;
+  padding:8px!important;
+}
+#page-overview .section-block .chart-card{padding:12px!important}
+
+/* Signals / History: the list body between the card heading and the rows. */
+#page-signals .signals-date-list,
+#page-history .history-date-list,
+#page-history .history-live-list{
+  background:var(--f-inner-bg)!important;
+  border-radius:var(--f-inner-radius)!important;
+}
+
+/* Date headers carry a 40px control; give it the same clearance every other
+   row gets instead of the 6px it had at 52px. They are a control sitting on
+   the grey body, so they take the white control surface exactly like every
+   white control on a Tools body, instead of grey-on-grey. */
+#page-signals .signal-date-toggle[class],
+#page-history .history-date-toggle[class],
+#page-calendar .calendar-date-toggle[class]{
+  min-height:56px!important;
+  height:56px!important;
+  background:var(--surface)!important;
+}
+
+/* One open state for all three date families. Calendar used to open grey while
+   Signals and History opened accent-tinted. */
+#page-signals .signal-date-group.is-open > .signal-date-toggle[class],
+#page-history .history-date-group.is-open > .history-date-toggle[class],
+#page-calendar .calendar-date-group.is-open > .calendar-date-toggle[class]{
+  background:var(--accent-softer)!important;
+}
+
+/* Retire the pre-contract 34px flex floor and let the calendar meta contain
+   the 40px control instead of being 1px shorter than it. */
+#page-calendar .calendar-meta[class]{
+  min-height:40px!important;
+  height:40px!important;
+}
+#page-calendar .calendar-meta .expand-button[class]{
+  flex:0 0 auto!important;
+}
+
+/* The calendar event chevron is the only control whose row (time + badges) is
+   not the whole card. Centre it on the card so it stops sitting above the
+   event title. No transform is used, so the foundation contract's
+   "transform:none" guarantee for expandable controls is preserved. */
+#page-calendar .calendar-item{position:relative!important}
+#page-calendar .calendar-item .expand-button{
+  position:absolute!important;
+  top:calc(50% - 20px)!important;
+  right:9px!important;
+  left:auto!important;
+  margin:0!important;
+  z-index:3!important;
+}
+
+/* ---------- Remaining surface-radius drift --------------------------------
+   These still carried a pre-contract 10px/12px surface radius (or nothing)
+   while every other surface moved to the foundation inner radius. Interactive
+   controls are untouched here: they keep --ui-control-r / --ui-collapse-radius
+   so the single-control geometry from the expandable-control contract stands. */
+#page-overview .section-block .chart-card[class],
+#page-overview .section-block .metric-grid[class],
+#page-overview #overviewSignals[class],
+#page-signals .signals-date-list[class],
+#page-history .history-date-list[class],
+#page-history .history-live-list[class],
+#page-history .history-summary-grid .metric-card[class],
+#page-calendar .calendar-date-list[class],
+#page-calendar .calendar-summary-grid .metric-card[class],
+#page-calendar .calendar-item[class],
+#page-tools .universe-grid[class],
+#page-tools .account-grid[class],
+#page-tools .rule-list[class],
+#page-tools .diagnostic-grid[class],
+#page-tools .schedule-inline[class],
+#page-tools .backtest-controls[class],
+#page-tools .asset-category-label[class]{
+  border-radius:var(--f-inner-radius)!important;
+}
+
+/* .text-button was the one control missing from the shared button contract, so
+   it fell back to --radius-xs and, in Neo, to a hard-coded 7px. */
+html .text-button[class]{
+  border-radius:var(--ui-control-r)!important;
+}
+
+/* Nested chips/panels that were painted the same colour as their parent, so
+   they only existed as a 1px outline.
+   The backtest form and the Runtime grids take the same grey body treatment as
+   the Markets/Accounts/Rules panels they sit beside, which is what lets their
+   controls and tiles be genuinely white instead of white-on-white. */
+#page-overview .hero-pills span{
+  background:var(--f-inner-bg)!important;
+}
+#page-tools .backtest-controls[class],
+#page-tools .diagnostic-grid[class],
+#page-tools .schedule-inline[class]{
+  background:var(--f-inner-bg)!important;
+}
+#page-tools .backtest-controls select{
+  background:var(--surface)!important;
+}
 #page-calendar .calendar-meta{
   min-width:0!important;min-height:50px!important;margin:0!important;
   padding:9px 10px 5px!important;gap:8px!important;
@@ -930,8 +1023,7 @@ html.neo-mode .empty-state{border-width:2px!important}
   flex:none!important;min-height:28px!important;display:inline-flex!important;align-items:center!important;
 }
 #page-calendar .calendar-meta .expand-button{
-  width:40px!important;height:40px!important;min-width:40px!important;margin-left:auto!important;
-  border-radius:var(--ui-control-r)!important;
+  margin-left:auto!important;
 }
 #page-calendar .calendar-title{
   display:block!important;min-width:0!important;margin:0 50px 9px 76px!important;
@@ -1096,11 +1188,313 @@ html.neo-mode .empty-state{border-width:2px!important}
   font-size:10.5px!important;
   line-height:1.15!important;
 }
-#page-calendar .calendar-date-toggle i{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  border-radius:11px!important;
+
+/* --- Every mid-card edge is rounded, not just card boundaries -------------
+   overflow:clip rounds a band only where the band meets the card edge. Bands
+   and tiles that end mid-card (summary strips, tool bodies, detail rows,
+   tiles) still painted square corners inside a rounded card — the surviving
+   "square border with a rounded grey fill" mix. Each surface now carries the
+   token of its own level: full-bleed bands the outer radius, card interiors
+   and rows the inner radius, chips the small radius. */
+#page-signals .signals-workspace > .workspace-heading,
+#page-history .history-workspace > .workspace-heading,
+#page-calendar .calendar-workspace > .workspace-heading,
+#page-history .history-summary-grid,
+#page-calendar .calendar-summary-grid,
+#page-calendar .calendar-agenda-status,
+#page-calendar .calendar-agenda-bar,
+#page-tools .tool-collapse > .section-heading,
+#page-tools .tool-collapse.is-open > .tool-body,
+#page-tools .tools-appearance > .section-heading{
+  border-radius:var(--ui-outer-r)!important;
+}
+#page-overview .signal-card .expand-content,
+#page-signals .signal-card .expand-content,
+#page-calendar .calendar-date-group .calendar-details,
+#page-tools .tools-appearance .settings-row,
+#page-tools .account-grid > article,
+#page-tools .rule-list > div{
+  border-radius:var(--ui-inner-r)!important;
+}
+html #page-overview .detail-grid > div,
+html #page-signals .detail-grid > div,
+html #page-overview .detail-grid > div > span,
+html #page-signals .detail-grid > div > span,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid > div,
+html #page-signals .signal-card.expanded .detail-grid > div,
+html #page-tools .tool-runtime .schedule-inline > span,
+html #page-tools .tool-runtime .diagnostic-grid > article{
+  border-radius:var(--radius-xs)!important;
+}
+
+/* --- Banding is not a boundary -------------------------------------------
+   A zebra rule on the universe rows (nth-child odd, higher specificity than
+   the tone rule below) repainted the tint the row group had surrendered, so
+   Tools read as grey rows on a grey body again. The banding goes; the row
+   separator hairline stays. */
+html #page-tools .universe-grid > .asset-category:nth-child(odd),
+html #page-tools .universe-grid > .asset-category:nth-child(even){
+  background:transparent!important;
+}
+
+/* --- Freshness washes are pills -------------------------------------------
+   The signals badge rule declared a wash but no radius, so the pill rendered
+   square; the FRESH badge also carried a stray copy of the warning wash (fixed
+   at the source rule in foundation.css), painting both states the same amber. */
+html #page-overview .detail-grid b.fresh,
+html #page-overview .detail-grid b.stale,
+html #page-signals .detail-grid b.fresh,
+html #page-signals .detail-grid b.stale{
+  border-radius:999px!important;
+}
+
+/* ==========================================================================
+   ROUND-2 DESIGN CONTRACT — corners, tone, control state, small print.
+   ========================================================================== */
+
+/* --- One chevron, one state ----------------------------------------------
+   foundation.css opens the glyph with `.is-open .collapse-control::after`, a
+   DESCENDANT selector. That leaked the open glyph onto every chevron nested
+   inside an expanded container — the per-signal and per-event buttons — which
+   is why those arrows never appeared to rotate. Re-assert the closed glyph for
+   controls that are themselves closed; a control carrying its own open state is
+   excluded, so opening one still rotates through the shared 0.2s transition. */
+.is-open .collapse-control:not(.is-open):not([aria-expanded="true"])::after{
+  transform:translateY(-2px) rotate(45deg);
+}
+
+/* --- Small box, full-size pointer target ---------------------------------
+   The visual control is compact; the pointer target stays 44px. */
+.collapse-control::before,
+.topbar .icon-button::before{
+  content:""!important;
+  position:absolute!important;
+  top:50%!important;
+  left:50%!important;
+  width:var(--ui-collapse-tap)!important;
+  height:var(--ui-collapse-tap)!important;
+  transform:translate(-50%,-50%)!important;
+  border-radius:inherit;
+}
+
+/* --- One ExpandableControl, at every width -------------------------------
+   foundation.css still owns this rule, but that file ends one closing brace
+   short, so everything after the stray brace is swallowed: the canonical
+   `.collapse-control` box AND its chevron never reach the parser. A phone
+   only looked correct because the `max-width:560px` / `max-width:760px`
+   queries re-supply the same geometry, which is why the defect is invisible
+   at 390px and obvious at 1440px, where the control collapses to an empty
+   14x4 box with no chevron at all. Re-declared here, in a file that parses,
+   with the same token values, so every control on every page and every width
+   is 32x32 with one chevron that rotates. Neo still supplies its own ink
+   treatment: its selectors are more specific than this rule. */
+html .collapse-control{
+  position:relative!important;
+  display:grid!important;
+  place-items:center!important;
+  box-sizing:border-box!important;
+  width:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  max-width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  max-height:var(--ui-collapse-size)!important;
+  flex:0 0 var(--ui-collapse-size)!important;
+  font-style:normal;
+  font-size:0;
+  color:var(--muted);
+  background:var(--surface-2);
+  border:var(--ui-collapse-border)!important;
+  border-radius:var(--ui-collapse-radius)!important;
+  transform:none!important;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+html .collapse-control::after{
+  content:""!important;
+  display:block!important;
+  width:var(--ui-collapse-icon-size)!important;
+  height:var(--ui-collapse-icon-size)!important;
+  box-sizing:border-box!important;
+  border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
+  border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
+  transform:translateY(-2px) rotate(45deg);
+  transition:transform .2s ease;
+}
+html .collapse-control.is-open::after,
+html .collapse-control[aria-expanded="true"]::after{
+  transform:translateY(2px) rotate(-135deg);
+}
+html .collapse-control:hover,
+html .collapse-control:focus-visible{
+  color:var(--accent-strong);
+  border-color:var(--accent)!important;
+  background:var(--accent-soft);
+}
+html .collapse-control:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  html .collapse-control,
+  html .collapse-control::after{transition:none!important}
+}
+
+/* --- Tools sections: one accordion at every width ------------------------
+   The Tools section behaviour (body collapse + pointer cursor) is authored
+   inside `max-width:760px` / `max-width:560px` media queries, so above that
+   width the section body never collapsed and the heading advertised a
+   disclosure it could not deliver. The control itself is handled by the shared
+   contract above; this makes the accordion behave identically on a phone and
+   on a desktop. */
+html #page-tools .tool-collapse>.section-heading{cursor:pointer}
+html #page-tools .tool-collapse:not(.is-open)>.tool-body{display:none!important}
+
+/* --- Cards own their corners ---------------------------------------------
+   A full-bleed tinted band inside a rounded card was a square poking through a
+   rounded corner: the "square border with a rounded grey fill" mix. Clip (never
+   scroll) the card so every band inherits the card radius. */
+#page-overview .section-block[class],
+#page-signals .signals-workspace[class],
+#page-history .history-workspace[class],
+#page-calendar .calendar-workspace[class],
+#page-tools .tool-card[class],
+#page-tools .tool-body[class]{
+  overflow:clip!important;
+}
+
+/* --- A boundary has to change tone ---------------------------------------
+   A row group already sitting on the tinted body must not repaint that same
+   tint, or three levels collapse into one flat grey mass held together by
+   decorative hairlines. */
+#page-tools .asset-category[class],
+#page-tools .backtest-controls[class]{
+  background:transparent!important;
+}
+
+/* --- Small print belongs to one tier -------------------------------------
+   `small` declared no size of its own, so it inherited the browser's 1.2 ratio
+   and rendered at 9.16667px / 10.4167px. Pin it to the 10.5px tier; every
+   class-qualified `small` rule is more specific and keeps its own snapped size. */
+small{
+  font-size:10.5px!important;
+}
+
+/* --- Type-scale floor -----------------------------------------------------
+   The dashboard declared 27 font sizes. Everything below the smallest step of
+   the scale collapsed onto it here, so the sub-10px tier (7.5 / 8 / 8.2 / 8.5 /
+   8.7 / 9px) is gone and no label renders under 9.5px.
+   The declarations themselves live in regions of this file and of
+   foundation.css/styles.css that the editing tools cannot reach, so the
+   selectors are named explicitly and prefixed with `html` to carry one extra
+   type-selector of specificity over the rule being replaced. */
+html #page-signals .signal-card.expanded .detail-grid span,
+html #page-signals .signal-card.expanded .reason span,
+html #page-signals .signal-card.expanded .reason>span,
+html #page-history .history-scan-identity small,
+html #page-history .history-scan-status,
+html #page-history .history-scan-metrics span,
+html #page-history .history-scan-metrics b,
+html #page-history .history-summary-grid .metric-card span,
+html #page-history .history-summary-grid .metric-card small,
+html .brand-copy small,
+html .mobile-nav .nav-button,
+html .status-badge,
+html .hero-pills span,
+html #page-tools .asset-category-label,
+html #page-tools .tool-universe .asset-category-label,
+html #page-tools .tool-runtime .schedule-inline small,
+html #page-tools .tool-runtime .diagnostic-grid span,
+html #page-tools .tools-appearance .settings-label,
+html #page-tools .tools-appearance .chip-option,
+html #page-calendar .calendar-details>span,
+html #page-calendar .calendar-details>span b,
+html #page-tools .tool-backtest .backtest-metrics>div span,
+html #page-tools .tool-backtest .backtest-section-heading>span,
+html #page-tools .tool-backtest .backtest-rating{
+  font-size:9.5px!important;
+}
+
+/* --- Titles sit on two steps, not five -----------------------------------
+   Card and row titles land on the 14px step, section titles on the 17px
+   display step, so the hierarchy is page 22 > section 17 > title 14 > body 12.5
+   instead of 15 / 13.5 / 13 drifting apart everywhere. */
+/* The rules being replaced live in regions of foundation.css and styles.css
+   that cannot be edited, so these carry a page id to outrank them. */
+html #page-overview .signal-leading strong,
+html #page-signals .signal-leading strong,
+html .signal-leading strong,
+html #page-signals .signal-date-toggle b,
+html #page-history .history-date-toggle b,
+html #page-calendar .calendar-date-toggle b,
+html .signal-date-toggle b,
+html .history-date-toggle b,
+html .calendar-date-toggle b,
+html #page-history .history-summary-grid .metric-card strong,
+html #page-calendar .calendar-summary-grid .metric-card strong,
+html #page-tools .account-grid b{
+  font-size:14px!important;
+}
+html .section-heading h2,
+html #page-overview .section-heading h2,
+html #page-signals .section-heading h2,
+html #page-history .section-heading h2,
+html #page-calendar .section-heading h2,
+html #page-tools .section-heading h2,
+html .hero h2{
+  font-size:17px!important;
+}
+
+/* --- Tools sections: one accordion at every width ------------------------
+   The Tools section geometry (control box, chevron glyph, body collapse and
+   the pointer cursor) is authored inside `max-width:760px` / `max-width:560px`
+   media queries. Above that width the control had no styling at all: it
+   measured 14x4 with `content:none`, so it rendered as a small dead box with
+   no chevron, and the section body never collapsed, leaving a button that
+   could not do anything. This restores the same behaviour, with the same
+   declarations the phone already uses, from 561px up. Scoped to wide viewports
+   deliberately: the mobile cascade is already correct and is left untouched. */
+@media(min-width:561px){
+  html #page-tools .tool-collapse>.section-heading>.collapse-control{
+    display:grid!important;
+    place-items:center!important;
+    position:relative!important;
+    box-sizing:border-box!important;
+    width:var(--ui-collapse-size)!important;
+    min-width:var(--ui-collapse-size)!important;
+    max-width:var(--ui-collapse-size)!important;
+    height:var(--ui-collapse-size)!important;
+    min-height:var(--ui-collapse-size)!important;
+    max-height:var(--ui-collapse-size)!important;
+    flex:0 0 var(--ui-collapse-size)!important;
+    font-style:normal;
+    font-size:0;
+    color:var(--muted);
+    background:var(--surface-2);
+    border:var(--ui-collapse-border)!important;
+    border-radius:var(--ui-collapse-radius)!important;
+    transform:none!important;
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control::after{
+    content:""!important;
+    display:block!important;
+    width:var(--ui-collapse-icon-size)!important;
+    height:var(--ui-collapse-icon-size)!important;
+    box-sizing:border-box!important;
+    border-right:var(--ui-collapse-icon-weight) solid currentColor!important;
+    border-bottom:var(--ui-collapse-icon-weight) solid currentColor!important;
+    transform:translateY(-2px) rotate(45deg);
+    transition:transform .2s ease;
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control.is-open{
+    color:var(--accent-strong);
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  html #page-tools .tool-collapse>.section-heading>.collapse-control.is-open::after{
+    transform:translateY(2px) rotate(-135deg);
+  }
+  html #page-tools .tool-collapse>.section-heading{cursor:pointer}
+  html #page-tools .tool-collapse:not(.is-open)>.tool-body{display:none!important}
 }
 
 /* Collapsed event: compact two-row card, not a large panel. */
@@ -1152,19 +1546,7 @@ html.neo-mode .empty-state{border-width:2px!important}
   font-size:10.5px!important;
   line-height:1!important;
 }
-#page-calendar .calendar-meta .expand-button{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  min-height:36px!important;
-  margin-left:auto!important;
-  border-radius:11px!important;
-}
-#page-calendar .calendar-meta .expand-button::before{
-  width:8px!important;
-  height:8px!important;
-  border-width:2px!important;
-}
+
 
 /* Event title stays inside the card and uses the same text scale as History rows. */
 #page-calendar .calendar-title,
@@ -1265,13 +1647,9 @@ html.neo-mode .empty-state{border-width:2px!important}
     height:52px!important;
     padding:8px 10px!important;
   }
-  #page-calendar .calendar-date-toggle i{
-    width:36px!important;
-    height:36px!important;
-  }
   #page-calendar .calendar-meta{
-    min-height:39px!important;
-    height:39px!important;
+    min-height:40px!important;
+    height:40px!important;
     padding:5px 8px 2px!important;
     gap:6px!important;
   }
@@ -1286,11 +1664,6 @@ html.neo-mode .empty-state{border-width:2px!important}
     height:25px!important;
     padding:5px 8px!important;
     font-size:10px!important;
-  }
-  #page-calendar .calendar-meta .expand-button{
-    width:36px!important;
-    height:36px!important;
-    min-width:36px!important;
   }
   #page-calendar .calendar-title,
   #page-calendar .calendar-event>.calendar-title{
@@ -1727,62 +2100,58 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
 
 
 /* ==========================================================================
-   COLLAPSIBLE CONTROL — THEME-ONLY OVERRIDE
-   Geometry is frozen in foundation.css. Themes may change visual treatment,
-   never size/radius/border type. This final compatibility layer neutralizes
-   legacy page-specific collapse sizing left from earlier UI passes.
+   COLLAPSIBLE CONTROL — SINGLE VISUAL/STATE CONTRACT
+   Geometry comes from foundation.css. This layer supplies only theme
+   appearance plus the shared state selectors used by every expandable family.
    ========================================================================== */
-.collapse-control,
-.expand-button,
-.signal-date-toggle > .chev,
-.history-date-toggle > .chev,
-.calendar-date-toggle > .chev,
-.trade-date-toggle > .chev,
-.tool-collapse > .section-heading > .collapse-chev{
-  width:var(--ui-collapse-size)!important;
-  height:var(--ui-collapse-size)!important;
-  min-width:var(--ui-collapse-size)!important;
-  min-height:var(--ui-collapse-size)!important;
-  flex-basis:var(--ui-collapse-size)!important;
-  border-radius:var(--ui-collapse-radius)!important;
-  border:var(--ui-collapse-border)!important;
-  box-shadow:none!important;
-  transform:none!important;
-}
-
 html[data-style="neo"] .collapse-control,
 html.neo-mode .collapse-control{
   border:2px solid var(--line-strong)!important;
   border-radius:var(--ui-collapse-radius)!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control:hover,
 html.neo-mode .collapse-control:hover{
-  transform:translate(-1px,-1px)!important;
+  transform:none!important;
   box-shadow:3px 3px 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control:active,
 html.neo-mode .collapse-control:active{
-  transform:translate(2px,2px)!important;
+  transform:none!important;
   box-shadow:0 0 0 var(--line-strong)!important;
 }
-
 html[data-style="neo"] .collapse-control::after,
 html.neo-mode .collapse-control::after{
   border-right-width:2px!important;
   border-bottom-width:2px!important;
 }
 
-/* No legacy page is allowed to resize the shared collapse control. */
-#page-calendar .calendar-date-toggle i.collapse-control,
-#page-calendar .calendar-meta .expand-button.collapse-control,
+/* All date-group families share one 52px row and one 40px control. */
+#page-signals .signal-date-toggle,
+#page-history .history-date-toggle,
+#page-calendar .calendar-date-toggle{
+  min-height:52px!important;
+  height:52px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:8px 12px!important;
+  border-radius:var(--ui-inner-r)!important;
+}
 #page-signals .signal-date-toggle .collapse-control,
-#page-history .history-date-toggle .collapse-control{
+#page-history .history-date-toggle .collapse-control,
+#page-calendar .calendar-date-toggle .collapse-control{
   width:var(--ui-collapse-size)!important;
-  height:var(--ui-collapse-size)!important;
   min-width:var(--ui-collapse-size)!important;
+  max-width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
   min-height:var(--ui-collapse-size)!important;
+  max-height:var(--ui-collapse-size)!important;
   border-radius:var(--ui-collapse-radius)!important;
 }
+
+/* The state owner differs by markup, but the visual state is identical:
+   Tools uses the control's aria-expanded; date groups use the parent button. */
+html[data-reduce-motion="true"] .collapse-control::after{
+  transition:none!important;
+}
+

@@ -6,6 +6,20 @@ venv/
 .env
 .env.*
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 *.log
+# Playwright CLI output (may contain credentials)
+.playwright/
+.playwright-cli/
+
+# Vendored third-party agent tooling (~26MB, not part of the bot).
+# Note: .agents/skills/ponytail/ and .agents/skills/ui-ux-pro-max/ were
+# committed before this rule existed and are still tracked; untracking them is a
+# separate, deliberate step.
+agent/
+.agents/
+.claude/
+skills-lock.json
