@@ -36,3 +36,29 @@ delete from public.signal_events where ctid in (select ctid from ranked where rn
 create unique index if not exists signal_events_key_uidx on public.signal_events(signal_key);
 create index if not exists signal_events_timestamp_idx on public.signal_events(timestamp desc);
 create index if not exists signal_deliveries_signal_idx on public.signal_deliveries(signal_id,attempted_at desc);
+
+-- Durable scan history. Powers the dashboard Scan History workspace.
+create table if not exists public.scan_runs(id text primary key,strategy_id text not null,started_at timestamptz not null,finished_at timestamptz,status text not null,payload jsonb not null default '{}'::jsonb);
+create index if not exists scan_runs_started_idx on public.scan_runs(started_at desc);
+
+-- Runtime-aligned durable Yahoo cache. These columns exactly match DatabaseManager.save_market_data_cache().
+create table if not exists public.market_data_cache(
+    cache_key text primary key,
+    symbol text not null,
+    period text not null,
+    interval text not null,
+    validate_hourly boolean not null default true,
+    payload jsonb not null,
+    updated_at timestamptz not null default now()
+);
+alter table public.market_data_cache add column if not exists period text;
+alter table public.market_data_cache add column if not exists interval text;
+alter table public.market_data_cache add column if not exists validate_hourly boolean not null default true;
+alter table public.market_data_cache add column if not exists payload jsonb;
+alter table public.market_data_cache add column if not exists updated_at timestamptz not null default now();
+alter table public.market_data_cache add column if not exists symbol text;
+create index if not exists market_data_cache_symbol_idx on public.market_data_cache(symbol,updated_at desc);
+create index if not exists market_data_cache_updated_idx on public.market_data_cache(updated_at desc);
+
+-- NOTE: schema.sql at the repository root and supabase/schema.sql must declare the
+-- same tables. tests/test_schema_parity.py enforces this; keep both in sync.
