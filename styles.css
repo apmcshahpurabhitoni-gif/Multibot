@@ -50,7 +50,7 @@
 }
 html[data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#4f46e5;--accent-soft:rgba(99,102,241,.12);--accent-softer:rgba(99,102,241,.07)}
 html[data-accent="amber"]{--accent:#f59e0b;--accent-strong:#b45309;--accent-fill:#b45309;--accent-soft:rgba(245,158,11,.15);--accent-softer:rgba(245,158,11,.08)}
-html[data-accent="rose"]{--accent:#f43f5e;--accent-strong:#da1c45;--accent-fill:#e11d48;--accent-soft:rgba(244,63,94,.12);--accent-softer:rgba(244,63,94,.06)}
+html[data-accent="rose"]{--accent:#f43f5e;--accent-strong:#d61b44;--accent-fill:#e11d48;--accent-soft:rgba(244,63,94,.12);--accent-softer:rgba(244,63,94,.06)}
 html[data-accent="cyan"]{--accent:#06b6d4;--accent-strong:#0e7490;--accent-fill:#0e7490;--accent-soft:rgba(6,182,212,.13);--accent-softer:rgba(6,182,212,.07)}
 
 /* ---------- Dark theme (works with every style + accent) ------------------ */
@@ -103,7 +103,7 @@ html[data-style="neo"]{
   --accent-soft:rgba(255,93,31,.14);
   --accent-softer:rgba(255,93,31,.08);
   --positive:#096c42;
-  --negative:#c81e3d;
+  --negative:#b51b37;
   --warning:#7f5400;
   --radius:10px;
   --radius-sm:8px;
@@ -135,11 +135,11 @@ html[data-theme="dark"][data-style="neo"]{
   --shadow:3px 3px 0 #000;
   --shadow-soft:2px 2px 0 #000;
 }
-html[data-style="neo"][data-accent="emerald"]{--accent:#10b981;--accent-strong:#047857;--accent-fill:#10b981;--accent-soft:rgba(16,185,129,.16);--accent-softer:rgba(16,185,129,.09)}
+html[data-style="neo"][data-accent="emerald"]{--accent:#10b981;--accent-strong:#047656;--accent-fill:#10b981;--accent-soft:rgba(16,185,129,.16);--accent-softer:rgba(16,185,129,.09)}
 html[data-style="neo"][data-accent="indigo"]{--accent:#6366f1;--accent-strong:#4f46e5;--accent-fill:#6366f1;--accent-soft:rgba(99,102,241,.16)}
-html[data-style="neo"][data-accent="amber"]{--accent:#f59e0b;--accent-strong:#a05804;--accent-fill:#f59e0b;--accent-soft:rgba(245,158,11,.18)}
+html[data-style="neo"][data-accent="amber"]{--accent:#f59e0b;--accent-strong:#9c5604;--accent-fill:#f59e0b;--accent-soft:rgba(245,158,11,.18)}
 html[data-style="neo"][data-accent="rose"]{--accent:#e11d48;--accent-strong:#be123c;--accent-fill:#e11d48;--accent-soft:rgba(225,29,72,.15)}
-html[data-style="neo"][data-accent="cyan"]{--accent:#0891b2;--accent-strong:#0e7490;--accent-fill:#0891b2;--accent-soft:rgba(8,145,178,.16)}
+html[data-style="neo"][data-accent="cyan"]{--accent:#0891b2;--accent-strong:#0e718c;--accent-fill:#0891b2;--accent-soft:rgba(8,145,178,.16)}
 /* Light-only: these two fills are too mid-luminance for the dark Neo on-accent.
    Scoped to [data-theme="light"] so the dark fills keep their dark on-accent. */
 html[data-theme="light"][data-style="neo"][data-accent="indigo"]{--accent-fill:#6163ec;--on-accent:#ffffff}
@@ -149,6 +149,16 @@ html[data-theme="dark"][data-style="neo"][data-accent="indigo"]{--accent:#818cf8
 html[data-theme="dark"][data-style="neo"][data-accent="amber"]{--accent:#fbbf24;--accent-strong:#fcd34d;--accent-fill:#fbbf24}
 html[data-theme="dark"][data-style="neo"][data-accent="rose"]{--accent:#fb7185;--accent-strong:#fda4af;--accent-fill:#fb7185}
 html[data-theme="dark"][data-style="neo"][data-accent="cyan"]{--accent:#22d3ee;--accent-strong:#67e8f9;--accent-fill:#22d3ee}
+
+/* ---------- 1.5 Accessibility utilities ---------------------------------- */
+/* Visually hidden but still announced. Used for the single polite live region
+   that summarises every 30s dashboard poll, so assistive tech hears one calm
+   sentence instead of eleven silently-changing numbers. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+/* Keyboard-only escape hatch to the main region. Hidden until focused, then
+   pinned to the viewport so it is reachable on the first Tab press. */
+.skip-link{position:absolute!important;left:12px!important;top:-100px!important;z-index:200!important;padding:10px 16px!important;border:1px solid var(--line-strong)!important;border-radius:var(--radius-sm)!important;background:var(--surface)!important;color:var(--text)!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;transition:top .15s ease}
+.skip-link:focus{top:12px!important;outline:2px solid var(--accent)!important;outline-offset:2px!important}
 
 /* ---------- 2. Base ------------------------------------------------------- */
 *,*::before,*::after{box-sizing:border-box}

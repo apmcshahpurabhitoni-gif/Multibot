@@ -1,0 +1,263 @@
+=====================================================================
+ MULTIBOT2 DASHBOARD AUDIT REPORTS (COMBINED)
+ Prepared with: web-design-guidelines, design-taste-frontend,
+ image-to-code, design-md-library, ponytail (all 5 skills)
+=====================================================================
+
+ AUDIT ENVIRONMENT
+-------------------
+- Version audited: v3.3.0 (Material Design 3 release)
+- Audited live on the running preview (mobile viewport 390x844)
+  in all three styles: Modern, Material 3, Neo Brutalism
+- Files reviewed: dashboard.html, styles.css, foundation.css,
+  appearance-overrides.css, app.js, appearance.js, main.py
+- No code was changed. This is a read-only audit report.
+
+ NOTE ON VERSION: an earlier audit pass ran against a stale preview
+ serving old code (foundation.css returned 404 because the running
+ server predated the route). The workspace was updated to v3.3.0 and
+ the preview restarted before the findings below were measured.
+
+=====================================================================
+ REPORT 1: FULL DASHBOARD AUDIT (v3.3.0)
+=====================================================================
+
+---------------------------------------------------------------------
+ 1.0  VERSION FINDING (checked first)
+---------------------------------------------------------------------
+- The managed preview was serving stale code: foundation.css 404'd
+  because the running server process predated the new file route.
+- After updating to v3.3.0 and restarting the preview:
+  - All assets serve 200 (styles.css, foundation.css,
+    appearance-overrides.css, app.js, appearance.js)
+  - Material 3 confirmed live (styles.css?v=20260925-material3-v1,
+    350 Material-3 references in styles.css)
+- LESSON: any new static file must be added to main.py's file map
+  BEFORE the HTML referencing it deploys, or users get half-styled
+  pages until the server restarts.
+
+---------------------------------------------------------------------
+ 1.1  WHY THE DASHBOARD LOOKS INCONSISTENT (ROOT CAUSES, RANKED)
+---------------------------------------------------------------------
+1) CASCADE ARMS RACE - 2,986 !important declarations across the
+   three stylesheets (styles.css 1232, foundation.css 706,
+   appearance-overrides.css 1048). The v3.2.8 codebase had roughly
+   300; v3.3.0 has nearly 10x that. Three CSS layers
+   (foundation.css -> styles.css -> appearance-overrides.css) fight
+   for the same properties, so the visible winner depends on load
+   order and specificity rather than intent. This is the direct
+   mechanism behind the reported bug class: borders overlapping,
+   text behaving differently per theme, sections overlapping.
+
+2) ACCENT-COLOR PARITY GAP - the accent picker offers 5 choices
+   (emerald, indigo, amber, rose, cyan), but Neo Brutalism has no
+   explicit mapping for "emerald" - it falls through to its default
+   orange (--accent:#ff6a2b, styles.css line 126).
+   Live measurement with the same saved accent (emerald):
+   - Modern:     #34d399 (green)
+   - Material 3: #6cdbad (different green)
+   - Neo:        #ff6a2b (orange)
+   Same setting, three different colors = guaranteed perceived
+   inconsistency. Any style whose accent map does not cover all 5
+   choices breaks cross-style trust.
+
+3) TWO PARALLEL TOKEN SYSTEMS - styles.css defines tokens like
+   --radius, --card-pad; foundation.css defines a second, unrelated
+   set like --f-radius, --f-card-pad. No documented relation between
+   them, and hardcoded values leak around both:
+   - 152 unique raw hex colors across the 3 CSS files
+   - hardcoded border-radius values (8px!important, 9px, 10px)
+     sitting next to var(--radius-*) usage
+
+4) SHAPE LOCK VIOLATED IN EVERY STYLE - live computed radii:
+   - Modern:     9px, 11px, 12px, 18px (4 different corner systems)
+   - Material 3: 12px, 18px, 999px pills
+   - Neo:        7px, 9px, 18px
+   Cards, buttons and inputs never agree within a style. Design
+   best practice ("shape consistency lock"): pick ONE radius scale
+   per style and apply it everywhere.
+
+5) THEME COVERAGE IS LOPSIDED - dark-theme override blocks exist
+   only in styles.css (12 blocks). foundation.css and
+   appearance-overrides.css add color rules with no dark variants,
+   so they get patched with more !important instead - which is
+   exactly where "text behaves differently per theme" comes from.
+
+---------------------------------------------------------------------
+ 1.2  PRIORITIZED FIX LIST
+---------------------------------------------------------------------
+#1  Add missing Neo (and audit M3) accent mappings so all 5 accents
+    resolve correctly in all 3 styles.                [XS effort]
+    One line per accent; kills the #1 visible inconsistency.
+
+#2  Collapse the !important war: one source of truth per property.
+    Tokens live in one layer; style overrides remap tokens
+    ([data-style=neo]{--radius:...}) instead of re-declaring
+    properties.                                       [M effort]
+    Makes every future change predictable; directly prevents
+    border/overlap regressions.
+
+#3  Merge --f-* foundation tokens into the main token system (or
+    alias them).                                      [S effort]
+
+#4  Define one radius scale per style (e.g. M3: pill buttons +
+    12/16px surfaces; Neo: 0-4px sharp; Modern: 12px) and replace
+    stray 8/9/10px values.                            [S effort]
+
+#5  Kill the 8px/8.5px fonts (mobile nav labels at styles.css:931,
+    badges at 1955/2041/2396/3247, foundation.css:1298).
+    Minimum 11px, prefer 12px. iOS auto-zooms inputs below 16px
+    and 8px labels fail readability.                  [XS effort]
+
+#6  Add prefers-reduced-motion handling. Currently ONE occurrence
+    in the whole codebase despite hover-lift/press motion
+    everywhere. Mandatory accessibility item.         [S effort]
+
+#7  Sparse keyboard focus: only 7 focus-visible rules total
+    (5 in styles.css, 2 in appearance-overrides.css, 0 in
+    foundation.css). Keyboard users get no visible focus on most
+    controls.                                         [S effort]
+
+#8  Dark-mode parity pass for foundation.css and
+    appearance-overrides.css color rules.             [M effort]
+
+#9  Update <meta name="theme-color"> when theme switches (it is
+    static light #f6f7f9 today) and clean up the stale comment in
+    appearance.js that says "Neo/Modern" (predates Material 3).
+                                                      [XS effort]
+
+SUGGESTED ORDER:
+- Quick wins first: #1 accent parity, #5 tiny fonts, #9 theme-color
+- Then the structural pass: #2 + #3 + #4 as one "cascade
+  discipline" refactor
+- Then accessibility: #6, #7, #8
+
+---------------------------------------------------------------------
+ 1.3  WHAT IS ALREADY GOOD (VERIFIED LIVE)
+---------------------------------------------------------------------
+- No horizontal overflow at 390px in ANY of the 3 styles
+  (scrollWidth == innerWidth, zero offending elements). The
+  earlier overflow complaints are fixed in v3.3.0.
+- No "transition: all", no "outline: none" without replacement,
+  semantic buttons/links, 15+ aria-labels, color-scheme set,
+  Intl.DateTimeFormat for dates, safe-area insets present,
+  tabular-nums on data.
+- Material 3 is properly tokenized internally (--m3-primary,
+  --m3-on-primary roles) and reuses the existing DOM/controls/data
+  flow as the release notes claim. M3's pill buttons are actually
+  the most shape-consistent of the three styles.
+- The 5-accent x 3-style x 2-theme matrix is a genuinely hard
+  design problem; the architecture (appearance.js bridge, single
+  DOM, no per-style markup) is sound. The inconsistency is in
+  cascade discipline, not concept.
+
+=====================================================================
+ REPORT 2: COLLAPSIBLE-BUTTON MISMATCH AUDIT (v3.3.0)
+=====================================================================
+
+ Triggered by user screenshots showing:
+ - stacked up+down chevrons on Calendar event cards
+ - different chevron shapes/sizes between History date rows and
+   Tools section cards
+ - per-style restyling of some collapse buttons but not others
+
+---------------------------------------------------------------------
+ 2.1  CORE FINDING: FOUR DIFFERENT CHEVRON IMPLEMENTATIONS
+      DOING ONE JOB
+---------------------------------------------------------------------
+#1 .expand-button + .chev::after
+    Where: Calendar event cards (the broken one in the screenshot)
+    Code:  app.js:26 (expandButton), styles.css:345-360
+    Animation: container rotates 180deg (line 351) AND child
+    chevron rotates -135deg (line 360) -> DOUBLE ROTATION.
+    This is what produces the stacked arrows look.
+
+#2 .chev inside *-date-toggle
+    Where: History / Signals / Calendar date rows (the large
+    circular chevrons in the screenshots)
+    Code:  app.js:36 (renderSignalDateGroups), app.js:62
+    (renderHistoryDateGroups), app.js:164 (calendarDateGroups),
+    styles.css:413-423
+    Animation: child-only rotation (-135deg). Container stays.
+    Looks correct.
+
+#3 .collapse-chev
+    Where: Tools page cards - Backtest, Markets, Accounts,
+    Locked Rules, Runtime
+    Code:  dashboard.html (5 instances), styles.css:361-362 and
+    676-678
+    Animation: container rotates 180deg (line 678) AND child
+    rotates -135deg (line 362) - both fire.
+
+#4 Material 3 special-case
+    Only #page-tools .collapse-chev gets an M3 pill restyle
+    (styles.css:3957-3967). Nothing else is restyled.
+
+---------------------------------------------------------------------
+ 2.2  WHY THE CALENDAR CHEVRON LOOKS BROKEN
+---------------------------------------------------------------------
+System #1 rotates TWO nested things at once when open:
+container 180deg + child -135deg. Combined transform makes the
+down-chevron flip to up while the box still shows the other state
+visually -> the stacked "v above flipped-v" seen in the screenshot.
+Systems #2 and #3 rotate one thing each (though #3 double-rotates
+too, its smaller glyph masks it), so they look fine.
+
+---------------------------------------------------------------------
+ 2.3  WHY THE BUTTONS DO NOT MATCH EACH OTHER
+---------------------------------------------------------------------
+- DIFFERENT SIZES: Tools chevron box = 26px (styles.css:676);
+  date-toggle chevron = 30px (styles.css:423); expand-button has
+  its own box. History (big circles) vs Tools (small squares).
+- DIFFERENT SHAPES: three visual languages for "expand this".
+- PER-STYLE COVERAGE GAPS (same root cause as the accent bug):
+  - Material 3 restyles ONLY the Tools chevron (styles.css:3957)
+    -> date-group chevrons keep their old look inside M3.
+  - Neo restyles ONLY .expand-button (styles.css:724,773,784)
+    -> Tools and date chevrons keep Modern styling inside Neo.
+  - Switching style changes SOME collapse buttons but not others.
+
+---------------------------------------------------------------------
+ 2.4  BONUS ACCESSIBILITY BUG (SAME SYSTEM)
+---------------------------------------------------------------------
+.expand-button is rendered as:
+  <button ... aria-expanded="..." aria-label="Collapse event"
+   aria-hidden="true" tabindex="-1"></button>
+(app.js:26)
+A real button that is simultaneously labeled AND hidden from
+assistive tech AND unfocusable. Contradictory and redundant: the
+whole calendar card is already the clickable control. The
+date-toggle rows do it correctly (one <button> wrapping the row,
+glyph marked aria-hidden).
+
+---------------------------------------------------------------------
+ 2.5  FIX PLAN (AWAITING GO-AHEAD)
+---------------------------------------------------------------------
+1) ONE CHEVRON COMPONENT - single class (e.g. .chev-box) with:
+   - one size, one shape per style via tokens
+   - one rotation rule: rotate the GLYPH only, never the container
+   This alone fixes the stacked-arrows bug and unifies
+   History / Tools / Calendar.
+
+2) PER-STYLE COVERAGE - extend M3 and Neo override blocks to the
+   shared class instead of page-specific selectors (same fix
+   pattern as the accent-parity fix).
+
+3) A11Y - remove aria-hidden/tabindex="-1" from expand-button, or
+   drop the inner button and put the chevron glyph inside the
+   card's real button.
+
+=====================================================================
+ FOOTNOTES
+=====================================================================
+- Report 2 items complement Report 1: they are concrete instances
+  of the same root causes (per-style coverage gaps and cascade
+  fights).
+- No trading logic, data flow, or DOM contract was reviewed for
+  change; all fixes proposed are presentation-layer only and must
+  keep the test-pinned contracts (see tests/test_dashboard_ui.py).
+- Untracked duplicate: multibot2-architecture.json at repo root
+  (from an earlier session) - worth deleting or committing
+  deliberately.
+
+- END OF REPORTS -
