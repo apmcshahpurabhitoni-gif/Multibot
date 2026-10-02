@@ -61,6 +61,7 @@ package** — same directory layout, not flattened. Each strategy is a package
 | `test_contrast_tokens.py` | WCAG AA regressions across all 30 combinations |
 | `test_frontend_syntax.py` | A silent JS parse error that kills the whole dashboard |
 | `test_keepalive_health.py` | Shared state mutated without the lock |
+| `test_no_wall_clock_dependence.py` | **Tests that fail on a date instead of on a change.** A hardcoded event timestamp judged against the real clock stops passing when real time crosses it. |
 | `test_rebuild_kit.py` | **This kit going stale or silently losing files.** Zip integrity cannot see a flattened `strategies/` tree or four reference contracts copied from the wrong directory. |
 
 > **Mutation-test every guard you copy.** Revert the fix it protects and confirm
@@ -90,7 +91,7 @@ cp AI_REBUILD_SPEC.md AI_CONTEXT.md STRATEGY_DEVELOPER_GUIDE.md DESIGN.md "$KIT/
 cp MANIFEST.txt schema.sql render.yaml pyproject.toml "$KIT/reference/"
 
 for t in api_contract contrast_tokens frontend_syntax keepalive_health \
-         rebuild_kit rebuild_spec_inventory schema_parity; do
+         no_wall_clock_dependence rebuild_kit rebuild_spec_inventory schema_parity; do
   cp "tests/test_${t}.py" "$KIT/guards/"
 done
 
@@ -123,8 +124,8 @@ cmp docs/KIT_README.md /tmp/kit_check/multibot2-ai-rebuild-kit/README.md
 ```
 
 `diff -r` is the check that catches a flattened or stale `strategies/` tree.
-Zip integrity alone does not. Expect **38 files**: 1 README + 12 docs +
-7 guards + 18 reference (4 contracts + 4 deploy/manifest files + 10 strategy
+Zip integrity alone does not. Expect **39 files**: 1 README + 12 docs +
+8 guards + 18 reference (4 contracts + 4 deploy/manifest files + 10 strategy
 package files). `tests/test_rebuild_kit.py` runs exactly these checks for you.
 
 ---

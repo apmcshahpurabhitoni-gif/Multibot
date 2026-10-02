@@ -39,8 +39,8 @@ REFERENCE_ROOT = ("AI_REBUILD_SPEC.md", "AI_CONTEXT.md", "STRATEGY_DEVELOPER_GUI
 REFERENCE_FLAT = ("MANIFEST.txt", "schema.sql", "render.yaml", "pyproject.toml")
 GUARDS = (
     "test_api_contract.py", "test_contrast_tokens.py", "test_frontend_syntax.py",
-    "test_keepalive_health.py", "test_rebuild_kit.py", "test_rebuild_spec_inventory.py",
-    "test_schema_parity.py",
+    "test_keepalive_health.py", "test_no_wall_clock_dependence.py", "test_rebuild_kit.py",
+    "test_rebuild_spec_inventory.py", "test_schema_parity.py",
 )
 STRATEGY_IDS = ("adaptive_trend", "engulfing_66_sma", "sweep_v2", "_template")
 

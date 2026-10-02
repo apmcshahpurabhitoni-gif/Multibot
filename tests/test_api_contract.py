@@ -16,6 +16,8 @@ import re
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -68,6 +70,15 @@ def _api_doc() -> str:
     return API_DOC.read_text(encoding="utf-8")
 
 
+# A fixed reference clock. Every dashboard_signal() call in this file passes
+# now=_NOW. Freshness is exactly 1 hour, so a hardcoded event timestamp judged
+# against the real wall clock is a time bomb: this file passed only while
+# EVENT_TS was still in the FUTURE, and began failing the moment real time
+# passed it. It failed CI, and then locally, with no code change at all.
+_NOW = pd.Timestamp("2026-10-01T09:30:00+05:30")
+_EVENT_TS = "2026-10-01T09:00:00+05:30"
+
+
 def _event() -> dict:
     return {
         "signal_id": "abc",
@@ -76,7 +87,7 @@ def _event() -> dict:
         "version": "1.0.0",
         "symbol": "BTC-USD",
         "direction": "BUY",
-        "timestamp": "2026-10-01T09:00:00+05:30",
+        "timestamp": _EVENT_TS,
         "timeframe": "1d",
         "reason": "test",
         "pipeline_status": "RECORDED",
@@ -177,20 +188,20 @@ def test_universe_count_matches_the_locked_asset_count():
 
 
 def test_signal_computed_fields_are_produced():
-    enriched = dashboard_signal(_event())
+    enriched = dashboard_signal(_event(), now=_NOW)
     missing = [f for f in SIGNAL_COMPUTED_FIELDS if f not in enriched]
     assert not missing, f"dashboard_signal() no longer produces: {missing}"
 
 
 def test_actionable_requires_levels_and_freshness():
     """docs/API.md §7 documents this predicate; it is the flag the UI renders."""
-    fresh_with_levels = dashboard_signal(_event())
+    fresh_with_levels = dashboard_signal(_event(), now=_NOW)
     assert fresh_with_levels["has_trade_levels"] is True
     assert fresh_with_levels["actionable"] is True
 
     no_levels = _event()
     no_levels["metadata"] = {}
-    degraded = dashboard_signal(no_levels)
+    degraded = dashboard_signal(no_levels, now=_NOW)
     assert degraded["has_trade_levels"] is False
     assert degraded["actionable"] is False, (
         "a signal without trade levels must never be actionable"
@@ -201,7 +212,7 @@ def test_a_malformed_signal_never_raises():
     """One bad historical row must not 500 the dashboard API."""
     broken = _event()
     broken["timestamp"] = "not-a-timestamp"
-    result = dashboard_signal(broken)
+    result = dashboard_signal(broken, now=_NOW)
     assert result["freshness"] == "STALE"
     assert result["age_minutes"] == 0
 

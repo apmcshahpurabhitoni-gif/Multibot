@@ -241,6 +241,23 @@ copied them from a directory where they do not exist and dropped all four.
 **Copy source paths are part of the contract.** Verify with `diff -r` and
 `cmp`, never with "the zip opened fine".
 
+### G8. A contract test that failed on a date, not on a change
+`test_actionable_requires_levels_and_freshness` called `dashboard_signal(_event())`
+with a hardcoded `timestamp` and **no `now=`**, so freshness was judged against the
+real clock against a window of exactly one hour. It passed only while that
+timestamp was still in the *future*; the moment real time passed it, `actionable`
+flipped to `False` and the test failed — first on CI, then locally, with **no code
+change anywhere**. A diff cannot explain a calendar event.
+`dashboard_signal()` has accepted `now=` all along; `test_final_consistency_contract.py`
+was already using it. The file now pins `_NOW` and every call passes it.
+`tests/test_no_wall_clock_dependence.py` enforces the rule with `ast`, so a
+function name in a string or comment is not mistaken for a call site. Two
+regressions of the guard itself were caught by mutation: dropping the `now=`
+again, and moving `_NOW` outside the freshness window (which would make the test
+pass or fail for the wrong reason).
+
+**Write the failing case with the clock you mean, not the clock you have.**
+
 ## Category H — Still open
 
 | # | Item |
@@ -250,3 +267,4 @@ copied them from a directory where they do not exist and dropped all four.
 | H3 | `--surface-2` is not always `<div class="detail-grid">`'s parent; audit any new nesting |
 | H4 | Local Python is 3.10 while `requires-python = ">=3.11"`; CI is the only representative run |
 | H5 | `Workers Builds: multibot` fails on every PR and cannot be fixed from this repo — no Worker config exists |
+| H6 | The kit zip must be rebuilt after editing any file that ships inside it; `test_rebuild_kit.py` fails until you do |
