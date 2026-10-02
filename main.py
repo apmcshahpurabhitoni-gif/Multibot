@@ -217,24 +217,25 @@ def web_server():
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
         if path=="/ping":
             global LAST_PING_AT
-            LAST_PING_AT=now().isoformat()
-            logger.info("Keepalive ping received | at=%s",LAST_PING_AT)
+            with LOCK: LAST_PING_AT=now().isoformat(); last_ping=LAST_PING_AT
+            logger.info("Keepalive ping received | at=%s",last_ping)
             start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
             return [b"pong"]
         if path=="/api/health":
             try:
                 ensure_runtime()
                 current=now()
+                with LOCK: last_ping=LAST_PING_AT
                 keepalive_age_minutes=None
                 keepalive="UNKNOWN"
-                if LAST_PING_AT:
-                    keepalive_age_minutes=max(0,(current-pd.Timestamp(LAST_PING_AT)).total_seconds()/60)
+                if last_ping:
+                    keepalive_age_minutes=max(0,(current-pd.Timestamp(last_ping)).total_seconds()/60)
                     keepalive="OK" if keepalive_age_minutes <= 15 else "STALE"
                 payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":current.isoformat(),
                     "runtime":True,"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK",
                     "scheduler":not STOP.is_set(),"strategies":len(REGISTRY.all()),
                     "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED",
-                    "keepalive":keepalive,"last_ping_at":LAST_PING_AT,
+                    "keepalive":keepalive,"last_ping_at":last_ping,
                     "keepalive_age_minutes":round(keepalive_age_minutes,1) if keepalive_age_minutes is not None else None}
                 return _json_response(start,payload)
             except Exception as exc:
@@ -265,7 +266,7 @@ def web_server():
                 logger.exception("Backtest request failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
         if path == "/architecture":
-            architecture_path = os.path.join(root, "agent", "skills", "archify", "multibot2-architecture.html")
+            architecture_path = os.path.join(root, "docs", "architecture", "multibot2-architecture.html")
             try:
                 body = open(architecture_path, "rb").read()
             except OSError:
@@ -294,9 +295,14 @@ def _handle_command(chat_id,cmd):
         elif cmd=="/stats": _send_chat(chat_id,msg_stats(DB.load_trades("CLOSED")))
         elif cmd=="/weekly": _send_chat(chat_id,msg_weekly(DB.load_trades("CLOSED")))
         elif cmd=="/newspause":
-            NEWS_PAUSE_ENABLED=not NEWS_PAUSE_ENABLED
-            NEWS_GATE.enabled=NEWS_PAUSE_ENABLED
-            _send_chat(chat_id,msg_news_pause(NEWS_PAUSE_ENABLED))
+            # Read-modify-write plus the paired NEWS_GATE mutation. The Telegram
+            # polling thread and the scheduler thread both read this, so the
+            # whole flip has to be atomic under the lock that already exists.
+            with LOCK:
+                NEWS_PAUSE_ENABLED=not NEWS_PAUSE_ENABLED
+                NEWS_GATE.enabled=NEWS_PAUSE_ENABLED
+                paused=NEWS_PAUSE_ENABLED
+            _send_chat(chat_id,msg_news_pause(paused))
         elif cmd=="/refreshnews": NEWS.refresh(); _send_chat(chat_id,msg_news_refresh())
         elif cmd=="/backtest": _send_chat(chat_id,msg_backtest())
         elif cmd=="/test": ensure_runtime(); ok=SERVICE.engine.provider.fetch("RELIANCE.NS",period="2d",interval="1d",validate_hourly=False) is not None; _send_chat(chat_id,msg_test(ok,"Yahoo Finance responded." if ok else "Yahoo Finance did not respond."))

@@ -25,14 +25,31 @@ AA_LARGE = 3.0
 # Every pair the UI paints: (foreground token, background token, min ratio).
 # The background is composited over the surface first, because every wash
 # token in the file is semi-transparent.
+#
+# Washes are NOT only painted on --surface. Two real DOM paths put a wash over
+# --surface-2, so every wash must clear AA there as well:
+#   1. .card-main:hover repaints the row with --surface-2, and .signal-side
+#      (buy/sell wash) is a descendant of .card-main.
+#   2. .fresh / .stale live inside .detail-grid>div, which paints --surface-2.
+# Checking only --surface let a bad --negative ship in every neo light accent.
+#
+# --surface-3 is deliberately NOT listed: it is only ever used by the scrollbar
+# thumb, so a wash-over---surface-3 pair is a phantom the UI never paints.
 CONTRACTS = (
     ("--positive", "--positive-soft", "--surface", AA_TEXT),   # .fresh, .status-badge
     ("--warning", "--warning-soft", "--surface", AA_TEXT),    # .stale, .impact-pill.medium
     ("--negative", "--negative-soft", "--surface", AA_TEXT),   # .negative
+    # The same three washes over the nested hover/detail surface.
+    ("--positive", "--positive-soft", "--surface-2", AA_TEXT),
+    ("--warning", "--warning-soft", "--surface-2", AA_TEXT),
+    ("--negative", "--negative-soft", "--surface-2", AA_TEXT),
     ("--text", None, "--surface", AA_TEXT),                    # body copy
+    ("--text", None, "--surface-2", AA_TEXT),                  # copy inside a gutter
     ("--muted", None, "--surface", AA_TEXT),                   # secondary copy
+    ("--muted", None, "--surface-2", AA_TEXT),
     ("--accent-strong", None, "--bg", AA_TEXT),                # .eyebrow
     ("--accent-strong", None, "--surface", AA_TEXT),           # .text-button
+    ("--accent-strong", None, "--surface-2", AA_TEXT),
     ("--on-accent", "--accent-fill", None, AA_TEXT),           # .primary-button, .chip-option.active
 )
 

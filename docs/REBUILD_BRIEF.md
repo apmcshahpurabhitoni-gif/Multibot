@@ -125,13 +125,15 @@ is exactly what documentation is for.
 | Doc | Status | Purpose |
 |---|---|---|
 | **`docs/THEME_SYSTEM.md`** | ✅ **written by this brief** | Tokens, 30 combos, state, shape, a11y, contrast |
+| **`docs/LESSONS_LEARNED.md`** | ✅ **written by this brief** | Every defect, its root cause, and its guard |
+| **`docs/START_HERE.md`** | ✅ **written by this brief** | Read order, first commands, phased build |
 | `DESIGN.md` | ✅ exists | Current ownership + known defects |
-| `docs/DESIGN_SYSTEM/geometry.md` | ❌ **missing** | Spacing, breakpoints, the 44 controls, nav clearance |
-| `docs/DESIGN_SYSTEM/type.md` | ❌ **missing** | The 11-size scale, `tabular-nums` rule |
-| `docs/DESIGN_SYSTEM/components.md` | ❌ **missing** | Every component, variant, state |
-| `docs/DESIGN_SYSTEM/motion.md` | ❌ **missing** | Durations, easings, reduced-motion |
-| `docs/DESIGN_SYSTEM/icons.md` | ❌ **missing** | Currently raw emoji; a rebuild should choose a set |
-| `docs/DESIGN_SYSTEM/validation.md` | ❌ **missing** | The 30×2 reproducible check script |
+| `docs/DESIGN_SYSTEM/geometry.md` | ✅ written | Spacing, radius tiers, breakpoints, nav clearance |
+| `docs/DESIGN_SYSTEM/type.md` | ✅ written | Stacks, the real scale, `tabular-nums`, the <11px defect |
+| `docs/DESIGN_SYSTEM/components.md` | ✅ written | Every component, state, a11y contract |
+| `docs/DESIGN_SYSTEM/motion.md` | ✅ written | Durations, easings, reduced-motion, the poll rule |
+| `docs/DESIGN_SYSTEM/icons.md` | ✅ written | The emoji problem and the sprite recommendation |
+| `docs/DESIGN_SYSTEM/validation.md` | ✅ written | The reproducible 30×2 check |
 
 ### Layer 5 — Strategy plug-in
 | Doc | Status |
@@ -298,6 +300,11 @@ disagree with the Telegram message the user already received.
 **Written by this brief:** `docs/REBUILD_BRIEF.md`, `docs/API.md`,
 `docs/LOCKED_RULES.md`, `docs/THEME_SYSTEM.md`, `tests/test_api_contract.py`.
 
-**Still open for a future pass:** the six `docs/DESIGN_SYSTEM/*` files, the
-per-strategy conformance suites for `adaptive_trend` and `sweep_v2`, ADRs,
-and the repository-hygiene items in §4 Layer 8.
+**Completed in the follow-up pass:** all six `docs/DESIGN_SYSTEM/*` files,
+`docs/LESSONS_LEARNED.md` (every defect with its guard), `docs/START_HERE.md`
+(entry point and build order), and `tests/test_frontend_syntax.py`.
+
+**Still open for a future pass:** the per-strategy conformance suites for
+`adaptive_trend` and `sweep_v2`, ADRs under `docs/DECISIONS/`, focus restoration
+for the date-group / history / calendar toggles (see `LESSONS_LEARNED.md` C3), and
+the stale untracked audit artefacts in §4 Layer 8.

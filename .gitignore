@@ -23,3 +23,7 @@ agent/
 .agents/
 .claude/
 skills-lock.json
+
+# NOTE: multibot2-ai-rebuild-kit.zip is deliberately NOT ignored.
+# It is a requested deliverable, not a local build artefact. Its contents are
+# all tracked repo files; rebuild it with the commands in docs/KIT_README.md.
