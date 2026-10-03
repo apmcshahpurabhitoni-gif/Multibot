@@ -54,6 +54,8 @@ defensively rather than assume a type.
 | GET | `/api/calendar` | `date`, `impact`, `refresh` | 200 JSON | **400** JSON |
 | GET | `/api/news` | identical — **alias of `/api/calendar`** | 200 JSON | **400** JSON |
 | GET | `/api/backtest` | `strategy`, `symbol`, `period` | 200 JSON | **400** JSON |
+| GET | `/api/settings` | — | 200 JSON | — |
+| POST | `/api/settings` | body (see §11a) | 200 JSON | **400** JSON / **405** JSON |
 | GET | `/architecture` | — | 200 `text/html` | 404 |
 
 ### Static assets (`main.py::web_server`, the `files` dict)
@@ -468,6 +470,73 @@ dispatching or sending**.
 ```
 
 `reason` values include `MARKET_DATA_ERROR` and the `signal_gate` reasons.
+
+---
+
+## 11a. `/api/settings` — accounts, assets and routing
+
+These values decide which account takes a real trade and on how much capital,
+so they are written on the server. An unsaved edit is never applied, and a
+refused one leaves the running configuration exactly as it was.
+
+`GET` returns the live document plus the compiled-in defaults:
+
+```jsonc
+{
+  "ok": true,
+  "settings": {
+    "accounts": [{"name": "macro", "starting_balance": 100000,
+                  "daily_trade_limit": 20, "risk_per_trade": 2000}],
+    "assets":   [{"symbol": "TATAMOTORS", "label": "Tata Motors",
+                  "yahoo_symbol": "TATAMOTORS.NS", "market": "NSE",
+                  "asset_type": "equity", "group": "NSE Stocks", "currency": "INR",
+                  "sweep_timeframe": "4H", "strategies": ["engulfing_66_sma"]}],
+    "session":  {"timezone": "America/New_York", "start_hour": 8, "end_hour": 17},
+    "rules":    [{"account": "macro", "strategies": ["adaptive_trend", "engulfing_66_sma"],
+                  "asset_groups": ["Global Markets"], "in_ny_session": false}],
+    "options":  {"account_groups": ["NSE Stocks", "NSE Indices", "Global Markets"],
+                 "strategies": ["adaptive_trend", "engulfing_66_sma", "sweep_v2"],
+                 "strategy_names": {"sweep_v2": "Sweep 4H"},
+                 "asset_types": ["equity", "index", "commodity", "crypto", "forex"],
+                 "currencies": ["INR", "USD"],
+                 "limits": {"min_size": 1000, "max_size": 100000000,
+                            "min_trade_limit": 1, "max_trade_limit": 500,
+                            "min_risk": 100, "max_risk": 500000}}
+  },
+  "defaults": { /* same shape */ }
+}
+```
+
+`POST` takes `{"settings": { /* same shape, minus `options` */ }}`, or
+`{"settings": {"action": "reset"}}` to go back to `config.py`.
+
+```jsonc
+// 200 OK
+{"ok": true, "settings": { /* applied */ }, "message": "Settings saved and applied to the running bot."}
+
+// 400 Bad Request — nothing was applied
+{"ok": false, "error": "Session start hour must be earlier than the end hour",
+ "settings": { /* the configuration still in force */ }}
+```
+
+**What an operator may change.** The four built-in accounts (`macro`, `nifty`,
+`ny_session`, `sweep_4h`) and the 25 shipped assets are the shipped contract:
+they keep their values and cannot be deleted. Everything else is free — add an
+account with its own capital, daily limit and risk; add an asset to an
+*existing* account group; retime the New York window; reorder routing.
+
+**Refusals** are written to be shown verbatim in the UI. They cover: an unknown
+account, strategy or asset group; duplicate names; an empty selection; a start
+hour not earlier than the end hour; not exactly one rule per account; an
+uncovered asset group; an account no signal could ever reach; and an account
+whose daily risk budget does not fit inside its own starting balance.
+
+Sweep timeframe and currency are **derived from the asset's group**, not taken
+from the client, because the sweep engine needs a closed candle at that
+resolution.
+
+`GET /api/dashboard` echoes the same table under `rules.account_routing`,
+`rules.new_york_session` and `rules.accounts`.
 
 ---
 

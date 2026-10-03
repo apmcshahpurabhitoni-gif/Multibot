@@ -29,16 +29,20 @@ def test_manifest_declares_the_current_release():
     assert f"MULTIBOT2 v{APP_VERSION}" in manifest
 
 
-def test_every_strategy_is_listed_in_the_manifest():
+def test_every_shipped_strategy_is_listed_in_the_manifest():
     """MANIFEST.txt shipped a 2-strategy list while 3 were registered.
 
     The names and versions are read from the live registry so the document
-    cannot quietly go stale again.
+    cannot quietly go stale again. Only the shipped strategies are required:
+    a strategy dropped into strategies/ is a local plugin, not part of the
+    release manifest.
     """
-    from strategies.registry import discover_strategies
+    from strategies.registry import BUILTIN_STRATEGY_IDS, discover_strategies
 
     manifest = (ROOT / "MANIFEST.txt").read_text(encoding="utf-8")
-    for strategy in discover_strategies().all():
+    registry = discover_strategies()
+    for strategy_id in BUILTIN_STRATEGY_IDS:
+        strategy = registry.get(strategy_id)
         entry = f"{strategy.manifest.name} {strategy.manifest.version}"
         assert entry in manifest, f"MANIFEST.txt is missing strategy {entry!r}"
 

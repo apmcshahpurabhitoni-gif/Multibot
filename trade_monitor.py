@@ -2,7 +2,7 @@
 from __future__ import annotations
 import logging
 import pandas as pd
-from config import ACCOUNT_NAMES,ACCOUNT_SIZE_INR,LIVE_ASSET_MAP
+from config import ACCOUNT_SIZES,LIVE_ASSET_MAP,account_names
 from db import DatabaseManager
 from trading import AccountState,PaperTrade,TradePlan,close_trade,settle_account
 from notification_service import NotificationService
@@ -49,7 +49,7 @@ class TradeMonitor:
                 account=self.accounts.get(row["account"])
                 if account is None:
                     today=current.tz_convert("Asia/Kolkata").date().isoformat()
-                    rows=self.database.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,today)
+                    rows=self.database.load_accounts(account_names(),ACCOUNT_SIZES,today)
                     account=AccountState(row["account"],float(rows[row["account"]]["starting_balance"]),float(rows[row["account"]]["balance"]),float(rows[row["account"]]["planned_risk_used"]),int(rows[row["account"]]["trades_today"]))
                 updated,pnl=settle_account(account,trade=trade,exit_price=exit_price); self.accounts[row["account"]]=updated
                 payload=dict(row); payload.update({"status":"CLOSED","exit_price":exit_price,"exit_reason":reason,"closed_at":current.isoformat(),"pnl":pnl,"result":"WIN" if pnl>=0 else "LOSS"})

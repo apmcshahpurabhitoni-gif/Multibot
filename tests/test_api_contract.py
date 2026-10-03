@@ -159,19 +159,26 @@ def test_system_block_echoes_the_locked_rules():
     assert system["provider"] == "YAHOO"
     assert system["freshness_hours"] == 1
     assert system["leverage"] == 1.0
-    assert snapshot["rules"]["account_size_inr"] == 100_000
-    assert snapshot["rules"]["risk_per_trade_inr"] == 2_000
+    # Read from the immutable DEFAULT_* values rather than the live ones: an
+    # operator may add an account or an asset from the dashboard, and these
+    # guards are about the *shipped* contract, not the current machine.
+    from config import DEFAULT_ACCOUNT_SIZE_INR, DEFAULT_RISK_PER_TRADE_INR
+
+    assert snapshot["rules"]["account_size_inr"] == DEFAULT_ACCOUNT_SIZE_INR
+    assert snapshot["rules"]["risk_per_trade_inr"] == DEFAULT_RISK_PER_TRADE_INR
 
 
 def test_accounts_block_matches_the_locked_config():
     """docs/API.md §6 and LOCKED_RULES.md §3 list the accounts. Keep them honest."""
-    from config import ACCOUNT_NAMES, ACCOUNT_TRADE_LIMITS
+    from config import ACCOUNT_TRADE_LIMITS, BUILTIN_ACCOUNT_NAMES, accounts_state
 
     snapshot = build_dashboard_snapshot()
-    assert snapshot["accounts"]["names"] == list(ACCOUNT_NAMES)
+    # Every shipped account is present, and operator-added ones may join them.
+    assert set(BUILTIN_ACCOUNT_NAMES) <= set(snapshot["accounts"]["names"])
     assert snapshot["rules"]["account_trade_limits"] == ACCOUNT_TRADE_LIMITS
+    assert snapshot["rules"]["accounts"] == accounts_state()
 
-    for name in ACCOUNT_NAMES:
+    for name in BUILTIN_ACCOUNT_NAMES:
         assert name in LOCKED_RULES.read_text(encoding="utf-8"), (
             f"docs/LOCKED_RULES.md omits account {name}"
         )
@@ -179,12 +186,18 @@ def test_accounts_block_matches_the_locked_config():
 
 
 def test_universe_count_matches_the_locked_asset_count():
-    """25 assets is a locked rule, not a coincidence."""
-    from config import LIVE_ASSETS
+    """25 assets is a locked rule, not a coincidence.
+
+    The live count may be higher because an operator can plug extra assets in
+    from the dashboard; the shipped universe underneath must still be 25.
+    """
+    from config import BUILTIN_SYMBOLS, live_assets
 
     snapshot = build_dashboard_snapshot()
-    assert snapshot["universe"]["count"] == 25
-    assert snapshot["universe"]["count"] == len(LIVE_ASSETS)
+    assert len(BUILTIN_SYMBOLS) == 25
+    assert snapshot["universe"]["count"] == len(live_assets())
+    assert snapshot["universe"]["count"] >= 25
+    assert set(BUILTIN_SYMBOLS) <= set(snapshot["universe"]["symbols"])
 
 
 def test_signal_computed_fields_are_produced():

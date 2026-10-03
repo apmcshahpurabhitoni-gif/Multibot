@@ -828,6 +828,10 @@ config.py
     Locked global rules and asset configuration.
 release_notes.py
     APP_VERSION, release highlights, Telegram /whatsnew source.
+bot_settings.py
+    Server-side persistence and validation for the operator-editable
+    configuration: accounts (capital, daily trade limit, risk per trade),
+    extra assets plugged into existing account groups, and account routing.
 
 # --- strategy execution ----------------------------------------------------
 strategy_engine.py

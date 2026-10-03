@@ -9,7 +9,7 @@ from urllib import parse, request
 
 from config import (
     APP_VERSION as CONFIG_APP_VERSION,
-    LIVE_ASSETS,
+    live_assets,
     SIGNAL_FRESHNESS_HOURS,
 )
 from strategies import discover_strategies
@@ -105,7 +105,7 @@ def startup_message() -> str:
         f"🏷 Version: {APP_VERSION}",
         f"🔖 Build: {BUILD}",
         "🧪 Mode: PAPER",
-        f"🌐 Universe: {len(LIVE_ASSETS)} live assets",
+        f"🌐 Universe: {len(live_assets())} live assets",
         "🧩 Strategy registry: automatic plug-in discovery",
         *_strategy_lines(),
         f"⏳ Signal freshness: {SIGNAL_FRESHNESS_HOURS}h",
@@ -130,7 +130,7 @@ def whats_new_message() -> str:
     lines = [
         f"🆕 WHAT'S NEW — v{APP_VERSION}",
         BR,
-        f"🌐 {len(LIVE_ASSETS)}-asset live universe",
+        f"🌐 {len(live_assets())}-asset live universe",
         *_strategy_lines(),
         f"⏳ Freshness: exactly {SIGNAL_FRESHNESS_HOURS} hour",
         "🔁 Duplicate protection survives restart",

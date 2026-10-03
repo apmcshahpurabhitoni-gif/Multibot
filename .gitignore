@@ -11,6 +11,13 @@ venv/
 *.sqlite
 *.sqlite3
 *.log
+
+# Operator configuration saved from the dashboard Tools screen (accounts,
+# assets, routing). Machine-local on purpose: the compiled-in defaults in
+# config.py are the shipped contract, so a checkout starts from the same
+# accounts, universe and routing everyone else has.
+bot_settings.json
+bot_settings.json.tmp
 # Playwright CLI output (may contain credentials)
 .playwright/
 .playwright-cli/

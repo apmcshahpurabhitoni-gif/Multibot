@@ -518,6 +518,12 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .chip-option .appearance-swatch{margin-right:0}
 .settings-inline .chip-option.active .appearance-swatch{border-color:var(--on-accent)}
 .settings-label{font-size:10px;font-weight:900;letter-spacing:.13em;color:var(--muted);text-transform:uppercase}
+/* Numeric and text fields in the Tools settings editor. Scoped to #page-tools so
+   they cannot restyle the backtest controls or the search box. */
+#page-tools .settings-input{min-width:0;min-height:var(--control-height);padding:6px 9px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);color:var(--text);font-size:11.5px;font-variant-numeric:tabular-nums}
+#page-tools .settings-input[type=number]{width:104px}
+#page-tools .settings-input:disabled{opacity:.62;cursor:not-allowed}
+#page-tools .settings-hint{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;text-align:right}
 .appearance-style-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .appearance-option{
   min-width:0;min-height:64px;padding:13px 15px;text-align:left;

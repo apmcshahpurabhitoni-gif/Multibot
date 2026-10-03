@@ -6,6 +6,14 @@ changes any of them is not the same product.
 Values are asserted against `config.py` by `tests/test_config.py`,
 `tests/test_account_limits.py` and `tests/test_rebuild_spec_inventory.py`.
 
+**Rules 3, 4 and 5 are now *defaults*, not constants.** An operator can add
+assets and accounts, and change any account's capital, daily limit or risk, from
+Tools → Accounts, assets and routing. What stays locked is the *shipped* set:
+the 25 built-in assets, the four built-in accounts and their default values are
+never overwritten, and every account must still satisfy the bounds in
+`config.py` (`ACCOUNT_MIN_*` / `ACCOUNT_MAX_*`) and fund its own daily risk
+budget. Reset-to-defaults always returns to the values in `config.py`.
+
 ---
 
 ## 1. The eleven invariants
@@ -14,9 +22,9 @@ Values are asserted against `config.py` by `tests/test_config.py`,
 |---|---|---|---|
 | 1 | **Paper trading only** | Never place a real order. No broker API exists in this codebase. | `dashboard.system.mode` is always `"PAPER"` |
 | 2 | **Yahoo Finance is the only provider** | `MARKET_DATA_PROVIDER = "yahoo"` | `config.py:21` |
-| 3 | **Exactly 25 assets** | `LIVE_ASSETS` / `LIVE_SYMBOLS` | `config.py:90,198` |
-| 4 | **₹100,000 account** | `ACCOUNT_SIZE_INR = 100_000` | `config.py:223` |
-| 5 | **₹2,000 risk per trade** | `RISK_PER_TRADE_INR = 2_000` | `config.py:224` |
+| 3 | **Exactly 25 shipped assets** | `LIVE_ASSETS` / `BUILTIN_SYMBOLS` | `config.py:90,198` |
+| 4 | **₹100,000 default account size** | `DEFAULT_ACCOUNT_SIZE_INR = 100_000` | `config.py:223` |
+| 5 | **₹2,000 default risk per trade** | `DEFAULT_RISK_PER_TRADE_INR = 2_000` | `config.py:224` |
 | 6 | **1.0× leverage — never higher** | `LEVERAGE = 1.0` | `config.py:243` |
 | 7 | **Freshness is exactly 1 hour** | `SIGNAL_FRESHNESS_HOURS = 1` | `config.py:16` |
 | 8 | **Max 2 sends per signal identity** | `send_count` caps at 2 | `db.py::record_signal_send` |
@@ -63,36 +71,49 @@ NSE_INDEX_SWEEP_HOURS_IST = (9, 10, 11, 12, 13, 14)
 SWEEP_MINUTE_NSE = 15 ; SWEEP_MINUTE_GLOBAL = 30
 ```
 
-**Adding or removing an asset is a rule change.** It moves the count off 25,
-changes scan timing, and invalidates backtest coverage. Do it deliberately.
+**Adding an asset is a deliberate change.** It moves the live count off 25 and
+changes scan timing, so it is done from Tools → Accounts, assets and routing and
+recorded in `bot_settings.json`, not by editing `LIVE_ASSETS`. An added asset
+must join an **existing** account group — it cannot invent one — and must name
+at least one strategy to scan it. Removing one of the 25 shipped assets is
+still a code change.
 
 ---
 
 ## 3. Accounts and risk
 
 ```python
-ACCOUNT_SIZE_INR  = 100_000
-RISK_PER_TRADE_INR = 2_000
-LEVERAGE          = 1.0
+DEFAULT_ACCOUNT_SIZE_INR   = 100_000   # starting size for a new account
+DEFAULT_RISK_PER_TRADE_INR = 2_000     # risk budget for a new account
+LEVERAGE                   = 1.0
 ```
 
-Four accounts exist, each with a daily trade cap and a daily planned-risk cap
-from `ACCOUNT_TRADE_LIMITS`:
+Four accounts **ship**, each with a daily trade cap and a daily planned-risk
+cap. These are the defaults an operator can change, not hardcoded constants:
 
-| Account | Daily trade limit | Owner |
-|---|---|---|
-| `macro` | 20 | `adaptive_trend`, `engulfing_66_sma` |
-| `nifty` | 5 | — |
-| `ny_session` | 3 | — |
-| `sweep_4h` | 3 | `sweep_v2` |
+| Account | Daily trade limit | Default size | Default risk | Owner |
+|---|---|---|---|---|
+| `macro` | 20 | ₹100,000 | ₹2,000 | `adaptive_trend`, `engulfing_66_sma` |
+| `nifty` | 5 | ₹100,000 | ₹2,000 | — |
+| `ny_session` | 3 | ₹100,000 | ₹2,000 | — |
+| `sweep_4h` | 3 | ₹100,000 | ₹2,000 | `sweep_v2` |
 
-`ACCOUNT_NAMES` is the authoritative tuple; the names and limits are asserted
-against it by `tests/test_api_contract.py`.
+An operator may add further accounts with their own size, limit and risk. Every
+account is held to the same **fundability rule**, which is the invariant that
+actually matters and replaces the old fixed numbers: `risk_per_trade ≤
+starting_balance` and `risk_per_trade × daily_trade_limit ≤ starting_balance`.
+A book that fails it is refused at save time, because it would size positions it
+cannot pay for.
 
-Position sizing: **risk ÷ distance-to-stop** determines quantity. Leverage 1.0
-means no borrowing; the ₹2,000 is a *risk budget*, not a notional cap.
+`account_names()` is the authoritative accessor — not the module-level
+`ACCOUNT_NAMES`, which is rebound when settings change. The built-in names are
+asserted against `config.BUILTIN_ACCOUNT_NAMES` by `tests/test_api_contract.py`.
 
-`position_size = RISK_PER_TRADE_INR / risk_per_unit`, where `risk_per_unit` is
+Position sizing: **risk ÷ distance-to-stop** determines quantity, using **that
+account's** risk budget rather than a global. Leverage 1.0 means no borrowing;
+the ₹2,000 is a *risk budget*, not a notional cap.
+
+`position_size = account.risk_per_trade / risk_per_unit`, where `risk_per_unit` is
 `|entry − stop_loss|`. A trade is rejected when `risk_per_unit ≤ 0` — this is
 the `NO_TRADE_PLAN` reason.
 

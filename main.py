@@ -10,6 +10,7 @@ from dashboard import build_dashboard_snapshot
 from db import DatabaseManager
 from news import NewsService
 from reminders import ReminderService
+import bot_settings
 from strategy_service import StrategyService
 from strategies import discover_strategies
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
@@ -26,17 +27,35 @@ DB=DatabaseManager(settings.db_path); NEWS=NewsService(); ACCOUNTS={}; REMINDERS
 REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS, enabled=NEWS_PAUSE_ENABLED)
 LAST_SCANS={}
 LAST_PING_AT=None
+SETTINGS_LOADED=False
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
 def validate_runtime_configuration():
     validate_configuration()
     if settings.timezone!=IST_TIMEZONE or settings.market_data_provider!="yahoo" or settings.freshness_hours!=1: raise ValueError("Locked runtime configuration was changed")
 def init_state():
-    global ACCOUNTS
-    rows=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat())
-    ACCOUNTS={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in ACCOUNT_NAMES}
+    rows=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat())
+    fresh={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in account_names()}
+    # Mutated in place, never rebound: StrategyService and TradeMonitor are
+    # handed this exact dict at construction, so replacing it would leave them
+    # holding accounts the dashboard no longer knows about.
+    for gone in [name for name in ACCOUNTS if name not in fresh]: ACCOUNTS.pop(gone,None)
+    ACCOUNTS.update(fresh)
+def refresh_runtime_accounts():
+    """Re-read account rows after the account list changed.
+
+    Adding or removing an account changes what the scan loop and the monitor
+    hold in memory, not just what config says. init_state() mutates the shared
+    dict, so one call is enough.
+    """
+    if REGISTRY is None or SERVICE is None: return
+    with LOCK: init_state()
 def ensure_runtime():
-    global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR
+    global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR,SETTINGS_LOADED
+    # Install anything saved from the Tools screen before anything can trade,
+    # then let validate_runtime_configuration() re-check its invariants.
+    if not SETTINGS_LOADED:
+        bot_settings.load(); SETTINGS_LOADED=True
     validate_runtime_configuration()
     health=DB.market_data_cache_health()
     logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
@@ -115,7 +134,11 @@ def monitor_loop():
 def _backtest_payload(strategy,symbol,period):
     ensure_runtime(); key=strategy.strip().lower(); st=REGISTRY.get(key); symbol=symbol.strip().upper()
     if symbol not in st.manifest.assets: raise ValueError(f"{key} does not support {symbol}")
-    frame=SERVICE.engine.fetch(st,symbol,period=period); result=backtest_strategy(st,symbol,frame,account=st.manifest.account)
+    frame=SERVICE.engine.fetch(st,symbol,period=period)
+    # Backtests route on the same table as live dispatch, so a backtest of an
+    # asset is charged to the account that would actually trade it.
+    account=resolve_account(key,LIVE_ASSET_MAP[symbol],pd.Timestamp.now(tz=IST_TIMEZONE),st.manifest.account)
+    result=backtest_strategy(st,symbol,frame,account=account)
     m=result.metrics
     daily={}
     for sig in result.signals:
@@ -170,10 +193,51 @@ def _scan_snapshot():
     }
 
 def snapshot():
-    ensure_runtime(); fresh=DB.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in ACCOUNT_NAMES]
+    ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json; charset=utf-8"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
+def _settings_response(env,start):
+    """GET/POST /api/settings - read or replace accounts, assets and routing.
+
+    These values decide which account takes a real trade and on how much
+    capital, so they are written on the server: an unsaved edit is never
+    applied, and a rejected one leaves the running configuration untouched.
+    """
+    method=env.get("REQUEST_METHOD","GET").upper()
+    if method=="GET":
+        return _json_response(start,{"ok":True,"settings":bot_settings.settings_state(),"defaults":bot_settings.default_settings()})
+    if method!="POST":
+        start("405 Method Not Allowed",[("Content-Type","application/json; charset=utf-8"),("Cache-Control","no-store"),("Allow","GET, POST")])
+        return [b'{"ok":false,"error":"Use POST to change bot settings."}']
+    try:
+        length=int(env.get("CONTENT_LENGTH") or 0)
+    except ValueError:
+        length=0
+    raw=env["wsgi.input"].read(length) if length>0 else b""
+    try:
+        payload=json.loads(raw or b"{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json_response(start,{"ok":False,"error":"Malformed JSON body."},"400 Bad Request")
+    if not isinstance(payload,dict):
+        return _json_response(start,{"ok":False,"error":"Settings must be an object."},"400 Bad Request")
+    body=payload.get("settings")
+    document=body if body is not None else payload
+    try:
+        if document.get("action")=="reset":
+            state=bot_settings.reset(); message="Settings restored to the built-in defaults."
+        else:
+            state=bot_settings.save(document)
+            message="Settings saved and applied to the running bot."
+    except ValueError as exc:
+        # A rejected edit must not disturb the configuration already in force.
+        logger.info("Settings change rejected | error=%s",exc)
+        return _json_response(start,{"ok":False,"error":str(exc),"settings":bot_settings.settings_state()},"400 Bad Request")
+    logger.info("Settings change applied | %s",message)
+    # Accounts and assets are runtime state now: the scan loops, the monitor and
+    # the dashboard all hold their own account maps built once at startup.
+    init_state(); refresh_runtime_accounts()
+    return _json_response(start,{"ok":True,"settings":bot_settings.settings_state(),"message":message})
 def _sweep_diagnostic_payload(*, period="30d"):
     """Run the real Sweep V2 data -> prepare -> signal path without dispatching or sending."""
     ensure_runtime()
@@ -181,7 +245,7 @@ def _sweep_diagnostic_payload(*, period="30d"):
     current = now()
     rows = []
     totals = {"assets": 0, "ok": 0, "errors": 0, "directional": 0, "reasons": {}}
-    for asset in LIVE_ASSETS:
+    for asset in live_assets():
         if asset.symbol not in strategy.manifest.assets:
             continue
         totals["assets"] += 1
@@ -250,6 +314,12 @@ def web_server():
             except Exception as exc:
                 logger.exception("Sweep diagnostics failed")
                 return _json_response(start,{"ok":False,"error_type":type(exc).__name__,"error":str(exc)},"500 Internal Server Error")
+        if path=="/api/settings":
+            try:
+                return _settings_response(env,start)
+            except Exception as exc:
+                logger.exception("Settings request failed")
+                return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path in ("/api/calendar","/api/news"):
             try:return _json_response(start,_calendar_payload(query))
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
@@ -357,6 +427,6 @@ def main():
             logger.info("Telegram command polling disabled; signal delivery remains enabled")
         if REMINDERS is not None:
             REMINDERS.start()
-    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(LIVE_ASSETS),len(REGISTRY.all()))
+    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(live_assets()),len(REGISTRY.all()))
     while True: time.sleep(3600)
 if __name__=="__main__": main()

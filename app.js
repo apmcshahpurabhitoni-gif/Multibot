@@ -7,7 +7,7 @@ const CONFIG=Object.freeze({apiUrl:window.DASHBOARD_API_URL||"/api/dashboard",ti
 // the ID and letting the registry supply the name keeps the stored history
 // intact and survives a future rename without another edit here.
 const LEGACY_STRATEGY_NAMES=Object.freeze({"Sweep V2":"sweep_v2","Engulfing Entries @ 66 SMA":"engulfing_66_sma","Adaptive Trend Momentum":"adaptive_trend"});
-const state={data:null,lastUpdate:null,activePage:"overview",expanded:new Set(),signalDates:new Set(),historyTradeDates:new Set(),historyScanDates:new Set(),groupInit:new Set(),selectedTrade:null,calendarDate:dateInputValue(new Date()),calendarImpacts:new Set(["All"]),calendarDates:new Set(),calendar:null,backtest:null};
+const state={data:null,lastUpdate:null,activePage:"overview",expanded:new Set(),signalDates:new Set(),historyTradeDates:new Set(),historyScanDates:new Set(),groupInit:new Set(),selectedTrade:null,calendarDate:dateInputValue(new Date()),calendarImpacts:new Set(["All"]),calendarDates:new Set(),calendar:null,backtest:null,settings:null,settingsDirty:false,settingsMessage:null};
 const $=id=>document.getElementById(id);const $$=selector=>Array.from(document.querySelectorAll(selector));
 function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
 function number(value,digits=2){const n=Number(value);return Number.isFinite(n)?n.toLocaleString("en-IN",{minimumFractionDigits:digits,maximumFractionDigits:digits}):"—";}
@@ -216,7 +216,7 @@ function renderTools(){const data=state.data||{},universe=Array.isArray(data.uni
     const group=raw.includes("NIFTY")||upper.includes("NIFTY")?"Indices":raw.includes("GOLD")||upper.includes("GOLD")?"Commodities":raw.includes("BTC")||upper.includes("BITCOIN")?"Crypto":raw.includes("/")||upper.includes("EUR/")||upper.includes("GBP/")||upper.includes("AUD/")||upper.includes("USD/")||upper.includes("NZD/")?"Forex":"Indian Equities";
     assetGroups[group].push(label);
   });
-  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>`<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} planned risk remaining</small></article>`).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");$("candleSchedule").innerHTML=["10:15|First close","11:15|Hourly close","12:15|Hourly close","13:15|Hourly close","14:15|Hourly close","15:15|Final close"].map(item=>{const [time,label]=item.split("|");return `<span><b>${time}</b><small>${label}</small></span>`;}).join("");$("diagnostics").innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
+  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>`<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} planned risk remaining</small></article>`).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");$("candleSchedule").innerHTML=["10:15|First close","11:15|Hourly close","12:15|Hourly close","13:15|Hourly close","14:15|Hourly close","15:15|Final close"].map(item=>{const [time,label]=item.split("|");return `<span><b>${time}</b><small>${label}</small></span>`;}).join("");$("diagnostics").innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;if(!state.settingsDirty){if(!state.settings)loadSettings();}else if(state.settingsMessage?.kind!=="error")settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
 function backtestMetricLabel(key){return ({return_pct:"Return",max_drawdown_pct:"Max drawdown",sharpe:"Sharpe",sortino:"Sortino",win_rate_pct:"Win rate",profit_factor:"Profit factor",number_of_trades:"Trades",average_trade:"Average trade",max_losing_streak:"Max losing streak",exposure_pct:"Exposure",risk_adjusted_performance:"Risk-adjusted performance"})[key]||key.replaceAll("_"," ");}
 function formatBacktestMetric(key,value){const n=Number(value);if(!Number.isFinite(n))return "—";if(["return_pct","max_drawdown_pct","win_rate_pct","exposure_pct"].includes(key))return `${number(n,2)}%`;if(key==="average_trade")return inr(n);if(["number_of_trades","max_losing_streak"].includes(key))return number(n,0);return number(Math.max(-9999,Math.min(9999,n)),2);}
 function renderBacktest(result){const status=$("backtestStatus"),box=$("backtestResults");if(!result){box.hidden=true;return;}if(result.ok===false){status.className="backtest-status error";status.textContent=`Backtest failed: ${result.error||"Unknown error"}`;box.hidden=true;return;}status.className="backtest-status success";status.textContent=`${result.strategy} · ${result.asset?.label||result.symbol} · ${result.period} · ${number(result.candle_count,0)} candles`;const curve=Array.isArray(result.equity_curve)?result.equity_curve:[];const trades=Array.isArray(result.trades)?result.trades:[];const metrics=Object.entries(result.metrics||{}).filter(([key])=>!["rating","rating_label","breakdown"].includes(key));box.innerHTML=`<section class="backtest-section backtest-overview-section"><div class="backtest-summary"><div><span>START</span><b>${inr(curve[0]?.equity||100000)}</b></div><div><span>END</span><b>${inr(curve[curve.length-1]?.equity||100000)}</b></div><div><span>TRADES</span><b>${number(result.trades_taken,0)}</b></div><div><span>RETURN</span><b>${formatBacktestMetric("return_pct",result.metrics?.return_pct)}</b></div></div></section><section class="backtest-section backtest-curve-section"><div class="chart-head"><div><strong>Equity curve</strong><small>Paper account value after each completed backtest trade</small></div><span>${trades.length} trade${trades.length===1?"":"s"}</span></div>${curve.length?renderEquityLine(curve,{label:"Backtest equity curve"}):empty("No completed trades","◇","The selected period produced no completed trades to plot.")}</section><section class="backtest-section backtest-performance-section"><div class="backtest-section-heading"><div><span class="eyebrow">PERFORMANCE</span><h3>Results</h3></div><span class="backtest-rating">${escapeHtml(result.metrics?.rating_label||result.metrics?.rating||"—")}</span></div><div class="backtest-metrics">${metrics.map(([key,value])=>`<div><span>${escapeHtml(backtestMetricLabel(key))}</span><b title="${escapeHtml(formatBacktestMetric(key,value))}">${escapeHtml(formatBacktestMetric(key,value))}</b></div>`).join("")}</div></section><section class="backtest-section backtest-trades-section"><div class="backtest-section-heading"><div><span class="eyebrow">EXECUTION</span><h3>Completed trades</h3></div><span>${trades.length} recorded</span></div><div class="backtest-trades">${trades.length?trades.slice().reverse().map(trade=>{const d=direction(trade.direction),pnl=Number(trade.pnl);return `<article class="backtest-trade-row ${d.cls}"><span class="backtest-trade-side ${d.cls}">${d.text}</span><div><b>${escapeHtml(timestamp(trade.timestamp))}</b><small>Entry ${price(trade.entry)} · Exit ${price(trade.exit)} · ${number(trade.bars_held,0)} bars</small></div><strong class="${pnl>=0?"positive":"negative"}">${inr(pnl)}</strong></article>`;}).join(""):empty("No completed trades","◷","Trades will appear here separately from performance metrics.")}</div></section>`;box.hidden=false;}
@@ -257,10 +257,221 @@ bindEvent("compactModeToggle","click",()=>{const next=localStorage.getItem("mavi
 bindEvent("reduceMotionToggle","click",()=>{const next=localStorage.getItem("mavis-reduce-motion")!=="true";localStorage.setItem("mavis-reduce-motion",String(next));applyAppearanceControls();});
 
 bindEvent("runBacktestButton","click",runBacktest);
+bindEvent("settingsStartHour","change",markSettingsDirty);
+bindEvent("settingsEndHour","change",markSettingsDirty);
+bindEvent("saveSettingsButton","click",saveSettings);
+bindEvent("resetSettingsButton","click",resetSettings);
+bindEvent("addAccountButton","click",addAccount);
+bindEvent("addAssetButton","click",addAsset);
+bindEvent("settingsAccounts","input",event=>{
+  const field=event.target.closest("[data-account-field]");if(!field)return;
+  const account=state.settings?.accounts[Number(field.dataset.accountIndex)];if(!account)return;
+  const key=field.dataset.accountField;
+  account[key]=key==="daily_trade_limit"?Math.round(Number(field.value)||0):Number(field.value);
+  markSettingsDirty();renderSettings();
+});
+bindEvent("settingsAssets","input",event=>{
+  const field=event.target.closest("[data-asset-field]");if(!field)return;
+  const asset=state.settings?.assets[Number(field.dataset.assetIndex)];if(!asset)return;
+  asset[field.dataset.assetField]=field.value;
+  if(field.dataset.assetField==="group"){asset.currency=field.value==="Global Markets"?"USD":"INR";asset.sweep_timeframe=field.value==="NSE Indices"?"1H":"4H";}
+  markSettingsDirty();renderSettings();
+});
+bindEvent("settingsAssets","click",event=>{
+  const chip=event.target.closest("[data-asset-strategy]");
+  if(chip){
+    const asset=state.settings?.assets[Number(chip.dataset.assetIndex)];if(!asset)return;
+    const id=chip.dataset.assetStrategy;
+    asset.strategies=asset.strategies.includes(id)?asset.strategies.filter(x=>x!==id):[...asset.strategies,id];
+    markSettingsDirty();renderSettings();return;
+  }
+  const remove=event.target.closest("[data-remove-asset]");
+  if(remove){state.settings.assets.splice(Number(remove.dataset.removeAsset),1);markSettingsDirty();renderSettings();}
+});
+bindEvent("settingsAccounts","click",event=>{
+  const remove=event.target.closest("[data-remove-account]");
+  // A rule for a deleted account would orphan it, so both go together.
+  if(remove){const name=state.settings.accounts[Number(remove.dataset.removeAccount)]?.name;state.settings.accounts.splice(Number(remove.dataset.removeAccount),1);state.settings.rules=state.settings.rules.filter(r=>r.account!==name);markSettingsDirty();renderSettings();}
+});
+bindEvent("settingsRules","click",event=>{
+  const chip=event.target.closest("[data-settings-kind]");
+  if(chip){settingsToggle(chip.dataset.settingsKind,Number(chip.dataset.settingsIndex),chip.dataset.settingsValue);renderSettings();return;}
+  const move=event.target.closest("[data-settings-move]");
+  if(move&&!move.disabled){settingsMove(Number(move.dataset.settingsIndex),Number(move.dataset.settingsMove));renderSettings();}
+});
 bindEvent("backtestStrategy","change",()=>{state.backtest=null;renderTools();});
 bindEvent("calendarRefreshButton","click",loadCalendar);document.addEventListener("keydown",event=>{if(event.key==="Escape"){closeTradeDrawer();closeReleaseModal();return;}if(event.key!=="Enter"&&event.key!==" ")return;const row=event.target.closest(".card-main[data-expand]");if(!row||row!==event.target)return;event.preventDefault();const rowKey=row.dataset.expand;row.click();const restored=[...document.querySelectorAll(".card-main[data-expand]")].find(n=>n.dataset.expand===rowKey);if(restored)restored.focus();});
 document.addEventListener("click",event=>{const releaseButton=event.target.closest("#whatsNewButton");if(releaseButton){event.preventDefault();openReleaseModal();return;}const releaseClose=event.target.closest("#releaseModalClose");if(releaseClose){event.preventDefault();closeReleaseModal();return;}if(event.target.id==="releaseModal"){closeReleaseModal();return;}const toolToggle=event.target.closest("[data-tool-toggle]");if(toolToggle){event.preventDefault();const card=toolToggle.closest("[data-tool-collapse]");if(card){card.classList.toggle("is-open");syncToolCollapseControl(card);}return;}const tradeTrigger=event.target.closest("[data-trade-index]");if(tradeTrigger){const trades=Array.isArray(state.data?.trades)?state.data.trades:[],trade=trades[Number(tradeTrigger.dataset.tradeIndex)];if(trade){event.preventDefault();openTradeDetail(trade);}return;}const calendarDateGroup=event.target.closest("[data-calendar-date-group]");if(calendarDateGroup){const key=calendarDateGroup.dataset.calendarDateGroup;if(state.calendarDates.has(key))state.calendarDates.delete(key);else state.calendarDates.add(key);renderSafely("calendar",renderCalendar);return;}const signalDate=event.target.closest("[data-signal-date]");if(signalDate){const key=signalDate.dataset.signalDate;if(state.signalDates.has(key))state.signalDates.delete(key);else state.signalDates.add(key);renderSafely("signals",renderSignals);return;}const historyDate=event.target.closest("[data-history-date]");if(historyDate){const kind=historyDate.dataset.historyKind;const key=historyDate.dataset.historyDate;const set=kind==="scan"?state.historyScanDates:state.historyTradeDates;if(set.has(key))set.delete(key);else set.add(key);renderSafely("history",renderHistory);return;}const trigger=event.target.closest("[data-expand]");if(!trigger)return;const key=trigger.dataset.expand;if(state.expanded.has(key))state.expanded.delete(key);else state.expanded.add(key);renderSafely("overview",renderOverview);renderSafely("signals",renderSignals);renderSafely("history",renderHistory);if(state.calendar)renderSafely("calendar",renderCalendar);});
 }
+// ---------------------------------------------------------------------------
+// Bot settings editor (Tools > Accounts, assets and routing)
+// ---------------------------------------------------------------------------
+// These values decide which account takes a real trade and on how much
+// capital, so they live on the server. `state.settings` is the working copy the
+// editor mutates; it is only replaced when there are no unsaved changes, so
+// the 30s dashboard refresh can never discard an edit in progress.
+//
+// Declared below bindEvents() on purpose: every function here is hoisted, and
+// keeping the block after bindEvents keeps loadDashboard()'s first call site
+// inside bootstrapDashboard().
+const ROUTING_WINDOWS=[["null","Any time"],["true","Inside session"],["false","Outside session"]];
+const BUILTIN_ACCOUNTS=["macro","nifty","ny_session","sweep_4h"];
+let settingsRequested=false;
+
+function settingsModel(payload){
+  const s=payload||{};
+  return{
+    accounts:(Array.isArray(s.accounts)?s.accounts:[]).map(a=>({name:String(a.name||""),starting_balance:Number(a.starting_balance)||0,daily_trade_limit:Number(a.daily_trade_limit)||1,risk_per_trade:Number(a.risk_per_trade)||0})),
+    assets:(Array.isArray(s.assets)?s.assets:[]).map(a=>({symbol:String(a.symbol||""),label:String(a.label||""),yahoo_symbol:String(a.yahoo_symbol||""),market:String(a.market||""),asset_type:String(a.asset_type||""),group:String(a.group||""),currency:String(a.currency||"INR"),sweep_timeframe:String(a.sweep_timeframe||"4H"),strategies:Array.isArray(a.strategies)?a.strategies.slice():[]})),
+    session:{timezone:s.session?.timezone||"America/New_York",start_hour:Number(s.session?.start_hour)||0,end_hour:Number(s.session?.end_hour)||0,active_now:!!s.session?.active_now},
+    rules:(Array.isArray(s.rules)?s.rules:[]).map(r=>({account:String(r.account||""),strategies:Array.isArray(r.strategies)?r.strategies.slice():null,asset_groups:Array.isArray(r.asset_groups)?r.asset_groups.slice():null,in_ny_session:r.in_ny_session===true?true:r.in_ny_session===false?false:null})),
+    strategies:(Array.isArray(s.options?.strategies)?s.options.strategies:[]).map(String),
+    strategyNames:(s.options?.strategy_names)||{},
+    groups:(Array.isArray(s.options?.account_groups)?s.options.account_groups:[]).map(String),
+    limits:s.options?.limits||{}};
+}
+async function loadSettings(){
+  if(state.settingsDirty||settingsRequested)return;
+  settingsRequested=true;
+  try{
+    const response=await fetch("/api/settings",{cache:"no-store"});
+    const payload=await readJsonResponse(response,"Settings API");
+    if(payload.ok===false)throw new Error(payload.error||"Settings API failed");
+    state.settings=settingsModel(payload.settings);
+    renderSettings();
+    settingsStatus("Saved on the server and applied to the running bot. Nothing here changes a trade until you save.","info");
+  }catch(error){settingsStatus(error.message,"error");}
+  finally{settingsRequested=false;}
+}
+function paintSettingsStatus(){
+  const el=$("settingsStatus"),message=state.settingsMessage;if(!el||!message)return;
+  el.className=`backtest-status${message.kind==="info"?"":` ${message.kind}`}`;
+  el.textContent=message.text;
+}
+function settingsStatus(text,kind){state.settingsMessage={text,kind:kind||"info"};paintSettingsStatus();}
+function markSettingsDirty(){state.settingsDirty=true;settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");}
+function money(value){return "₹"+Number(value||0).toLocaleString("en-IN");}
+function accountRows(){
+  const model=state.settings;if(!model)return "";
+  return model.accounts.map((a,index)=>{
+    const fixed=BUILTIN_ACCOUNTS.includes(a.name);
+    const field=(key,min,max,step)=>`<input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" data-account-index="${index}" data-account-field="${key}"${fixed?" disabled":""} aria-label="${escapeHtml(a.name)} ${escapeHtml(key.replace(/_/g," "))}">`;
+    const remove=fixed?"":`<button class="chip-option settings-toggle" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
+    return`<div class="settings-row"><span class="settings-label">${escapeHtml(a.name)}</span><div class="settings-inline">${field("starting_balance",1,100000000,1000)}${field("daily_trade_limit",1,500,1)}${field("risk_per_trade",100,500000,100)}${remove}</div></div>`
+      +`<div class="settings-row"><span class="settings-label">${escapeHtml(a.name)} budget</span><div class="settings-inline"><span class="settings-hint">${money(a.starting_balance)} · ${a.daily_trade_limit} trades · ${money(a.risk_per_trade)} risk · ${money(a.daily_trade_limit*a.risk_per_trade)}/day</span></div></div>`;
+  }).join("");
+}
+function assetRows(){
+  const model=state.settings;if(!model)return "";
+  if(!model.assets.length)return`<div class="settings-row"><span class="settings-label">Assets</span><div class="settings-inline"><span class="settings-hint">None added. The 25 shipped assets are always traded.</span></div></div>`;
+  return model.assets.map((asset,index)=>{
+    const groups=`<select class="settings-input" data-asset-index="${index}" data-asset-field="group" aria-label="Asset group">${model.groups.map(x=>`<option value="${escapeHtml(x)}"${x===asset.group?" selected":""}>${escapeHtml(x)}</option>`).join("")}</select>`;
+    const strategies=model.strategies.map(id=>`<button class="chip-option${asset.strategies.includes(id)?" active":""}" type="button" aria-pressed="${asset.strategies.includes(id)}" data-asset-index="${index}" data-asset-strategy="${escapeHtml(id)}">${escapeHtml(model.strategyNames[id]||id)}</button>`).join("");
+    const text=(field,placeholder)=>`<input class="settings-input" type="text" value="${escapeHtml(asset[field])}" placeholder="${escapeHtml(placeholder)}" data-asset-index="${index}" data-asset-field="${field}" aria-label="${escapeHtml(placeholder)}">`;
+    const tag=asset.symbol||"new asset";
+    return`<div class="settings-row"><span class="settings-label">${escapeHtml(tag)}</span><div class="settings-inline">${text("label","Label")}${text("yahoo_symbol","Yahoo symbol")}${groups}<button class="chip-option settings-toggle" type="button" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(tag)}">Remove</button></div></div>`
+      +`<div class="settings-row"><span class="settings-label">${escapeHtml(tag)} scan</span><div class="settings-inline">${strategies}</div></div>`;
+  }).join("");
+}
+function settingsChip(kind,index,value,label,active){
+  return `<button class="chip-option${active?" active":""}" type="button" aria-pressed="${active?"true":"false"}" data-settings-kind="${kind}" data-settings-index="${index}" data-settings-value="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
+}
+function ruleRows(){
+  const model=state.settings;if(!model)return "";
+  return model.rules.map((rule,index)=>{
+    const account=escapeHtml(rule.account.toUpperCase());
+    const strategies=model.strategies.map(id=>settingsChip("strategies",index,id,model.strategyNames[id]||id,(rule.strategies||model.strategies).includes(id))).join("");
+    const assets=model.groups.map(g=>settingsChip("asset_groups",index,g,g,(rule.asset_groups||model.groups).includes(g))).join("");
+    const windows=ROUTING_WINDOWS.map(([value,label])=>settingsChip("in_ny_session",index,value,label,String(rule.in_ny_session)===value)).join("");
+    const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle" type="button" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${label}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
+    return`<div class="settings-row"><span class="settings-label">${index+1} · ${account}</span><div class="settings-inline">${strategies}</div></div>`
+      +`<div class="settings-row"><span class="settings-label">${account} assets</span><div class="settings-inline">${assets}</div></div>`
+      +`<div class="settings-row"><span class="settings-label">${account} session</span><div class="settings-inline">${windows}${move(-1,"Move "+rule.account+" earlier",index===0)}${move(1,"Move "+rule.account+" later",index===model.rules.length-1)}</div></div>`;
+  }).join("");
+}
+function renderSettings(){
+  const model=state.settings;if(!model)return;
+  const accounts=$("settingsAccounts"),assets=$("settingsAssets"),rules=$("settingsRules");
+  if(accounts)accounts.innerHTML=accountRows();
+  if(assets)assets.innerHTML=assetRows();
+  if(rules)rules.innerHTML=ruleRows();
+  const hours=Array.from({length:24},(_,h)=>`<option value="${h}">${String(h).padStart(2,"0")}:00</option>`).join("");
+  const start=$("settingsStartHour"),end=$("settingsEndHour"),live=$("settingsNow");
+  if(start&&!start.options.length)start.innerHTML=hours;
+  if(end&&!end.options.length)end.innerHTML=hours;
+  if(!state.settingsDirty){if(start)start.value=String(model.session.start_hour);if(end)end.value=String(model.session.end_hour);}
+  if(live)live.innerHTML=`<option>${model.session.active_now?"Inside session":"Outside session"}</option>`;
+  const tag=$("settingsSessionTag");
+  if(tag)tag.textContent=model.rules.length?`${String(model.session.start_hour).padStart(2,"0")}:00-${String(model.session.end_hour).padStart(2,"0")}:00 NY`:"No settings";
+}
+function settingsToggle(kind,index,value){
+  const rule=state.settings?.rules[index];if(!rule)return;
+  if(kind==="in_ny_session"){rule.in_ny_session=value==="null"?null:value==="true";}
+  else{
+    const every=kind==="strategies"?state.settings.strategies:state.settings.groups;
+    const current=rule[kind]??[...every];
+    const next=current.includes(value)?current.filter(v=>v!==value):[...current,value];
+    if(!next.length){settingsStatus(rule.account.toUpperCase()+" must catch at least one "+(kind==="strategies"?"strategy":"asset group")+".","error");return;}
+    rule[kind]=next.length===every.length?null:next;
+  }
+  markSettingsDirty();
+}
+function settingsMove(index,delta){
+  const rules=state.settings?.rules,target=index+delta;
+  if(!rules||target<0||target>=rules.length)return;
+  const [moved]=rules.splice(index,1);rules.splice(target,0,moved);
+  markSettingsDirty();
+}
+function nextAccountName(){
+  const taken=new Set(state.settings.accounts.map(a=>a.name));
+  let i=1;while(taken.has("book_"+i))i++;
+  return "book_"+i;
+}
+function addAccount(){
+  const model=state.settings;if(!model)return;
+  const name=nextAccountName();
+  model.accounts.push({name,starting_balance:100000,daily_trade_limit:5,risk_per_trade:2000});
+  // A new account needs a routing rule in the same save or it is unreachable
+  // and the server refuses the whole document. Seeded at the end on one
+  // strategy and one group; the operator narrows or widens it from there.
+  model.rules.push({account:name,strategies:[model.strategies[0]].filter(Boolean),asset_groups:[model.groups[0]].filter(Boolean),in_ny_session:null});
+  markSettingsDirty();renderSettings();
+}
+function addAsset(){
+  const model=state.settings;if(!model)return;
+  model.assets.push({symbol:"",label:"",yahoo_symbol:"",market:"",asset_type:"",group:model.groups[0]||"",currency:"INR",sweep_timeframe:"4H",strategies:[]});
+  markSettingsDirty();renderSettings();
+}
+function settingsPayload(){
+  const model=state.settings,start=$("settingsStartHour"),end=$("settingsEndHour");
+  return{settings:{
+    accounts:model.accounts.map(a=>({name:a.name,starting_balance:a.starting_balance,daily_trade_limit:a.daily_trade_limit,risk_per_trade:a.risk_per_trade})),
+    assets:model.assets.map(a=>({symbol:a.symbol,label:a.label,yahoo_symbol:a.yahoo_symbol,market:a.market,asset_type:a.asset_type,group:a.group,currency:a.currency,strategies:a.strategies})),
+    session:{start_hour:Number(start?.value||0),end_hour:Number(end?.value||0)},
+    rules:model.rules.map(r=>({account:r.account,strategies:r.strategies,asset_groups:r.asset_groups,in_ny_session:r.in_ny_session}))}};
+}
+async function postSettings(body,button){
+  const model=state.settings;if(!model)return;
+  button.disabled=true;settingsStatus("Saving to the server…","loading");
+  try{
+    const response=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
+    const result=await readJsonResponse(response,"Settings API");
+    if(result.ok===false)throw new Error(result.error||"Settings change failed");
+    state.settingsDirty=false;
+    if(result.settings){const fresh=settingsModel(result.settings);model.accounts=fresh.accounts;model.assets=fresh.assets;model.rules=fresh.rules;model.session=fresh.session;}
+    renderSettings();
+    // The refresh runs first: loadDashboard() re-renders Tools and would
+    // otherwise overwrite the green confirmation with its neutral status line.
+    await loadDashboard();
+    settingsStatus(result.message||"Settings saved.","success");
+  }catch(error){
+    // The running configuration is untouched when a save is refused, so keep
+    // the edits on screen for the operator to correct.
+    settingsStatus(error.message,"error");
+  }finally{button.disabled=false;}
+}
+function saveSettings(){const button=$("saveSettingsButton");if(button)postSettings(settingsPayload(),button);}
+function resetSettings(){const button=$("resetSettingsButton");if(button)postSettings({settings:{action:"reset"}},button);}
 function bootstrapDashboard(){try{initAppearance();bindEvents();syncAllToolCollapseControls();const marketClock=$("marketClock");if(marketClock){marketClock.textContent=clock();setInterval(()=>{const clockEl=$("marketClock");if(clockEl)clockEl.textContent=clock();},1000);}loadDashboard();setInterval(loadDashboard,CONFIG.refreshMs);}catch(error){console.error("Dashboard bootstrap failed",error);showConnectionStatus(false,"Dashboard startup problem. Check browser console.");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootstrapDashboard,{once:true});else bootstrapDashboard();
 
