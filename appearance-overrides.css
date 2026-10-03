@@ -577,7 +577,13 @@ button,input,select{font-family:var(--font)}
 #page-tools .backtest-trades{
   border:var(--ui-border)!important;
   border-radius:var(--ui-inner-r)!important;
-  overflow:hidden!important;
+  /* The capped, touch-scrollable long-list contract from styles.css section 17
+     must survive this layer. `overflow:hidden!important` outranked its
+     `overflow-y:auto!important`, so a 20-trade backtest rendered 960px of rows
+     inside a 420px box and 12 of them could never be reached, while
+     `scrollbar-gutter:stable` still painted a dead 12px empty track. */
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
 }
 #page-tools .backtest-trade-row{
   min-height:58px!important;

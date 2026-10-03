@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "dashboard.html").read_text(encoding="utf-8")
@@ -6,6 +7,7 @@ CSS = (ROOT / "appearance-overrides.css").read_text(encoding="utf-8")
 APP = (ROOT / "app.js").read_text(encoding="utf-8")
 APPEARANCE = (ROOT / "appearance.js").read_text(encoding="utf-8")
 STYLES = (ROOT / "styles.css").read_text(encoding="utf-8")
+FOUNDATION = (ROOT / "foundation.css").read_text(encoding="utf-8")
 
 
 def test_appearance_has_separate_theme_and_interface_style_controls():
@@ -560,4 +562,152 @@ def test_calendar_detail_row_does_not_draw_a_floating_border():
     assert "#page-calendar .calendar-details{" in styles, (
         "expected the source .calendar-details rule to still exist in "
         "styles.css; if it was renamed, revisit this guard's selectors"
+    )
+
+
+def _iter_rules(css):
+    """Yield ``(selector_prelude, declaration_body)`` for every rule in a sheet.
+
+    Descends into at-rule blocks so a rule nested in a media query is reported
+    with the selector that actually reaches the element, not with the query.
+    """
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    prelude = ""
+    index, length = 0, len(css)
+    while index < length:
+        char = css[index]
+        if char == "{":
+            depth, cursor = 1, index + 1
+            while cursor < length and depth:
+                if css[cursor] == "{":
+                    depth += 1
+                elif css[cursor] == "}":
+                    depth -= 1
+                cursor += 1
+            body = css[index + 1 : cursor - 1]
+            head = prelude.strip()
+            if head.startswith("@"):
+                yield from _iter_rules(body)
+            else:
+                yield head, body
+            prelude = ""
+            index = cursor
+            continue
+        if char != "}":
+            prelude += char
+        else:
+            prelude = ""
+        index += 1
+
+
+# A vertical axis value that clips instead of scrolling.
+_CLIPPING = ("hidden", "clip")
+# A vertical axis value that scrolls.
+_SCROLLING = ("auto", "scroll")
+
+
+def test_backtest_trade_list_stays_a_bounded_scrollable_panel():
+    """``.backtest-trades`` must keep its capped, touch-scrollable contract.
+
+    ``styles.css`` declares the cap plus ``scrollbar-gutter:stable``, which
+    permanently reserves a scrollbar-sized strip. That reservation only makes
+    sense while the element actually scrolls. An ``overflow`` declaration in a
+    later, more specific sheet silently turned the panel into a clip: a
+    20-trade backtest rendered 960px of rows inside a 420px box, 12 trades
+    became unreachable, and the reserved gutter stayed visible as an empty
+    track with no thumb. No sheet may re-clip the vertical axis with
+    ``!important``.
+    """
+    sheets = {
+        "styles.css": STYLES,
+        "foundation.css": FOUNDATION,
+        "appearance-overrides.css": CSS,
+    }
+    targeting: list = []
+    for name, text in sheets.items():
+        for prelude, body in _iter_rules(text):
+            selectors = [part.strip() for part in prelude.split(",")]
+            if not any(sel.endswith(".backtest-trades") for sel in selectors):
+                continue
+            targeting.append((name, prelude))
+            for prop, raw in re.findall(r"(overflow(?:-[xy])?)\s*:\s*([^;}]+)", body):
+                value, _, flags = raw.partition("!")
+                value = value.strip().lower()
+                if prop == "overflow-x":
+                    # Sideways bleed is deliberately suppressed everywhere.
+                    continue
+                if "important" in flags.lower() and value in _CLIPPING:
+                    raise AssertionError(
+                        f"{name}: {prelude} sets {prop}:{value}!important, which "
+                        "outranks the bounded scroll contract in styles.css and "
+                        "clips every backtest trade past the cap while leaving "
+                        "the reserved scrollbar gutter on screen as a dead track"
+                    )
+
+    # Precondition: the guards above are worthless if the selector was renamed
+    # out from under them, so require the rules they police to still exist.
+    assert len(targeting) >= 5, (
+        f"expected the .backtest-trades rules to still exist, found {targeting}"
+    )
+
+    contract = []
+    gutter_rules = []
+    for name, text in sheets.items():
+        for prelude, body in _iter_rules(text):
+            if not any(sel.strip().endswith(".backtest-trades")
+                       for sel in prelude.split(",")):
+                continue
+            if re.search(r"scrollbar-gutter\s*:", body):
+                gutter_rules.append((name, prelude))
+            for prop, raw in re.findall(r"(overflow(?:-[xy])?)\s*:\s*([^;}]+)", body):
+                value, _, flags = raw.partition("!")
+                if (prop == "overflow-y"
+                        and value.strip().lower() in _SCROLLING
+                        and "important" in flags.lower()):
+                    contract.append((name, prelude))
+
+    assert contract, (
+        "no sheet declares a vertical scroll value !important for "
+        ".backtest-trades; the capped, touch-scrollable contract has been lost"
+    )
+
+    # The contract has exactly one owner: the `.backtest-trades` rule in
+    # styles.css. Assert it there by selector and by declaration set. Asserting
+    # only that *some* sheet scrolls is not enough -- the override layer also
+    # scrolls, so it would happily cover for a source contract that had been
+    # edited into something else entirely.
+    source = [body for prelude, body in _iter_rules(STYLES)
+              if prelude.strip() == ".backtest-trades"
+              and re.search(r"scrollbar-gutter\s*:", body)]
+    assert source, (
+        "expected the source `.backtest-trades` scroll contract in styles.css "
+        "(the rule reserving the gutter); if it was renamed or merged, revisit "
+        "this guard's selectors"
+    )
+    source = source[0]
+
+    def declared(prop: str):
+        found = re.search(r"(?:^|[;{])\s*" + re.escape(prop) + r"\s*:\s*([^;}]+)",
+                          source)
+        return found.group(1).strip().lower() if found else None
+
+    overflow_y = declared("overflow-y")
+    assert overflow_y, (
+        "styles.css `.backtest-trades` no longer declares overflow-y"
+    )
+    value, _, flags = overflow_y.partition("!")
+    assert value.strip() in _SCROLLING and "important" in flags, (
+        "styles.css `.backtest-trades` must declare overflow-y auto/scroll "
+        f"!important, found {overflow_y!r}"
+    )
+    for required in ("max-height", "scrollbar-gutter", "overscroll-behavior"):
+        assert declared(required), (
+            f"the styles.css `.backtest-trades` contract lost `{required}`"
+        )
+
+    # The reserved gutter ships alongside the cap. If a sheet ever strips the
+    # cap without touching the gutter, the empty strip outlives the cap.
+    assert gutter_rules, (
+        "expected the reserved scrollbar gutter to still be declared for "
+        ".backtest-trades; if it was renamed, revisit this guard"
     )
