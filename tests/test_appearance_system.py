@@ -442,3 +442,66 @@ def test_tools_gutters_are_borderless_and_their_tiles_uniform():
         "backtest-controls was an outline with no fill; it is a content block "
         "and must carry the tile fill like every other tile"
     )
+
+
+def test_appearance_panel_rows_are_hairlines_not_inset_boxes():
+    """The Appearance panel drew four frames inside its own frame.
+
+    ``.tools-appearance`` is a card and declares its own border. But every
+    ``.settings-row`` inside it was also a complete bordered box, inset by
+    ``margin:0 10px``. Measured live on the THEME row:
+
+        T=1px R=1px B=1px L=1px  radius=11px  margin=8px/8px
+
+    so the panel framed itself and then framed four more boxes inside it, each
+    pulled in from the edges -- the floating border. The rows also carried
+    ``--radius-sm`` while the panel is ``--radius``, so two different corner
+    shapes were on screen at once.
+
+    The rows are not cards. They are one continuous surface divided by
+    hairlines, so the panel's border is the only outline and the rows lose
+    their edges, radius and inset. The heading's existing bottom border
+    separates it from row one; the first row therefore must NOT also add a top
+    border, which used to draw the same line twice.
+    """
+    import re
+
+    code = re.sub(r"/\*.*?\*/", "", CSS, flags=re.S)
+
+    assert (
+        "html #page-tools .tools-appearance>.settings-row,\n"
+        "html #page-tools .tools-appearance .settings-row{\n"
+        "  border:0!important;\n"
+        "  border-radius:0!important;\n"
+        "  margin-left:0!important;\n"
+        "  margin-right:0!important;\n"
+        "  background:transparent!important;\n"
+        "}" in code
+    ), (
+        "the Appearance rows must not draw their own box: an inset bordered "
+        "row inside an already-bordered panel is the floating border"
+    )
+
+    # Row one is separated by the heading's bottom border, not by its own.
+    assert (
+        "html #page-tools .tools-appearance>.section-heading+.settings-row{\n"
+        "  border-top:0!important;" in code
+    ), (
+        "the first settings row must not draw a top border; the heading's "
+        "bottom border already separates them and both drew the same line"
+    )
+
+    # Every later row is separated by a single top hairline.
+    assert (
+        "html #page-tools .tools-appearance>.settings-row+.settings-row{\n"
+        "  border-top:var(--border-w) solid var(--line)!important;\n"
+        "}" in code
+    ), "settings rows must be divided by a --border-w hairline, not by boxes"
+
+    # The rows drawing their own box originates in styles.css; flag it if a
+    # future edit reinstates it there rather than relying on the override.
+    styles = re.sub(r"/\*.*?\*/", "", STYLES, flags=re.S)
+    assert "#page-tools .tools-appearance .settings-row{border:1px solid var(--line)" not in styles, (
+        "styles.css again gives the Appearance rows their own box; the "
+        "override layer neutralises it but the source should be fixed"
+    )

@@ -2408,3 +2408,45 @@ html body #page-tools .tool-backtest .tool-body .backtest-controls{
   background:var(--surface)!important;
 }
 
+/* ==========================================================================
+   The Appearance panel: one frame, hairline separators, no inset boxes.
+
+   `.tools-appearance` is a card and already declares its own 1px border at
+   `--radius`. But every `.settings-row` inside it was ALSO a complete bordered
+   box, inset by `margin:0 10px`. Measured live on the THEME row:
+
+       T=1px R=1px B=1px L=1px  radius=11px  margin=8px/8px
+
+   So the panel drew its frame, then drew four more frames inside it, each
+   pulled in from the edges. That is the border you can see floating inside
+   the panel -- and because the rows carry `--radius-sm` while the panel is
+   `--radius`, the two outlines have different corner shapes at the same time,
+   which is the "square border then round border" read.
+
+   The rows are not cards. They are one continuous surface divided by hairlines,
+   so:
+
+     - the panel's own border is the only outline
+     - rows lose their left/right/bottom edges, their radius and their inset
+     - the heading's existing bottom border separates it from row one
+     - each later row gets a single `border-top` hairline
+
+   The heading bottom border and the first row's top border used to sit one
+   pixel apart and drew the same line twice; the first row no longer adds one.
+   ========================================================================== */
+html #page-tools .tools-appearance>.settings-row,
+html #page-tools .tools-appearance .settings-row{
+  border:0!important;
+  border-radius:0!important;
+  margin-left:0!important;
+  margin-right:0!important;
+  background:transparent!important;
+}
+html #page-tools .tools-appearance>.section-heading+.settings-row{
+  border-top:0!important;
+  border-radius:0!important;
+}
+html #page-tools .tools-appearance>.settings-row+.settings-row{
+  border-top:var(--border-w) solid var(--line)!important;
+}
+
