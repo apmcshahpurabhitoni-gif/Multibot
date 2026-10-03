@@ -2156,3 +2156,31 @@ html[data-reduce-motion="true"] .collapse-control::after{
   transition:none!important;
 }
 
+/* ==========================================================================
+   Expanded signal: ONE outline, not three.
+
+   Five successive rules redefine `.signal-card.expanded .detail-grid`, and the
+   last to win left it at `border:1px solid var(--line)` on `--surface`.
+   `.reason` finished the same way, and `.expand-content` adds its own
+   `border-top`. The card already carries a 1px border, so expanding a signal
+   drew a doubled line under the header plus a second outline around the grid
+   and the reason block -- three white boxes stacked inside one card.
+
+   The card is the only surface that gets an outline. What opens beneath it is
+   interior: it keeps a fill and a radius, and the grid's own nth-child
+   hairlines still separate cells, so the table still reads without a second
+   frame competing with the card edge.
+   ========================================================================== */
+html #page-signals .signal-card.expanded .expand-content,
+html #page-overview .overview-signals .signal-card.expanded .expand-content{
+  border-top:0!important;
+}
+html #page-signals .signal-card.expanded .detail-grid,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html #page-signals .signal-card.expanded .reason,
+html #page-overview .overview-signals .signal-card.expanded .reason{
+  border:0!important;
+  background:var(--surface-2)!important;
+  border-radius:var(--radius-sm)!important;
+}
+
