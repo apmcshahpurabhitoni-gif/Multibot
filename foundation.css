@@ -1102,41 +1102,6 @@ html[data-style="neo"] #page-signals .signal-card .detail-grid{
   padding:6px 8px 8px;
 }
 
-#page-signals .signal-card.expanded .detail-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:0;
-  border:1px solid var(--line);
-  border-radius:10px;
-  overflow:hidden;
-  background:var(--surface-2);
-}
-
-#page-signals .signal-card.expanded .detail-grid>div{
-  min-width:0;
-  padding:5px 8px;
-  background:transparent;
-  border:0;
-  border-radius:0;
-}
-
-#page-signals .signal-card.expanded .detail-grid span{
-  display:block;
-  margin:0 0 2px;
-  font-size:9px;
-  line-height:1.05;
-  letter-spacing:.07em;
-  text-transform:uppercase;
-}
-
-#page-signals .signal-card.expanded .detail-grid b{
-  display:block;
-  margin:0;
-  font-size:11px;
-  line-height:1.15;
-  overflow-wrap:anywhere;
-}
-
 #page-signals .signal-card.expanded .reason{
   margin:6px 0 0;
   padding:6px 8px;
@@ -1157,14 +1122,6 @@ html[data-style="neo"] #page-signals .signal-card .detail-grid{
 @media(max-width:560px){
   #page-signals .signal-card.expanded .expand-content{
     padding:5px 7px 7px;
-  }
-
-  #page-signals .signal-card.expanded .detail-grid>div{
-    padding:4px 7px;
-  }
-
-  #page-signals .signal-card.expanded .detail-grid b{
-    font-size:10.5px;
   }
 
   #page-signals .signal-card.expanded .reason{
@@ -1201,9 +1158,7 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 
 #page-overview .overview-signals .signal-card.expanded .detail-grid,
 #page-signals .signal-card.expanded .detail-grid{
-  grid-template-columns:repeat(2,minmax(0,1fr));
   overflow:hidden;
-  background:var(--surface-2);
 }
 
 #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
@@ -1251,15 +1206,35 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 }
 
 
-/* ---------- Expanded signal details: compact readable rows --------------- */
+/* ---------- Expanded signal detail grid: one definition -------------------- */
 /* One information surface, two columns. Labels and values share a row so the
    panel uses horizontal space instead of stacking every field vertically.
-   Applies to Home and Signals; data/markup remain unchanged. */
+   Applies to Home and Signals; data/markup remain unchanged.
+
+   This is the single definition of the expanded grid's geometry and type. It
+   used to be written as three successive passes -- "shared contract", "compact
+   readable rows", then "final readability polish" -- each restating the
+   properties the one before had set, so the value that actually rendered was
+   whichever pass happened to come last rather than the one anybody decided on.
+   The three are merged here and the two later passes are gone.
+
+   Where a pass only restated a value, the surviving declaration is unchanged.
+   Where they disagreed, the later value won and is what is declared here:
+   min-height 30 -> 31, value font-size 10.5 -> 11, value line-height 1.15 ->
+   1.2, and at 560px min-height 28 -> 30, cell padding 4px 7px -> 5px 7px,
+   label font-size 8 -> 9.5, value font-size 10 -> 10.5.
+
+   The grid's border, radius and background are NOT set here. Neo declares a
+   2px border on this element further up in this file, and the appearance layer
+   only beats it because its `html` prefix matches Neo's specificity and it
+   loads later. Moving those declarations here would hand the border back to
+   Neo, so the appearance layer keeps sole ownership of the surface. */
 #page-overview .overview-signals .signal-card.expanded .detail-grid,
 #page-signals .signal-card.expanded .detail-grid{
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
   grid-auto-rows:minmax(0,auto);
   align-items:stretch;
+  font-size:inherit;
 }
 
 #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
@@ -1268,7 +1243,7 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
   grid-template-columns:max-content minmax(0,1fr);
   align-items:center;
   column-gap:8px;
-  min-height:30px;
+  min-height:31px;
   padding:5px 8px!important;
 }
 
@@ -1280,18 +1255,20 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
   font-size:8.5px!important;
   line-height:1.1!important;
   letter-spacing:.055em;
+  text-transform:uppercase;
 }
 
 #page-overview .overview-signals .signal-card.expanded .detail-grid b,
 #page-signals .signal-card.expanded .detail-grid b{
   min-width:0;
   margin:0!important;
-  font-size:10.5px!important;
-  line-height:1.15!important;
+  font-size:11px!important;
+  line-height:1.2!important;
   text-align:right;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  overflow-wrap:anywhere;
 }
 
 #page-overview .overview-signals .signal-card.expanded .detail-grid b.fresh,
@@ -1342,27 +1319,22 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 }
 
 @media(max-width:560px){
-  #page-overview .overview-signals .signal-card.expanded .detail-grid,
-  #page-signals .signal-card.expanded .detail-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  }
-
   #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
   #page-signals .signal-card.expanded .detail-grid>div{
-    min-height:28px;
-    padding:4px 7px!important;
+    min-height:30px;
+    padding:5px 7px!important;
     grid-template-columns:max-content minmax(0,1fr);
     column-gap:6px;
   }
 
   #page-overview .overview-signals .signal-card.expanded .detail-grid span,
   #page-signals .signal-card.expanded .detail-grid span{
-    font-size:8px!important;
+    font-size:9.5px!important;
   }
 
   #page-overview .overview-signals .signal-card.expanded .detail-grid b,
   #page-signals .signal-card.expanded .detail-grid b{
-    font-size:10px!important;
+    font-size:10.5px!important;
   }
 
   #page-overview .overview-signals .signal-card.expanded .reason,
@@ -1384,29 +1356,12 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 }
 
 
-/* ---------- Expanded signal details: final readability polish ------------- */
-/* Keep the compact two-column Neo layout. Only improve value fit/readability. */
-#page-overview .overview-signals .signal-card.expanded .detail-grid,
-#page-signals .signal-card.expanded .detail-grid{
-  font-size:inherit;
-}
-
-#page-overview .overview-signals .signal-card.expanded .detail-grid>div,
-#page-signals .signal-card.expanded .detail-grid>div{
-  min-height:31px;
-  padding:5px 8px!important;
-}
-
-#page-overview .overview-signals .signal-card.expanded .detail-grid span,
-#page-signals .signal-card.expanded .detail-grid span{
-  font-size:8.5px!important;
-}
-
-#page-overview .overview-signals .signal-card.expanded .detail-grid b,
-#page-signals .signal-card.expanded .detail-grid b{
-  font-size:11px!important;
-  line-height:1.2!important;
-}
+/* ---------- Expanded signal detail grid: positional exceptions -------------- */
+/* These are not a restatement of the grid above: each one is about a specific
+   cell, and none of them could be folded into the shared rule without
+   changing every other cell. The "final readability polish" pass that used to
+   sit here declared four properties a second time and was removed; what
+   remained unique to it is these three rules. */
 
 /* Timestamp fields are allowed to wrap instead of being clipped with "...". */
 #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
@@ -1425,22 +1380,6 @@ html[data-style="neo"] #page-signals .signal-card.expanded .reason{
 }
 
 @media(max-width:560px){
-  #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
-  #page-signals .signal-card.expanded .detail-grid>div{
-    min-height:30px;
-    padding:5px 7px!important;
-  }
-
-  #page-overview .overview-signals .signal-card.expanded .detail-grid span,
-  #page-signals .signal-card.expanded .detail-grid span{
-    font-size:9.5px!important;
-  }
-
-  #page-overview .overview-signals .signal-card.expanded .detail-grid b,
-  #page-signals .signal-card.expanded .detail-grid b{
-    font-size:10.5px!important;
-  }
-
   #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(6) b,
   #page-signals .signal-card.expanded .detail-grid>div:nth-child(6) b{
     white-space:normal;

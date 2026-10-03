@@ -600,6 +600,43 @@ def _iter_rules(css):
         index += 1
 
 
+def _iter_rules_scoped(css, media="none"):
+    """Like :func:`_iter_rules`, but yields the conditional at-rule context too.
+
+    Yielding ``(prelude, body, media)`` matters whenever base rules and
+    responsive overrides are compared: without the context a media-query rule
+    looks like a duplicate of the base rule it is legitimately overriding.
+    """
+    prelude = ""
+    index, length = 0, len(css)
+    while index < length:
+        char = css[index]
+        if char == "{":
+            depth, cursor = 1, index + 1
+            while cursor < length and depth:
+                if css[cursor] == "{":
+                    depth += 1
+                elif css[cursor] == "}":
+                    depth -= 1
+                cursor += 1
+            body = css[index + 1 : cursor - 1]
+            head = " ".join(prelude.split())
+            if head.startswith("@"):
+                match = re.match(r"@media\(([^)]*)\)", head)
+                inner = match.group(1) if match else head
+                yield from _iter_rules_scoped(body, inner)
+            else:
+                yield head, body, media
+            prelude = ""
+            index = cursor
+            continue
+        if char != "}":
+            prelude += char
+        else:
+            prelude = ""
+        index += 1
+
+
 # A vertical axis value that clips instead of scrolling.
 _CLIPPING = ("hidden", "clip")
 # A vertical axis value that scrolls.
@@ -792,3 +829,111 @@ def test_expanded_signal_detail_cells_carry_no_hairlines_or_edge_padding():
     assert targeting >= 30, (
         f"expected the .detail-grid rules to still exist, found {targeting}"
     )
+
+
+# The effective geometry and type of the expanded detail grid, per breakpoint.
+# These are the values the three merged passes settled on; the later pass used
+# to win, so they are pinned here rather than left to whichever declaration
+# happens to come last.
+_EXPANDED_GRID_CONTRACT = {
+    # (breakpoint, property, element) -> value. The element is the suffix the
+    # selector ends with: "" the grid itself, ">div" a cell, " span" a label,
+    # " b" a value.
+    ("none", "grid-template-columns", ""): "repeat(2,minmax(0,1fr))!important",
+    ("none", "grid-auto-rows", ""): "minmax(0,auto)",
+    ("none", "align-items", ""): "stretch",
+    ("none", "font-size", ""): "inherit",
+    ("none", "display", ">div"): "grid!important",
+    ("none", "grid-template-columns", ">div"): "max-content minmax(0,1fr)",
+    ("none", "align-items", ">div"): "center",
+    ("none", "column-gap", ">div"): "8px",
+    ("none", "min-height", ">div"): "31px",
+    ("none", "padding", ">div"): "5px 8px!important",
+    ("none", "font-size", " span"): "8.5px!important",
+    ("none", "line-height", " span"): "1.1!important",
+    ("none", "letter-spacing", " span"): ".055em",
+    ("none", "text-transform", " span"): "uppercase",
+    ("none", "white-space", " span"): "nowrap",
+    ("none", "font-size", " b"): "11px!important",
+    ("none", "line-height", " b"): "1.2!important",
+    ("none", "text-align", " b"): "right",
+    ("none", "white-space", " b"): "nowrap",
+    ("none", "overflow", " b"): "hidden",
+    ("none", "text-overflow", " b"): "ellipsis",
+    ("none", "overflow-wrap", " b"): "anywhere",
+    ("560", "min-height", ">div"): "30px",
+    ("560", "padding", ">div"): "5px 7px!important",
+    ("560", "column-gap", ">div"): "6px",
+    ("560", "font-size", " span"): "9.5px!important",
+    ("560", "font-size", " b"): "10.5px!important",
+}
+
+
+def test_expanded_signal_detail_grid_is_declared_exactly_once():
+    """No two rules may set the same property on the expanded grid.
+
+    This grid was written as three successive passes -- "shared contract",
+    "compact readable rows", then "final readability polish" -- each restating
+    what the one before had set. The rendered value was therefore whichever
+    pass came last, not one anybody chose: the passes disagreed on min-height
+    (30 vs 31), value font-size (10.5 vs 11), line-height (1.15 vs 1.2) and,
+    at 560px, on row height, cell padding and both font sizes.
+
+    They are now merged into one definition. This asserts there is no second
+    declaration of any property inside the same breakpoint, so a new pass
+    cannot quietly take over again, and pins the values the merge settled on so
+    the merge cannot drift either.
+    """
+    rows = [
+        (prelude, body, media)
+        for prelude, body, media in _iter_rules_scoped(FOUNDATION)
+        if ".signal-card.expanded .detail-grid" in prelude
+        and "nth-child" not in prelude
+    ]
+    assert len(rows) >= 5, (
+        f"expected the consolidated expanded-grid rules in foundation.css, "
+        f"found {len(rows)}"
+    )
+
+    # Detect restatement: same selector, same breakpoint, same property, twice.
+    seen = {}
+    clashes = []
+    for prelude, body, media in rows:
+        media = "560" if "max-width:560px" in media else "none"
+        for selector in (s.strip() for s in prelude.split(",")):
+            if ".signal-card.expanded .detail-grid" not in selector:
+                continue
+            for prop, value in re.findall(
+                    r"([a-z-]+)\s*:\s*([^;}]+)", body):
+                prop = prop.strip()
+                value = value.strip()
+                key = (selector, media, prop)
+                if key in seen and seen[key] != value:
+                    clashes.append(
+                        f"{selector} sets {prop} to both "
+                        f"{seen[key]!r} and {value!r} at breakpoint {media}")
+                seen[key] = value
+    assert not clashes, (
+        "the expanded detail grid is declared more than once again:\n  "
+        + "\n  ".join(clashes)
+        + "\n  A second declaration silently wins on source order. Fold it into "
+        "the consolidated definition instead."
+    )
+
+    # Pin the settled values, so the merge cannot drift.
+    for (breakpoint, prop, element), expected in _EXPANDED_GRID_CONTRACT.items():
+        media = "560" if breakpoint == "560" else "none"
+        matches = [
+            value for (selector, m, name), value in seen.items()
+            if name == prop and m == media
+            and selector.endswith(f".detail-grid{element}")
+        ]
+        label = f".detail-grid{element}" if element else ".detail-grid"
+        assert matches, (
+            f"the consolidated expanded-grid definition lost {prop!r} on "
+            f"{label} at {breakpoint}"
+        )
+        assert matches[-1] == expected, (
+            f"the consolidated expanded grid changed {prop!r} on {label} at "
+            f"{breakpoint}: expected {expected!r}, found {matches[-1]!r}"
+        )
