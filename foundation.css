@@ -184,7 +184,6 @@ main{
 .history-filter,
 .signal-filter,
 .chip-option,
-.settings-toggle,
 .appearance-option{
   box-sizing:border-box;
   flex:0 0 auto;
@@ -346,6 +345,14 @@ html[data-reduce-motion="true"] .page.active{
   grid-template-columns:minmax(0,45%) minmax(0,55%);
   align-items:center;
   column-gap:6px;
+}
+/* The Home metric tiles are a two-column card (label | value). Below 560px the
+   label is allowed to wrap so nothing is ever ellipsised, but a wide value
+   ("₹4,00,000") steals width from the label column, "ACCOUNT VALUE" wraps, and
+   that tile becomes 40px tall while its row-mates stay at 32px. Reserving the
+   wrapped height on every Home tile keeps the grid's rows the same size. */
+#page-overview .metric-card{
+  min-height:40px;
 }
 #page-overview .metric-card span{
   max-width:100%;
@@ -2299,10 +2306,6 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
 }
 
 /* Markets and Accounts now share the same internal surface treatment. */
-#page-tools .universe-grid{
-  display:grid;
-  gap:0;
-}
 #page-tools .asset-category{
   min-width:0;
   padding:9px 10px;

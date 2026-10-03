@@ -31,6 +31,10 @@
 .chip-option b{display:inline;font-size:inherit}
 .chip-option .appearance-swatch{width:12px;height:12px;border-radius:4px;border-width:2px}
 .settings-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;padding:5px 11px;min-height:30px;border:var(--border-w) solid var(--line);border-radius:999px;background:var(--surface-2);color:var(--text);font-size:10.5px;font-weight:800;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+/* `.settings-toggle` restates the `.chip-option` chip verbatim because every
+   element carrying it also carries `chip-option`; the only rules that need the
+   name are the Neo and per-card variants further down. Keeping one copy here
+   means the two can never disagree about what a settings toggle looks like. */
 .settings-toggle:hover{border-color:var(--accent);color:var(--accent-strong);transform:translateY(-1px)}
 .settings-toggle.active{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent)}
 
@@ -130,7 +134,6 @@ html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html
   animation-duration:.01ms!important;animation-iteration-count:1!important;
   scroll-behavior:auto!important;transition-duration:.01ms!important;
 }
-html[data-compact="true"] .section-block,html[data-compact="true"] .tool-card{padding:14px!important}
 
 /* --- Small screens --- */
 @media(max-width:560px){
@@ -428,11 +431,6 @@ button,input,select{font-family:var(--font)}
 #page-history .trade-row-price b{font-size:13px!important;font-weight:650!important}
 
 /* ---------- Calendar ------------------------------------------------------ */
-#page-calendar .calendar-agenda-status{
-  min-height:52px!important;
-  padding:8px 12px!important;
-  gap:8px!important;
-}
 #page-calendar .calendar-summary-grid{
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
@@ -1420,6 +1418,9 @@ html #page-tools .tool-runtime .schedule-inline small,
 html #page-tools .tool-runtime .diagnostic-grid span,
 html #page-tools .tools-appearance .settings-label,
 html #page-tools .tools-appearance .chip-option,
+html #page-tools .tool-settings .settings-label,
+html #page-tools .tool-settings .settings-hint,
+html #page-tools .tool-settings .chip-option,
 html #page-calendar .calendar-details>span,
 html #page-calendar .calendar-details>span b,
 html #page-tools .tool-backtest .backtest-metrics>div span,
@@ -1769,7 +1770,8 @@ html .hero h2{
   flex-wrap:wrap!important;
 }
 #page-tools .tools-appearance .chip-option,
-#page-tools .tools-appearance .settings-toggle{
+#page-tools .tools-appearance .settings-toggle,
+#page-tools .tool-settings .chip-option{
   min-height:32px!important;
   height:32px!important;
   padding:5px 10px!important;
@@ -1815,7 +1817,8 @@ html .hero h2{
     gap:5px!important;
   }
   #page-tools .tools-appearance .chip-option,
-  #page-tools .tools-appearance .settings-toggle{
+  #page-tools .tools-appearance .settings-toggle,
+  #page-tools .tool-settings .chip-option{
     min-height:32px!important;
     height:32px!important;
     padding-inline:9px!important;
@@ -1830,14 +1833,16 @@ html .hero h2{
    foregrounds across Modern/Neo + Light/Dark + accent combinations.
    ========================================================================== */
 #page-tools .tools-appearance .chip-option,
-#page-tools .tools-appearance .settings-toggle{
+#page-tools .tools-appearance .settings-toggle,
+#page-tools .tool-settings .chip-option{
   color:var(--text)!important;
   background:var(--surface-2)!important;
   border-color:var(--line)!important;
   -webkit-text-fill-color:var(--text)!important;
 }
 #page-tools .tools-appearance .chip-option.active,
-#page-tools .tools-appearance .settings-toggle.active{
+#page-tools .tools-appearance .settings-toggle.active,
+#page-tools .tool-settings .chip-option.active{
   color:var(--on-accent)!important;
   background:var(--accent-fill)!important;
   border-color:var(--accent-fill)!important;
@@ -1849,6 +1854,8 @@ html .hero h2{
 }
 html[data-style="neo"] #page-tools .tools-appearance .chip-option,
 html.neo-mode #page-tools .tools-appearance .chip-option,
+html[data-style="neo"] #page-tools .tool-settings .chip-option,
+html.neo-mode #page-tools .tool-settings .chip-option,
 html[data-style="neo"] #page-tools .tools-appearance .settings-toggle,
 html.neo-mode #page-tools .tools-appearance .settings-toggle{
   color:var(--text)!important;
@@ -1858,6 +1865,8 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle{
 }
 html[data-style="neo"] #page-tools .tools-appearance .chip-option.active,
 html.neo-mode #page-tools .tools-appearance .chip-option.active,
+html[data-style="neo"] #page-tools .tool-settings .chip-option.active,
+html.neo-mode #page-tools .tool-settings .chip-option.active,
 html[data-style="neo"] #page-tools .tools-appearance .settings-toggle.active,
 html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
   color:var(--on-accent)!important;
