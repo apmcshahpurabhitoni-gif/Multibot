@@ -711,3 +711,84 @@ def test_backtest_trade_list_stays_a_bounded_scrollable_panel():
         "expected the reserved scrollbar gutter to still be declared for "
         ".backtest-trades; if it was renamed, revisit this guard"
     )
+
+
+# The expanded signal's detail cells are separated by a gap on a grey gutter.
+# Nothing may draw a partial edge on them, and no cell may carry padding that
+# compensates for an edge that no longer exists.
+_PARTIAL_EDGES = (
+    "border-left", "border-top", "border-inline-start", "border-block-start",
+)
+
+
+def test_expanded_signal_detail_cells_carry_no_hairlines_or_edge_padding():
+    """The cell hairlines and their padding compensation are gone at source.
+
+    `.detail-grid>div` used to carry the interior lines of a bordered table:
+
+        >div:nth-child(even) { border-left:1px solid var(--line) }
+        >div:nth-child(n+3) { border-top:1px solid var(--line) }
+
+    Those only ever made sense against an enclosing frame, and the frame was
+    removed when the grid became a gap-separated grey gutter. They survived at
+    source in five places while the appearance layer neutralised them with
+    `border:0!important`, which is the same shape of trap as the dead
+    `overflow:hidden` that clipped the backtest list.
+
+    Worse, the even cells were given `padding-left:9px!important` to keep their
+    content off a divider that was no longer there. Measured at 390px that left
+    the label inset alternating 7px / 9px down the grid, so nothing lined up.
+
+    Both are asserted at source so they cannot be reintroduced behind the
+    appearance layer again.
+    """
+    sheets = {
+        "styles.css": STYLES,
+        "foundation.css": FOUNDATION,
+        "appearance-overrides.css": CSS,
+    }
+    targeting = 0
+    for name, text in sheets.items():
+        for prelude, body in _iter_rules(text):
+            if ".detail-grid" not in prelude:
+                continue
+            targeting += 1
+            where = " ".join(prelude.split())
+            for edge in _PARTIAL_EDGES:
+                found = re.search(
+                    re.escape(edge) + r"\s*:\s*([^;}]+)", body)
+                if found:
+                    raise AssertionError(
+                        f"{name}: {where} draws {edge}:{found.group(1).strip()}"
+                        " on a detail cell. The cells are separated by a gap on "
+                        "a grey gutter, so a partial edge is an artefact of the "
+                        "removed table frame."
+                    )
+            # Padding that only makes sense against an edge we no longer draw.
+            # Every cell is the same tile; a positional override on even cells
+            # is positional styling for a divider that is gone. Both the
+            # single-side form (`padding-left`) and the four-value shorthand
+            # (`padding:5px 7px 5px 9px`) are rejected, since the shorthand
+            # only differs from the clean cell in its left/right asymmetry.
+            if re.search(r"nth-child\(\s*even\s*\)", prelude):
+                compensation = re.findall(
+                    r"(padding(?:-left|-right|-top|-bottom)?)"
+                    r"\s*:\s*([^;}]+)", body)
+                for prop, value in compensation:
+                    sides = value.strip().split()
+                    asymmetric = prop in ("padding-left", "padding-right") or (
+                        len(sides) == 4 and sides[1] != sides[3])
+                    if asymmetric:
+                        raise AssertionError(
+                            f"{name}: {where} sets {prop}:{value.strip()} on "
+                            "even cells. Every cell is the same tile separated "
+                            "by a gap, so offsetting the even column offsets "
+                            "content off a border that no longer exists -- that "
+                            "is what left the label inset alternating 7px/9px "
+                            "down the grid."
+                        )
+
+    # Precondition: a renamed selector must not leave these assertions inert.
+    assert targeting >= 30, (
+        f"expected the .detail-grid rules to still exist, found {targeting}"
+    )
