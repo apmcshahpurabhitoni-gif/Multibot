@@ -2513,7 +2513,9 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   border:var(--f-inner-line)!important;
   border-radius:var(--radius-xs)!important;
   background:var(--surface)!important;
-  overflow:hidden;
+  /* No overflow declaration here: styles.css section 17 owns the scroll
+     contract for this list. A non-important `overflow:hidden` silently lost to
+     that contract while still reading like it governed the panel. */
 }
 #page-tools .backtest-trade-row{
   padding:7px 9px!important;
