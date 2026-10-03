@@ -2450,3 +2450,40 @@ html #page-tools .tools-appearance>.settings-row+.settings-row{
   border-top:var(--border-w) solid var(--line)!important;
 }
 
+/* ==========================================================================
+   Expanded calendar event: the divider was a border around nothing.
+
+   `.calendar-details` is a layout row that holds the ACTUAL / FORECAST /
+   PREVIOUS chips -- it is not a surface. But it declared a border anyway, on
+   an element with no fill at all. Measured live:
+
+       T=1px R=- B=- L=-   radius=11px   fill=transparent   margin-left=66px
+       children: 3 spans, each a full 1px box at radius 10px on --surface-2
+
+   Three things made that one line read as a floating artefact rather than a
+   divider:
+
+     1. it was an outline with NO fill behind it -- the same class of defect as
+        the Tools gutters, a border doing work that no fill was doing
+     2. it carried `--radius-sm`, so a single top edge rendered with rounded
+        ends, which does not read as a straight divider
+     3. it was inset 66px to align under the event title while the chips
+        inside start further right at x=91, so it lined up with nothing
+
+   The chips already carry the structure (they are bordered tiles on a white
+   card), and the card supplies the only outline. So the row loses its border
+   and its radius and stops pretending to be a box. This is the same rule that
+   removed `.expand-content`'s top border on Signals: one outline per card, and
+   the interior is separated by what it contains.
+   ========================================================================== */
+html #page-calendar .calendar-details,
+html #page-calendar .calendar-date-group .calendar-details,
+html[data-style="neo"] #page-calendar .calendar-details,
+html[data-style="neo"] #page-calendar .calendar-date-group .calendar-details,
+html[data-style="material3"] #page-calendar .calendar-details,
+html[data-style="material3"] #page-calendar .calendar-date-group .calendar-details{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+

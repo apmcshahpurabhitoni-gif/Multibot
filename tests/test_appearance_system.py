@@ -505,3 +505,59 @@ def test_appearance_panel_rows_are_hairlines_not_inset_boxes():
         "styles.css again gives the Appearance rows their own box; the "
         "override layer neutralises it but the source should be fixed"
     )
+
+
+def test_calendar_detail_row_does_not_draw_a_floating_border():
+    """The expanded event's detail row was a border around nothing.
+
+    ``.calendar-details`` is a layout row holding the ACTUAL / FORECAST /
+    PREVIOUS chips -- it is not a surface -- but it declared a border anyway,
+    on an element with no fill. Measured live:
+
+        T=1px R=- B=- L=-   radius=11px   fill=transparent   margin-left:66px
+
+    A single top edge alone would be an ordinary divider. Three details made
+    this one read as a floating artefact:
+
+      * it was an outline with no fill behind it
+      * it carried ``--radius-sm``, so the top edge rendered with rounded ends
+        instead of running straight across
+      * it was inset 66px to align under the event title while the chips
+        inside begin further right, so it lined up with nothing
+
+    The chips already carry the structure -- they are bordered tiles on a white
+    card -- and the card supplies the only outline. Same rule that removed
+    ``.expand-content``'s top border on Signals: one outline per card, and the
+    interior is separated by what it contains.
+
+    The ``.calendar-date-group`` ancestor has to be named explicitly because
+    an earlier rule at ``appearance-overrides.css`` targets that longer chain
+    and outranks the shorter selector.
+    """
+    import re
+
+    code = re.sub(r"/\*.*?\*/", "", CSS, flags=re.S)
+
+    assert (
+        "html #page-calendar .calendar-details,\n"
+        "html #page-calendar .calendar-date-group .calendar-details,\n"
+        "html[data-style=\"neo\"] #page-calendar .calendar-details,\n"
+        "html[data-style=\"neo\"] #page-calendar .calendar-date-group .calendar-details,\n"
+        "html[data-style=\"material3\"] #page-calendar .calendar-details,\n"
+        "html[data-style=\"material3\"] #page-calendar .calendar-date-group .calendar-details{\n"
+        "  border:0!important;\n"
+        "  border-radius:0!important;\n"
+        "  background:transparent!important;\n"
+        "}" in code
+    ), (
+        "the expanded event's detail row must not draw a border: it is a "
+        "transparent layout row, so the line floats with nothing behind it"
+    )
+
+    # The rule that reintroduced it still lives at source; flag it if that
+    # changes rather than letting the override silently carry the defect.
+    styles = re.sub(r"/\*.*?\*/", "", STYLES, flags=re.S)
+    assert "#page-calendar .calendar-details{" in styles, (
+        "expected the source .calendar-details rule to still exist in "
+        "styles.css; if it was renamed, revisit this guard's selectors"
+    )
