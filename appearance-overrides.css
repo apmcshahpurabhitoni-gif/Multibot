@@ -1211,7 +1211,6 @@ html .text-button[class]{
 #page-overview .signal-card .expand-content,
 #page-signals .signal-card .expand-content,
 #page-calendar .calendar-date-group .calendar-details,
-#page-tools .tools-appearance .settings-row,
 #page-tools .account-grid > article,
 #page-tools .rule-list > div{
   border-radius:var(--ui-inner-r)!important;
@@ -1773,8 +1772,10 @@ html .hero h2{
   border-radius:4px!important;
 }
 
-/* Accent needs only enough height for its natural second line. */
-#page-tools .tools-appearance .settings-row:nth-of-type(4){
+/* Accent needs only enough height for its natural second line.
+   `:nth-of-type(4)` counted the section heading as a div, so it targeted the
+   Accent row by coincidence; `:has()` on the row's own label cannot drift. */
+#page-tools .tools-appearance .settings-row:has(.settings-inline[aria-label="Accent color"]){
   align-items:center!important;
 }
 
