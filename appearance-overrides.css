@@ -1134,7 +1134,7 @@ html .text-button[class]{
   min-height:46px!important;
   height:46px!important;
   padding:7px 10px!important;
-  border-radius:12px!important;
+  border-radius:var(--radius-sm)!important;
   box-shadow:none!important;
 }
 #page-calendar .calendar-summary-grid .metric-card span{
@@ -1171,7 +1171,7 @@ html .text-button[class]{
   height:52px!important;
   margin:0!important;
   padding:8px 12px!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
 }
 #page-calendar .calendar-date-toggle span{
@@ -1505,7 +1505,7 @@ html .hero h2{
   min-height:0!important;
   height:auto!important;
   padding:0!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
   overflow:hidden!important;
 }

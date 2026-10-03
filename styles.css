@@ -1729,7 +1729,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   height:27px!important;
   padding:4px 6px!important;
   border:0!important;
-  border-radius:7px!important;
+  border-radius:var(--radius-xs)!important;
   background:transparent!important;
   font-size:10.5px!important;
   line-height:1!important;
@@ -1746,7 +1746,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   min-height:46px!important;
   height:46px!important;
   padding:7px 10px!important;
-  border-radius:12px!important;
+  border-radius:var(--radius-sm)!important;
   box-shadow:none!important;
 }
 #page-calendar .calendar-summary-grid .metric-card span{
@@ -1792,7 +1792,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin:0!important;
   padding:7px 9px!important;
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   background:var(--surface-2)!important;
 }
 #page-calendar .calendar-date-toggle span{
@@ -1810,7 +1810,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   width:34px!important;
   height:34px!important;
   min-width:34px!important;
-  border-radius:10px!important;
+  border-radius:var(--ui-control-r)!important;
 }
 
 /* 5) Event cards use a stable two-level layout.
@@ -1826,7 +1826,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   min-width:0!important;
   height:auto!important;
   padding:6px 8px 7px!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
   overflow:hidden!important;
 }
@@ -1864,7 +1864,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   min-height:24px!important;
   height:24px!important;
   padding:5px 8px!important;
-  border-radius:8px!important;
+  border-radius:var(--radius-xs)!important;
   font-size:10px!important;
   line-height:1!important;
 }#page-calendar .calendar-meta .expand-button{
@@ -1918,7 +1918,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   display:flex!important;
   align-items:center!important;
   gap:3px!important;
-  border-radius:8px!important;
+  border-radius:var(--ui-control-r)!important;
   background:var(--surface-2)!important;
   font-size:8.5px!important;
   line-height:1!important;
@@ -2374,7 +2374,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin:0!important;
   padding:0!important;
   border:1px solid var(--line)!important;
-  border-radius:14px!important;
+  border-radius:var(--radius)!important;
   overflow:hidden!important;
   background:var(--surface)!important;
 }
@@ -2414,7 +2414,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   justify-content:center!important;
   text-align:center!important;
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   background:var(--surface-2)!important;
   color:var(--accent-strong)!important;
   font-size:10px!important;
@@ -2464,7 +2464,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 
 @media(max-width:560px){
   #page-tools .universe-grid{
-    border-radius:14px!important;
+    border-radius:var(--radius)!important;
   }
 
   #page-tools .universe-grid>.asset-category{
@@ -2609,7 +2609,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   padding:8px!important;
   background:var(--surface-2)!important;
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
 }
 
 #page-tools .tool-accounts .tool-body,
@@ -2623,7 +2623,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   width:100%!important;
   margin:0!important;
   border:1px solid var(--line)!important;
-  border-radius:10px!important;
+  border-radius:var(--ui-inner-r)!important;
   overflow:hidden!important;
   background:var(--surface)!important;
 }
@@ -2647,7 +2647,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   width:100%!important;
   margin:0!important;
   border:1px solid var(--line)!important;
-  border-radius:10px!important;
+  border-radius:var(--ui-inner-r)!important;
   overflow:hidden!important;
   background:var(--surface)!important;
 }
@@ -2844,7 +2844,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   margin:0!important;
   padding:0!important;
   border:1px solid var(--line)!important;
-  border-radius:18px!important;
+  border-radius:var(--radius)!important;
   background:var(--surface)!important;
   box-shadow:var(--shadow-soft)!important;
   overflow:hidden!important;
@@ -2904,7 +2904,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   width:100%!important;
   margin:0!important;
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   overflow:hidden!important;
   background:var(--surface)!important;
   box-shadow:none!important;
@@ -3127,7 +3127,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 
 #page-tools .backtest-controls .primary-button{
   min-height:40px!important;
-  border-radius:10px!important;
+  border-radius:var(--ui-control-r)!important;
 }
 
 #page-tools .backtest-status{
@@ -3143,7 +3143,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 }
 
 #page-tools .tool-runtime .diagnostic-grid{
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
 }
 
 #page-tools .tool-runtime .diagnostic-grid article{
@@ -3152,7 +3152,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 
 #page-tools .tool-runtime .schedule-inline{
   margin-top:8px!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
 }
 
 #page-tools .tool-runtime .schedule-inline span{
@@ -3252,7 +3252,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 /* Shared outer geometry */
 #page-tools .tool-card,
 #page-tools .tools-appearance{
-  border-radius:18px!important;
+  border-radius:var(--radius)!important;
   border:1px solid var(--line)!important;
   box-shadow:var(--shadow-soft)!important;
   background:var(--surface)!important;
@@ -3283,7 +3283,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-runtime .diagnostic-grid,
 #page-tools .tool-runtime .schedule-inline{
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
 }
 
@@ -3308,14 +3308,14 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
    corners. The row after the heading is what starts the panel. */
 #page-tools .tools-appearance>.section-heading+.settings-row{
   border-top:1px solid var(--line)!important;
-  border-top-left-radius:12px!important;
-  border-top-right-radius:12px!important;
+  border-top-left-radius:var(--radius-sm)!important;
+  border-top-right-radius:var(--radius-sm)!important;
 }
 
 #page-tools .tools-appearance>.settings-row:last-child{
   margin-bottom:10px!important;
-  border-bottom-left-radius:12px!important;
-  border-bottom-right-radius:12px!important;
+  border-bottom-left-radius:var(--radius-sm)!important;
+  border-bottom-right-radius:var(--radius-sm)!important;
 }
 
 /* Backtest controls read as one panel rather than unrelated boxes */
@@ -3326,7 +3326,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-backtest .backtest-controls{
   padding:10px!important;
   border:1px solid var(--line)!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   background:var(--surface)!important;
   box-shadow:none!important;
 }
@@ -3346,7 +3346,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 }
 
 #page-tools .universe-grid{
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   background:var(--surface)!important;
 }
 
