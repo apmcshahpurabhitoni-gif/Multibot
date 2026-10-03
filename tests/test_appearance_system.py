@@ -254,3 +254,96 @@ def test_neo_brutalism_covers_interactive_surface():
         assert selector in CSS
     assert ':hover' in CSS
     assert ':active' in CSS
+
+
+def test_no_dashed_or_dotted_borders_anywhere():
+    """Every boundary in the dashboard is a solid hairline.
+
+    ``.empty-state`` shipped with ``border:2px dashed var(--line-strong)`` --
+    a dashed outline being the conventional "nothing here yet" placeholder. It
+    was the ONLY dashed or dotted border in the codebase, so the one box drawn
+    in a different border language was the empty state. It also hardcoded 2px
+    (bypassing ``--border-w``) while sitting inside grey gutters that carry no
+    outline at all, which is what made History read as inconsistent: white
+    metric tiles with a solid hairline directly above a white dashed tile.
+
+    Comments are stripped before scanning -- the override explains this defect
+    in prose and the word "dashed" appears there on purpose.
+    """
+    import re
+
+    sheets = {
+        name: (ROOT / name).read_text(encoding="utf-8")
+        for name in ("styles.css", "foundation.css", "appearance-overrides.css")
+    }
+    offenders = []
+    for name, source in sheets.items():
+        code = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+        for match in re.finditer(
+            r"border(?:-top|-right|-bottom|-left)?\s*:[^;}]*?\b(dashed|dotted)\b",
+            code,
+        ):
+            offenders.append(f"{name}: {match.group(0).strip()[:70]}")
+    assert not offenders, (
+        "dashed/dotted borders reintroduced (every boundary is a solid "
+        "hairline):\n" + "\n".join(offenders)
+    )
+
+    # Rule-precise, not a bare substring: the replacement has to stay attached
+    # to the empty-state rule, including the History variant that actually
+    # renders there.
+    assert (
+        "html .empty-state,\n"
+        "html #page-history .history-empty-state,\n"
+        "html #page-overview .overview-activity .empty-state{\n"
+        "  border:var(--border-w) solid var(--line)!important;"
+        in sheets["appearance-overrides.css"]
+    ), (
+        "empty states must be solid --border-w hairlines like every other "
+        "content tile; --border-w keeps Neo's 2px without a second hardcoded rule"
+    )
+
+
+def test_expanded_signal_cells_have_no_positional_hairlines():
+    """The expanded signal's interior draws tiles, not a half-drawn table.
+
+    ``foundation.css`` sets the detail cells to ``border:0``, then the next two
+    rules put hairlines straight back with ``nth-child(even)`` /
+    ``nth-child(n+3)``. Those lines are the interior rules of a bordered table
+    and only made sense against the frame the grid used to carry. With the
+    frame gone they render as fragments: no top edge on the first row, no right
+    or bottom edge anywhere. Measured at 390px that came back as cell 1 with no
+    border, cell 2 with a left edge, cell 3 with a top edge, cell 4 with both --
+    the "some have a border, some don't" read.
+
+    They are also positional, so the pattern is wrong at whichever breakpoint
+    changes the column count (the grid is 3 / 2 / 1 columns). The final layer
+    therefore has to neutralise every hairline variant that ever won the
+    cascade, and separate the tiles with a gap instead.
+    """
+    import re
+
+    code = re.sub(r"/\*.*?\*/", "", CSS, flags=re.S)
+    variants = (":nth-child(even)", ":nth-child(n+3)")
+    checked = 0
+    for selector_text, body in re.findall(r"([^{}]+)\{([^{}]*)\}", code):
+        for one in (s.strip() for s in selector_text.split(",")):
+            if "detail-grid>div" not in one:
+                continue
+            if not any(v in one for v in variants):
+                continue
+            assert "border:0!important" in body, (
+                f"{one} still reintroduces a positional hairline; the final "
+                f"layer must neutralise it with border:0!important"
+            )
+            checked += 1
+    assert checked >= 8, (
+        f"expected the hairline overrides to cover both pages, both collapsed "
+        f"and expanded, in both interface styles; only found {checked}"
+    )
+
+    # Tiles are separated by the gutter showing through, not by lines.
+    assert (
+        "html[data-style=\"neo\"] #page-overview .overview-signals .signal-card.expanded .detail-grid{\n"
+        "  gap:6px!important;" in code
+    ), "the detail grid must separate its cells with a gap, not with borders"

@@ -818,11 +818,11 @@ html[data-style="neo"] #page-overview .section-heading>.text-button:active{
    Keyboard focus remains visible through :focus-visible. */
 button:focus:not(:focus-visible){outline:none!important}
 
-/* Empty states remain clearly separated but subordinate to their parent card.
-   Neo keeps its stronger 2px treatment through the theme layer. */
-.empty-state{border-width:1px!important}
-html[data-style="neo"] .empty-state,
-html.neo-mode .empty-state{border-width:2px!important}
+/* Empty states no longer need a width patch here: the source rule in
+   styles.css declares `border:var(--border-w) solid var(--line)`, so Neo gets
+   its 2px from the same declaration as everything else instead of a second
+   hardcoded rule. The consolidated block at the tail of this file is what
+   pins the empty state to the content-tile treatment. */
 
 /* Home empty activity should feel like an in-card state, not a full-size panel. */
 #page-overview .overview-activity .empty-state{
@@ -2210,5 +2210,110 @@ html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .r
   border:0!important;
   background:var(--surface-2)!important;
   border-radius:var(--radius-sm)!important;
+}
+
+/* ==========================================================================
+   Expanded signal: the detail cells draw a COMPLETE grid or no grid at all.
+
+   foundation.css:3022 sets the cells to `border:0` on `--surface`, then the
+   very next two rules put hairlines back:
+
+       .detail-grid>div:nth-child(n+3) { border-top:1px solid var(--line) }
+       .detail-grid>div:nth-child(even){ border-left:1px solid var(--line) }
+
+   Those hairlines only ever made sense against an enclosing frame -- they are
+   the interior lines of a bordered table, and the grid itself used to supply
+   that frame. The frame is gone (see the rule above), so what is left is a set
+   of partial lines with nothing to anchor them: no top edge on the first row,
+   no right or bottom edge anywhere. Measured at 390px, eleven cells came back
+   as cell 1 with no border, cell 2 with a left edge only, cell 3 with a top
+   edge only, cell 4 with both -- which is the "some have a border, some don't"
+   read. Because the lines are positional, the pattern is also wrong the moment
+   the column count changes: the grid is 3 / 2 / 1 columns at different
+   breakpoints, and `nth-child(even)` has no idea which one it is looking at.
+
+   The cells are separate tiles, so separate them the way every other tile
+   group in the app is separated -- with a gap and a fill, not with lines. The
+   grid goes back to being a plain grey gutter and the white tiles sit in it.
+   Every selector variant that ever won the cascade is listed explicitly,
+   because all of these declarations are `!important` and are therefore
+   separated by specificity rather than by source order.
+   ========================================================================== */
+html #page-signals .signal-card .detail-grid,
+html #page-overview .overview-signals .signal-card .detail-grid,
+html #page-signals .signal-card.expanded .detail-grid,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-signals .signal-card .detail-grid,
+html[data-style="neo"] #page-overview .overview-signals .signal-card .detail-grid,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid{
+  gap:6px!important;
+  padding:6px!important;
+  background:var(--surface-2)!important;
+}
+html #page-signals .signal-card .detail-grid>div,
+html #page-overview .overview-signals .signal-card .detail-grid>div,
+html #page-signals .signal-card.expanded .detail-grid>div,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+html[data-style="neo"] #page-signals .signal-card .detail-grid>div,
+html[data-style="neo"] #page-overview .overview-signals .signal-card .detail-grid>div,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid>div,
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid>div,
+html #page-signals .signal-card .detail-grid>div:nth-child(even),
+html #page-overview .overview-signals .signal-card .detail-grid>div:nth-child(even),
+html #page-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+html #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+html #page-signals .signal-card .detail-grid>div:nth-child(n+3),
+html #page-overview .overview-signals .signal-card .detail-grid>div:nth-child(n+3),
+html #page-signals .signal-card.expanded .detail-grid>div:nth-child(n+3),
+html #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(n+3),
+html[data-style="neo"] #page-signals .signal-card .detail-grid>div:nth-child(even),
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+html[data-style="neo"] #page-signals .signal-card .detail-grid>div:nth-child(n+3),
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid>div:nth-child(n+3),
+html[data-style="neo"] #page-overview .overview-signals .signal-card .detail-grid>div:nth-child(even),
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(even),
+html[data-style="neo"] #page-overview .overview-signals .signal-card .detail-grid>div:nth-child(n+3),
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid>div:nth-child(n+3){
+  border:0!important;
+  border-radius:var(--radius-xs)!important;
+  background:var(--surface)!important;
+}
+
+/* ==========================================================================
+   Empty states: the dashed outline goes.
+
+   Why it was there: `.empty-state` was written in the original component pass
+   with `border:2px dashed var(--line-strong)`. A dashed outline is the
+   conventional "placeholder, nothing here" affordance, and that is the only
+   reason it existed.
+
+   Why it had to go:
+
+   1. It was the ONLY dashed or dotted border in the codebase. Every other
+      boundary in the app is a solid hairline, so the empty state was the one
+      box on the screen drawn in a different language.
+   2. The 2px was a literal, so it bypassed `--border-w` and hardcoded Neo's
+      weight into Modern. (The override above had already thinned it to 1px
+      while leaving the dash behind -- the dash was never revisited.)
+   3. A 1px dashed line at phone scale stops reading as an affordance and
+      starts reading as a rendering artefact; dashes alias badly on the
+      low-DPR screens this dashboard is mostly used on.
+   4. It contradicted the grey-gutter rule directly above: an empty state sits
+      INSIDE `.history-summary-grid` / `.history-live-list`, which are grey
+      borderless gutters, so it was a gutter child drawing its own outline.
+
+   What it is now: exactly what `.metric-card` is -- a white tile with a solid
+   `--border-w` hairline and an inner radius. In History the three metric cards
+   and the two empty states then read as the same kind of box, which is the
+   whole point: an empty History is the same layout with different contents.
+   Neo keeps its 2px through `--border-w` rather than a second hardcoded rule.
+   ========================================================================== */
+html .empty-state,
+html #page-history .history-empty-state,
+html #page-overview .overview-activity .empty-state{
+  border:var(--border-w) solid var(--line)!important;
+  border-radius:var(--radius-sm)!important;
+  background:var(--surface)!important;
 }
 
