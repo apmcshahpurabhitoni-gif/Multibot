@@ -707,7 +707,11 @@ html[data-style="neo"] .release-modal-card{border:2px solid var(--line-strong)!i
 body.drawer-open{overflow:hidden}
 
 /* ---------- 14. Empty states ------------------------------------------------ */
-.empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:2px dashed var(--line-strong);border-radius:var(--radius-sm);background:var(--surface)}
+/* An empty state is a content tile like any other: a solid --border-w hairline
+   on --surface. It used to be the only dashed border in the app (the usual
+   "placeholder" convention), which hardcoded 2px instead of --border-w and left
+   History showing a solid-bordered metric tile directly above a dashed one. */
+.empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:var(--border-w) solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
 .empty-state span{font-size:17px;color:var(--accent-strong)}
 .empty-state strong{font-size:14px;font-weight:850}
 .empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
