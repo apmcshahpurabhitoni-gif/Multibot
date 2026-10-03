@@ -41,7 +41,15 @@ def test_spec_names_every_root_module():
     assert not missing, f"AI_REBUILD_SPEC.md never mentions these modules: {missing}"
 
 
-def test_spec_names_every_strategy_package():
+def test_spec_names_every_shipped_strategy_package():
+    """Docs inventory covers the *shipped* strategies.
+
+    A strategy dropped into strategies/ is registered automatically but is not
+    part of the shipped contract, so it does not have to be in the rebuild
+    spec. The three that ship must be.
+    """
+    from strategies.registry import BUILTIN_STRATEGY_IDS
+
     text = _spec_text()
     packages = sorted(
         path.parent.name
@@ -49,18 +57,25 @@ def test_spec_names_every_strategy_package():
         if path.parent.name != "_template"
     )
     assert packages, "no strategy packages discovered"
-    missing = [name for name in packages if name not in text]
-    assert not missing, f"AI_REBUILD_SPEC.md omits strategy packages: {missing}"
+    missing = [name for name in BUILTIN_STRATEGY_IDS if name not in text]
+    assert not missing, f"AI_REBUILD_SPEC.md omits shipped strategy packages: {missing}"
+    # A dropped-in plugin must still be a real package, not a stray file.
+    extra = [name for name in packages if name not in BUILTIN_STRATEGY_IDS]
+    for name in extra:
+        assert (ROOT / "strategies" / name / "__init__.py").is_file(), (
+            f"{name} is discovered as a package but has no __init__.py"
+        )
 
 
 def test_spec_strategy_inventory_matches_the_live_registry():
-    """Section 30 must list every registered strategy with its exact version."""
-    from strategies.registry import discover_strategies
+    """Section 30 must list every shipped strategy with its exact version."""
+    from strategies.registry import BUILTIN_STRATEGY_IDS, discover_strategies
 
     text = _spec_text()
-    strategies = discover_strategies().all()
-    assert len(strategies) == 3, f"expected 3 registered strategies, found {len(strategies)}"
-    for strategy in strategies:
+    registry = discover_strategies()
+    assert set(BUILTIN_STRATEGY_IDS) <= set(registry.ids())
+    for strategy_id in BUILTIN_STRATEGY_IDS:
+        strategy = registry.get(strategy_id)
         assert strategy.manifest.name in text, f"spec omits strategy {strategy.manifest.name}"
         assert strategy.manifest.version in text, (
             f"spec omits version {strategy.manifest.version} for {strategy.manifest.name}"

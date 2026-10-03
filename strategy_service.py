@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from threading import RLock
 import logging
 import pandas as pd
-from config import ACCOUNT_NAMES,ACCOUNT_SIZE_INR,LIVE_ASSET_MAP,LIVE_ASSETS,USD_TO_INR
+from config import ACCOUNT_SIZES,LIVE_ASSET_MAP,USD_TO_INR,account_names,assets_for_strategy,resolve_account
 from db import DatabaseManager
 from notification_service import NotificationService
 from signal_gate import SignalGate
@@ -27,8 +27,8 @@ class StrategyService:
         self._lock=RLock()
         if accounts is not None:self.accounts=accounts
         else:
-            today=pd.Timestamp.now(tz="Asia/Kolkata").date().isoformat(); rows=self.database.load_accounts(ACCOUNT_NAMES,ACCOUNT_SIZE_INR,today)
-            self.accounts={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in ACCOUNT_NAMES}
+            today=pd.Timestamp.now(tz="Asia/Kolkata").date().isoformat(); rows=self.database.load_accounts(account_names(),ACCOUNT_SIZES,today)
+            self.accounts={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in account_names()}
 
     def _now(self,value=None):
         t=pd.Timestamp.now(tz="Asia/Kolkata") if value is None else pd.Timestamp(value)
@@ -56,7 +56,7 @@ class StrategyService:
     def _result(self,symbol,signal,account,reason,**kw): return DispatchResult(symbol,signal,kw.get("trade"),kw.get("message"),kw.get("sent",False),reason,account,kw.get("trade_id"),kw.get("signal_id"))
 
     def dispatch(self,strategy_id,symbol,signal,*,current_price,now=None,send=True):
-        strategy=self.registry.get(strategy_id); asset=LIVE_ASSET_MAP[symbol]; current=self._now(now); account_name=strategy.manifest.account
+        strategy=self.registry.get(strategy_id); asset=LIVE_ASSET_MAP[symbol]; current=self._now(now); account_name=resolve_account(strategy_id,asset,current,strategy.manifest.account)
         key=signal_key(signal,self.gate,symbol); sid=self._record(signal,key,"GENERATED")
         if not signal.is_directional:
             self.database.update_signal_status(sid,"NON_DIRECTIONAL")
@@ -88,7 +88,7 @@ class StrategyService:
             if not plan_tuple:
                 self.database.update_signal_status(sid,"NO_TRADE_PLAN"); return self._result(symbol,signal,account_name,"NO_TRADE_PLAN",signal_id=sid)
             entry,sl,tp=plan_tuple; fx=1.0 if asset.currency=="INR" else USD_TO_INR
-            qty=quantity_for_risk(entry,sl,fx_rate=fx)
+            qty=quantity_for_risk(entry,sl,account=account,fx_rate=fx)
             plan=TradePlan(strategy.manifest.name,signal.direction,signal.timestamp,float(entry),float(sl),float(tp),timeframe=signal.timeframe,strategy_version=signal.version,metadata=signal.metadata,trailing_policy=strategy.trailing_policy(),fx_rate=fx)
             trade=PaperTrade(plan=plan,account=account_name,quantity=qty)
             age=max(0,int(self.gate.age_hours(signal,now=current)*60))
@@ -142,14 +142,16 @@ class StrategyService:
 
     def scan_and_dispatch(self,strategy_id,*,now=None,period="30d",send=True):
         strategy=self.registry.get(strategy_id); current=self._now(now); results=[]
-        for asset in LIVE_ASSETS:
-            if asset.symbol not in strategy.manifest.assets: continue
+        # assets_for_strategy() is the manifest unioned with any asset the
+        # operator assigned to this strategy from the dashboard, so an added
+        # asset is actually scanned instead of only appearing in the universe.
+        for asset in assets_for_strategy(strategy_id):
             try:
                 pause = self.news_gate.check(asset,current) if self.news_gate else None
                 if pause:
                     signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"PAUSED_BY_NEWS",metadata=pause)
                     key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"PAUSED_BY_NEWS")
-                    results.append(self._result(asset.symbol,signal,strategy.manifest.account,"PAUSED_BY_NEWS",signal_id=sid))
+                    results.append(self._result(asset.symbol,signal,resolve_account(strategy_id,asset,current,strategy.manifest.account),"PAUSED_BY_NEWS",signal_id=sid))
                     continue
                 signal,_=self.scan_symbol(strategy_id,asset.symbol,now=current,period=period)
                 price=self.current_price(asset.symbol) if signal.is_directional else 0.0
@@ -169,5 +171,5 @@ class StrategyService:
             except Exception as exc:
                 signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)})
                 key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"ERROR")
-                results.append(self._result(asset.symbol,signal,strategy.manifest.account,f"MARKET_DATA_ERROR: {exc}",signal_id=sid))
+                results.append(self._result(asset.symbol,signal,resolve_account(strategy_id,asset,current,strategy.manifest.account),f"MARKET_DATA_ERROR: {exc}",signal_id=sid))
         return results

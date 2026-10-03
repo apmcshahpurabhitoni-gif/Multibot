@@ -5,18 +5,24 @@ from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 from signal_lifecycle import dashboard_signal
 from config import (
-    ACCOUNT_NAMES,
+    account_names,
+    accounts_state,
     ACCOUNT_SIZE_INR,
     ACCOUNT_TRADE_LIMITS,
     APP_VERSION,
     BACKTEST_ASSETS,
     IST_TIMEZONE,
     LEVERAGE,
-    LIVE_ASSETS,
+    assets_for_strategy,
+    live_assets,
+    live_symbols,
     LIVE_SYMBOLS,
     RISK_PER_TRADE_INR,
     SIGNAL_FRESHNESS_HOURS,
     WHAT_IS_NEW,
+    in_new_york_session,
+    resolve_account,
+    routing_state,
 )
 from strategies import Signal
 from trading import AccountState, PaperTrade
@@ -82,10 +88,21 @@ def build_dashboard_snapshot(*,version=APP_VERSION,whats_new=WHAT_IS_NEW,account
         status=str((row.get("delivery") or {}).get("status") or "NOT_SENT").upper()
         delivery_counts[status]=delivery_counts.get(status,0)+1
     catalog=[]
+    # Routing is per (strategy, asset, time), so a single `account` field can
+    # no longer describe where a strategy trades. Report every account it can
+    # reach instead, keyed by asset group, so the dashboard cannot advertise a
+    # strategy's old static home while it is actually trading somewhere else.
+    now=datetime.now(ZoneInfo(IST_TIMEZONE))
+    routing=routing_state()
     for st in strategies:
-        catalog.append({"id":st.manifest.id,"name":st.manifest.name,"version":st.manifest.version,"description":st.manifest.description,"assets":list(st.manifest.assets),"timeframes":list(st.manifest.timeframes),"schedule":st.manifest.schedule,"account":st.manifest.account,"capabilities":list(st.manifest.capabilities),"parameters":st.manifest.parameters})
+        routes={}
+        scanned=assets_for_strategy(st.manifest.id)
+        for asset in scanned:
+            account=resolve_account(st.manifest.id,asset,now,st.manifest.account)
+            routes.setdefault(asset.group,set()).add(account)
+        catalog.append({"id":st.manifest.id,"name":st.manifest.name,"version":st.manifest.version,"description":st.manifest.description,"assets":[a.symbol for a in scanned],"timeframes":list(st.manifest.timeframes),"schedule":st.manifest.schedule,"account":st.manifest.account,"routes":{k:sorted(v) for k,v in routes.items()},"capabilities":list(st.manifest.capabilities),"parameters":st.manifest.parameters})
     open_trades=[x for x in tr if str(x.get("status","")).upper()=="OPEN"]
     closed_trades=[x for x in tr if str(x.get("status","")).upper()=="CLOSED"]
-    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":datetime.now(ZoneInfo(IST_TIMEZONE)).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS)},"universe":{"count":len(LIVE_ASSETS),"symbols":list(LIVE_SYMBOLS),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in LIVE_ASSETS]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(ACCOUNT_NAMES),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"scan_history":(scan or {}).get("history",[]),"health":health or {},"counts":{"signals":len(sr),"directional_signals":len(directional),"fresh_directional":len(fresh_directional),"stale_directional":len(stale_directional),"trades":len(tr),"open_trades":len(open_trades),"closed_trades":len(closed_trades)},"signal_summary":{"total_directional":len(directional),"fresh":len(fresh_directional),"stale":len(stale_directional),"delivery":delivery_counts,"latest":directional[0] if directional else None}}
+    return {"ok":True,"version":version,"whats_new":list(whats_new),"generated_at":datetime.now(ZoneInfo(IST_TIMEZONE)).isoformat(),"backtest_assets":[{"key":symbol,"ticker":v["ticker"],"label":v["label"],"group":v["group"]} for symbol,v in BACKTEST_ASSETS.items()],"system":{"status":"ONLINE","mode":"PAPER","timezone":IST_TIMEZONE,"provider":"YAHOO","freshness_hours":SIGNAL_FRESHNESS_HOURS,"leverage":LEVERAGE},"rules":{"account_size_inr":ACCOUNT_SIZE_INR,"risk_per_trade_inr":RISK_PER_TRADE_INR,"account_trade_limits":dict(ACCOUNT_TRADE_LIMITS),"accounts":accounts_state(),"account_routing":[dict(r) for r in routing["rules"]],"new_york_session":{**routing["session"],"active_now":in_new_york_session(now)}},"universe":{"count":len(live_assets()),"symbols":list(live_symbols()),"asset_metadata":[{"symbol":a.symbol,"label":a.label,"ticker":a.yahoo_symbol,"market":a.market,"asset_type":a.asset_type,"group":a.group,"sweep_timeframe":a.sweep_timeframe} for a in live_assets()]},"strategies":catalog,"accounts":{"count":len(ar),"names":list(account_names()),"data":ar},"signals":sr,"trades":tr,"scan":scan or {},"scan_history":(scan or {}).get("history",[]),"health":health or {},"counts":{"signals":len(sr),"directional_signals":len(directional),"fresh_directional":len(fresh_directional),"stale_directional":len(stale_directional),"trades":len(tr),"open_trades":len(open_trades),"closed_trades":len(closed_trades)},"signal_summary":{"total_directional":len(directional),"fresh":len(fresh_directional),"stale":len(stale_directional),"delivery":delivery_counts,"latest":directional[0] if directional else None}}
 
 def empty_dashboard_snapshot(): return build_dashboard_snapshot()

@@ -2,15 +2,31 @@ import numpy as np
 import pandas as pd
 
 from backtest import backtest_strategy
+from config import LIVE_ASSET_MAP
 from strategies import discover_strategies
 
 
 def test_plugins_have_stable_contract():
+    """Adding strategies/<id>/ must need no registry edit -- but must be valid.
+
+    The three shipped strategies must always be present. Anything else is a
+    drop-in plug-in and is held to the full contract instead of an exact list,
+    because pinning an exact list is what made adding a strategy fail six tests
+    for a change that was already working.
+    """
+    from strategies.registry import BUILTIN_STRATEGY_IDS
+
     registry = discover_strategies()
-    assert set(registry.ids()) == {"adaptive_trend", "sweep_v2", "engulfing_66_sma"}
+    assert set(BUILTIN_STRATEGY_IDS) <= set(registry.ids()), (
+        f"missing shipped strategies: {sorted(set(BUILTIN_STRATEGY_IDS) - set(registry.ids()))}"
+    )
     for strategy in registry.all():
         assert strategy.manifest.id and strategy.manifest.name and strategy.manifest.version
         assert strategy.manifest.assets and strategy.manifest.timeframes
+        unknown = [a for a in strategy.manifest.assets if a not in LIVE_ASSET_MAP]
+        assert not unknown, (
+            f"{strategy.manifest.id} lists assets outside the universe: {unknown}"
+        )
 
 
 def test_adaptive_trend_produces_canonical_signal():

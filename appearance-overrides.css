@@ -57,6 +57,7 @@ html[data-style="neo"] .collapse-control,
 html.neo-mode .collapse-control,
 html[data-style="neo"] input,
 html.neo-mode input,
+#page-tools .settings-input,
 html[data-style="neo"] select,
 html.neo-mode select{
   border:2px solid var(--line-strong)!important;border-radius:7px!important;
@@ -510,6 +511,14 @@ button,input,select{font-family:var(--font)}
   justify-content:flex-end!important;
   gap:8px!important;
   flex-wrap:wrap!important;
+}
+#page-tools .settings-input{
+  min-height:var(--ui-control-h)!important;
+  padding:7px 11px!important;
+  border-radius:var(--ui-control-r)!important;
+  border:var(--ui-border)!important;
+  background:var(--surface)!important;
+  font-size:11px!important;
 }
 #page-tools .chip-option,
 #page-tools .settings-toggle{

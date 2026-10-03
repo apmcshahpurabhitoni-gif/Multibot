@@ -3,6 +3,7 @@ from __future__ import annotations
 import json, os, sqlite3, logging
 from datetime import datetime, timezone
 from urllib import error, parse, request
+from config import ACCOUNT_SIZE_INR, ACCOUNT_SIZES
 
 DEFAULT_DB_PATH=os.getenv("BOT_STATE_DB_PATH","/tmp/workspace/multibot2_state.db")
 SUPABASE_URL=os.getenv("SUPABASE_URL","").rstrip("/")
@@ -171,17 +172,36 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             c.commit()
 
     def load_accounts(self,names,starting_balance,today):
+        """Create/refresh one row per account.
+
+        `starting_balance` is either a single figure (every account opens at the
+        same size) or a per-account mapping, so an operator can give one book a
+        different capital base without touching the others.
+        """
+        sizes=starting_balance if isinstance(starting_balance,dict) else None
         with self._connect() as c:
             for name in names:
+                opening=float(sizes.get(name,ACCOUNT_SIZE_INR) if sizes is not None else starting_balance)
                 row=c.execute("SELECT * FROM accounts WHERE name=?",(name,)).fetchone()
-                if row is None:c.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)",(name,starting_balance,starting_balance,0,0.0,today))
+                if row is None:c.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)",(name,opening,opening,0,0.0,today))
                 elif row["reset_date"]!=today:c.execute("UPDATE accounts SET trades_today=0,planned_risk_used=0,reset_date=? WHERE name=?",(today,name))
             c.commit(); rows=c.execute("SELECT * FROM accounts WHERE name IN (%s)"%",".join("?" for _ in names),names).fetchall()
         return {x["name"]:dict(x) for x in rows}
 
+    def account_trade_count(self,name):
+        """Trades ever recorded against an account, open and closed.
+
+        A book that has traded is never deleted: the trades name the account and
+        removing the book would orphan that history.
+        """
+        with self._connect() as c:
+            live=c.execute("SELECT count(*) AS n FROM trades WHERE json_extract(payload,'$.account')=?",(name,)).fetchone()
+        return int(live["n"] if live and "n" in live.keys() else 0)
+
     def save_account(self,name,*,balance,trades_today,planned_risk_used,reset_date):
+        opening=float(ACCOUNT_SIZES.get(name,ACCOUNT_SIZE_INR))
         with self._connect() as c:c.execute("UPDATE accounts SET balance=?,trades_today=?,planned_risk_used=?,reset_date=? WHERE name=?",(balance,trades_today,planned_risk_used,reset_date,name)); c.commit()
-        result=self._supabase_request("POST","accounts",data={"name":name,"starting_balance":100000.0,"balance":balance,"daily_trades":trades_today,"trades_today":trades_today,"planned_risk_used":planned_risk_used,"last_reset_date":reset_date,"reset_date":reset_date},upsert=True); self._require_supabase(result,"account")
+        result=self._supabase_request("POST","accounts",data={"name":name,"starting_balance":opening,"balance":balance,"daily_trades":trades_today,"trades_today":trades_today,"planned_risk_used":planned_risk_used,"last_reset_date":reset_date,"reset_date":reset_date},upsert=True); self._require_supabase(result,"account")
 
     def save_trade(self,trade_id,status,payload,updated_at):
         payload=dict(payload); payload["status"]=status

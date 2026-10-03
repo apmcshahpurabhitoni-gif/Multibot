@@ -1,16 +1,19 @@
 import pytest
 
-from config import ACCOUNT_TRADE_LIMITS
+from config import ACCOUNT_TRADE_LIMITS, DEFAULT_ACCOUNT_TRADE_LIMITS
 from trading import AccountState, TradingRuleError, can_open_trade, register_trade
 
 
 def test_original_account_limits_are_restored():
-    assert ACCOUNT_TRADE_LIMITS == {
+    """The shipped limits are the defaults; operators may edit them afterwards."""
+    assert DEFAULT_ACCOUNT_TRADE_LIMITS == {
         "macro": 20,
         "nifty": 5,
         "ny_session": 3,
         "sweep_4h": 3,
     }
+    assert all(ACCOUNT_TRADE_LIMITS[name] == limit
+               for name, limit in DEFAULT_ACCOUNT_TRADE_LIMITS.items())
 
 
 @pytest.mark.parametrize(

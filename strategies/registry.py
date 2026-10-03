@@ -4,6 +4,18 @@ import importlib, pkgutil
 from typing import Iterable
 from .base import Strategy
 
+#: The strategies this repository ships. Dropping a new package into
+#: strategies/ registers it automatically -- that is the whole plug-in contract
+#: -- but it is not part of the shipped manifest, the docs inventory or the
+#: rebuild kit. Guards that check those therefore read this, not "whatever is
+#: discovered", so a local experiment cannot fail the build and a shipped one
+#: cannot be silently dropped from the docs.
+BUILTIN_STRATEGY_IDS: tuple[str, ...] = (
+    "adaptive_trend",
+    "engulfing_66_sma",
+    "sweep_v2",
+)
+
 class StrategyRegistry:
     def __init__(self): self._strategies: dict[str, Strategy] = {}
     def register(self, strategy: Strategy) -> None:
