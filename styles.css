@@ -2688,7 +2688,8 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   min-height:40px!important;
 }
 
-#page-tools .tools-appearance .settings-row:first-of-type{
+/* `:first-of-type` again matched `.section-heading`, so this never reached a row. */
+#page-tools .tools-appearance>.section-heading+.settings-row{
   margin-top:8px!important;
 }
 
@@ -3068,10 +3069,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   background:var(--surface-2)!important;
 }
 
-#page-tools .tools-appearance>.settings-row:first-of-type{
-  border-top:0!important;
-}
-
 #page-tools .tools-appearance>.settings-row:last-child{
   border-bottom:0!important;
   margin-bottom:10px!important;
@@ -3306,7 +3303,10 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   border-radius:0!important;
 }
 
-#page-tools .tools-appearance>.settings-row:first-of-type{
+/* `:first-of-type` matched `.section-heading` (the first div child), so this
+   rule never reached a settings row and the panel lost its top edge and top
+   corners. The row after the heading is what starts the panel. */
+#page-tools .tools-appearance>.section-heading+.settings-row{
   border-top:1px solid var(--line)!important;
   border-top-left-radius:12px!important;
   border-top-right-radius:12px!important;
