@@ -301,7 +301,11 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .metric-card span{display:block;color:var(--muted);font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
 .metric-card strong{margin:0;font-size:14px;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere}
 .metric-card,.detail-grid b,.live-trade-row b,.trade-row-price b,.calendar-time strong,.clock strong,.drawer-price-grid b{font-variant-numeric:tabular-nums}
-.metric-card span{flex:none;max-width:55%;line-height:1.25}
+/* The metric card is a two-column grid (label | value). This `max-width:55%`
+   was a flex-era cap and no longer constrains anything: Home overrides it with
+   `max-width:100%` (and `none` below 560px) and Calendar pins its own value,
+   so it only ever risked squeezing a label for no reason. */
+.metric-card span{flex:none;line-height:1.25}
 .metric-card small{display:none}
 
 /* ---------- 8. Sections / charts ------------------------------------------ */
@@ -536,17 +540,12 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .appearance-option small{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.4}
 .appearance-option.active{border:2px solid var(--accent);padding:12px 14px;background:var(--accent-soft)}
 .appearance-swatch{display:inline-block;width:14px;height:14px;border-radius:5px;border:2px solid var(--line-strong);margin-right:8px;vertical-align:-2px}
-.settings-toggle-list{display:grid;border:var(--border-w) solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
-.settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;padding:15px 16px;min-height:56px;border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--text);transition:background .15s ease}
-.settings-toggle:hover{background:var(--surface-2)}
-.settings-toggle:last-child{border-bottom:0}
-.settings-toggle span{display:grid;gap:4px;min-width:0}
-.settings-toggle b{font-size:12.5px;font-weight:850}
-.settings-toggle small{font-size:11px;color:var(--muted)}
-.settings-toggle i{width:38px;height:20px;border-radius:999px;background:var(--surface-3);position:relative;flex:0 0 auto;transition:background .2s ease}
-.settings-toggle i:after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.25);top:3px;left:3px;transition:transform .2s ease}
-.settings-toggle.active i{background:var(--accent)}
-.settings-toggle.active i:after{transform:translateX(18px)}
+/* `.settings-toggle` is a variant hook for `.chip-option` (the Compact /
+   Reduce-motion chips and the settings editor's Remove / move buttons). It used
+   to carry a second, contradictory definition here — a 56px settings *switch
+   row* with a `span`/`b`/`small`/`i` knob — that no markup has ever used.
+   Eleven properties fought between the two definitions and the chip only won
+   because the later sheet happened to load last. The switch row is gone. */
 
 .backtest-controls{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) minmax(0,1fr) auto;gap:8px;align-items:end}
 .backtest-controls label{display:grid;gap:6px;min-width:0;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
@@ -781,8 +780,11 @@ html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html
   animation-duration:.01ms!important;animation-iteration-count:1!important;
   scroll-behavior:auto!important;transition-duration:.01ms!important;
 }
-html[data-compact="true"] .tool-card,html[data-compact="true"] .section-block{padding:10px!important}
-html[data-compact="true"] .metric-card{padding:8px 10px!important}
+/* `.tool-card` is deliberately absent here: on the Tools page its padding is 0
+   (the card is a shell and `.tool-body` carries the padding), so a compact
+   padding on the card itself could only ever make the page taller. */
+html[data-compact="true"] .section-block{padding:10px!important}
+html[data-compact="true"] .metric-card{padding:6px 9px!important}
 html[data-compact="true"] .chart-card{padding:10px!important}
 html[data-compact="true"] .hero{padding:10px 12px!important}
 html[data-compact="true"] .section-heading{margin-bottom:6px!important}
@@ -791,8 +793,19 @@ html[data-compact="true"] .card-main{min-height:34px!important;padding:5px 9px!i
 html[data-compact="true"] .signal-date-toggle,html[data-compact="true"] .history-date-toggle,html[data-compact="true"] .calendar-date-toggle,html[data-compact="true"] .trade-date-toggle{padding:6px 7px!important;min-height:34px!important}
 html[data-compact="true"] .signal-date-rows,html[data-compact="true"] .history-date-rows,html[data-compact="true"] .calendar-date-events,html[data-compact="true"] .trade-date-rows{gap:6px!important;padding:6px 4px 8px!important}
 html[data-compact="true"] .backtest-section{padding:10px!important}
-html[data-compact="true"] .empty-state{min-height:90px!important;padding:16px 12px!important}
+/* An empty state's natural height is 76px; the old compact floor of 90px made
+   every empty state 14px *taller* than normal, which grew the History page on
+   every toggle press. Compact now shrinks it. */
+html[data-compact="true"] .empty-state{min-height:56px!important;padding:12px!important}
 html[data-compact="true"] .tool-body{padding-top:6px!important}
+/* Every `html[data-compact="true"] X` selector above loses to the `#page-tools …`
+   rules in the later layers, because an id (and the extra class counts those
+   selectors carry) outrank an attribute plus a class. That left the whole Tools
+   page immune to Compact. These restate the Tools targets at the specificity
+   that actually owns them, so the toggle really compacts. */
+html[data-compact="true"] #page-tools .tool-collapse.is-open > .tool-body{padding:5px 10px!important}
+html[data-compact="true"] #page-tools .section-heading{padding:6px 12px!important}
+html[data-compact="true"] #page-tools .backtest-section{padding:6px 12px!important}
 html[data-compact="true"]{--section-gap:8px;--grid-gap:6px;--card-pad:10px}
 html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
 @keyframes pulse{50%{opacity:.55;transform:scale(.88)}}
@@ -1349,13 +1362,17 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 #page-tools .tool-universe>.section-heading>.collapse-control{
   flex:0 0 auto!important;
 }
+/* `.universe-grid` is a block of full-width asset rows. It was declared five
+   times in this sheet with eleven mutually-overriding `!important` properties:
+   `display:grid` with one column and `gap:0` against `display:block`, a `border:0`
+   / `border-radius:0` / `overflow:visible` against a 1px border and a radius,
+   and `width:100%` against `calc(100% - 28px)`. The winner was decided by
+   document order rather than intent. This is now the only layout declaration;
+   the bordered surface further down owns border, radius, overflow and fill. */
 #page-tools .universe-grid{
-  display:grid!important;
-  grid-template-columns:1fr!important;
+  display:block!important;
   gap:0!important;
-  border:0!important;
-  border-radius:0!important;
-  overflow:visible!important;
+  padding:0!important;
 }
 #page-tools .universe-grid>.asset-category{
   display:block!important;
@@ -2033,16 +2050,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   align-items:center!important;
 }
 
-#page-tools .tool-universe>.tool-body{
-  padding:0!important;
-}
-
-#page-tools .universe-grid{
-  width:100%!important;
-  box-sizing:border-box!important;
-  display:block!important;
-  margin:0!important;
-  padding:0!important;
+#page-tools .tool-universe>.tool-body{padding:0!important;
 }
 
 #page-tools .universe-grid>.asset-category{
