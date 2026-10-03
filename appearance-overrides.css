@@ -2198,6 +2198,12 @@ html #page-overview .section-block .chart-card{
    interior: it keeps a fill and a radius, and the grid's own nth-child
    hairlines still separate cells, so the table still reads without a second
    frame competing with the card edge.
+
+   These three declarations stay here rather than moving into the consolidated
+   definition in foundation.css. Neo declares a 2px border on this element from
+   foundation.css, and this rule only beats it because the `html` prefix matches
+   Neo's specificity and this sheet loads later. Moving border, radius or
+   background into foundation.css would hand the border back to Neo.
    ========================================================================== */
 html #page-signals .signal-card.expanded .expand-content,
 html #page-overview .overview-signals .signal-card.expanded .expand-content,
