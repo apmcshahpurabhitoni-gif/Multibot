@@ -2157,6 +2157,28 @@ html[data-reduce-motion="true"] .collapse-control::after{
 }
 
 /* ==========================================================================
+   One treatment for grey gutter panels.
+
+   Measured across all five tabs: a grey panel at nesting depth 1 is
+   borderless everywhere -- metric-grid, stack, signals-date-list,
+   history-summary-grid, history-date-list, history-live-list,
+   calendar-summary-grid, calendar-date-list and tool-body all render with no
+   border. `.chart-card` was the single exception and drew one, so "Signal
+   activity" read as a different kind of box from every panel beside it.
+
+   The rule applied here: a grey gutter panel carries no outline of its own --
+   the fill change is what separates it -- and the contents inside it carry the
+   borders (chips, buttons, tiles). Controls at depth 2 keep their own.
+
+   Two rules here were grouping .chart-card with genuinely bordered cards,
+   which is where the stray outline came from.
+   ========================================================================== */
+html #page-overview .chart-card,
+html #page-overview .section-block .chart-card{
+  border:0!important;
+}
+
+/* ==========================================================================
    Expanded signal: ONE outline, not three.
 
    Five successive rules redefine `.signal-card.expanded .detail-grid`, and the
