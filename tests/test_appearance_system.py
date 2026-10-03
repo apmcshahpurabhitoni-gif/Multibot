@@ -43,6 +43,136 @@ def test_appearance_controls_are_compact_without_redesigning_shell():
     assert '.appearance-style-grid{display:grid' in CSS
 
 
+def test_fills_use_the_declared_depth_surfaces():
+    """``geometry.md`` §7: surfaces alternate by nesting depth.
+
+    depth 0 section/workspace -> ``--surface``  + outer radius
+    depth 1 gutter/panel      -> ``--f-inner-bg`` (== ``--surface-2``)
+    depth 2 row/tile/control  -> ``--surface``
+
+    and: "A card may never be painted the same colour as the surface it sits on."
+
+    Fills must come from those tokens. A literal ``rgb()``/``#hex`` in a
+    component rule is the failure this catches: it cannot follow the theme, so
+    the same card renders white on a dark surface, and it silently drifts apart
+    from its neighbours -- which is what left depth-1 boxes split between white
+    and grey across tabs.
+
+    Contrast tokens stay governed by ``test_contrast_tokens.py``; this only
+    checks that fills are tokenised, never which token a given rule picked.
+    """
+    import re
+
+    FILL_PROPS = ("background", "background-color")
+    tokenised = re.compile(r"var\(\s*--(surface|f-surface|bg)[a-z0-9-]*\s*\)")
+
+    offenders = []
+    for name in ("styles.css", "foundation.css", "appearance-overrides.css"):
+        source = re.sub(r"/\*.*?\*/", "", (ROOT / name).read_text(encoding="utf-8"), flags=re.S)
+        for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", source):
+            selector = " ".join(selector.split())
+            # Blocks that DECLARE custom properties are where literals belong:
+            # that is the token layer itself (:root, html[data-theme=...]).
+            if re.search(r"--[a-z0-9-]+\s*:", body):
+                continue
+            for prop in FILL_PROPS:
+                for value in re.findall(prop + r"\s*:\s*([^;}]+)", body):
+                    if value.strip().startswith("var("):
+                        continue
+                    # transparent / none / gradients carry no surface identity.
+                    if re.match(r"\s*(transparent|none|inherit|initial)", value):
+                        continue
+                    if "gradient(" in value:
+                        continue
+                    # A literal paint means the rule opted out of the depth
+                    # language. Named colours used as accents are fine.
+                    if re.match(r"\s*(red|blue|green|white|black|orange|purple|grey|gray|"
+                                 r"yellow|pink|cyan|magenta|teal|navy|silver|maroon)\b", value):
+                        continue
+                    # Scrims (modal / drawer backdrops) are alpha, not a surface.
+                    if re.match(r"\s*rgba\([^)]*,\s*(0?\.\d+|0)\s*\)", value, re.I):
+                        continue
+                    if re.match(r"\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()", value, re.I):
+                        offenders.append(f"{name}: `{selector[-52:]}` -> {prop}:{value.strip()[:24]}")
+    assert not offenders, (
+        "component rules must paint with surface tokens, not literal colours:\n"
+        + "\n".join(offenders[:40])
+        + ("\n... and %d more" % (len(offenders) - 40) if len(offenders) > 40 else "")
+    )
+
+
+def test_border_radius_uses_the_declared_tier_tokens():
+    """Radius must come from the three tiers, not from a literal.
+
+    ``docs/DESIGN_SYSTEM/geometry.md`` declares exactly three tiers -- outer
+    ``--radius``/``--ui-outer-r``, inner ``--radius-sm``/``--ui-inner-r``,
+    control ``--ui-control-r``/``--ui-collapse-radius`` -- plus ``--radius-xs``
+    and full pills, and states that "any other literal radius is a defect".
+
+    The reason it matters is not pedantry: the tiers differ per style (outer
+    14/10/16, inner 11/8/8). A literal pins the Modern value, so a hardcoded
+    12px or 11px silently ignores Neo and Material 3 -- which is exactly how the
+    Tools cards ended up at 18px while every other page used 14px, and why
+    neighbouring boxes looked mismatched with no rule that appeared wrong.
+
+    LEGACY_LITERALS is the remaining debt, listed so it cannot grow silently.
+    Each entry is a value that should become a tier token; the guard fails if a
+    value outside this list appears, and the list only shrinks.
+    """
+    import re
+
+    # Shapes the tiers deliberately do not cover.
+    SHAPE_EXEMPT = {"0", "0px"}
+    # Scrollbar thumbs are sized to the track, not to a tier.
+    SHAPE_EXEMPT.add("99px")
+    # Full pills are legitimately used across the codebase (.signal-tab,
+    # .backtest-rating, b.fresh, status dots) and nothing in the stylesheet says
+    # which selector is a pill, so this value cannot be scoped. Known gap: a card
+    # given 999px would pass. Tighten only alongside a pill-role class.
+    SHAPE_EXEMPT.update({"999px", "50%"})
+
+    # Values still hardcoded in the sheets. Treat as a punch list, not a
+    # permission: each is a real off-contract radius awaiting its token.
+    LEGACY_LITERALS = {
+        "12px": "Tools runtime gutters, calendar items and category labels",
+        "10px": "controls that should use var(--ui-control-r)",
+        "11px": "boxes that should use var(--ui-inner-r)",
+        "14px": "outer boxes that should use var(--radius)",
+        "9px":  "inline chips that should use var(--radius-xs)",
+        "8px":  "Neo/Material inner values hardcoded into shared rules",
+        "6px":  "Neo/Material xs values hardcoded into shared rules",
+        "4px":  "Material xs values hardcoded into shared rules",
+        "5px":  "appearance swatch (12px dot, deliberately squircle)",
+        "7px":  "small glyph containers (direction icon, calendar source)",
+    }
+
+    tier_tokens = ("--ui-outer-r", "--ui-inner-r", "--ui-control-r",
+                   "--ui-collapse-radius", "--radius", "--radius-sm", "--radius-xs")
+
+    offenders = []
+    for name in ("styles.css", "foundation.css", "appearance-overrides.css"):
+        source = (ROOT / name).read_text(encoding="utf-8")
+        # Drop comments so the prose above does not register as a declaration.
+        source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+        for selector, body in re.findall(r"([^{}]+)\{([^{}]*)\}", source):
+            selector = " ".join(selector.split())
+            for value in re.findall(r"border(?:-[a-z]+)*-radius\s*:\s*([^;}]+)", body):
+                if any(token in value for token in tier_tokens):
+                    continue
+                for literal in re.findall(r"\b\d+(?:\.\d+)?px\b|\b\d+%", value):
+                    if literal in SHAPE_EXEMPT or literal in LEGACY_LITERALS:
+                        continue
+                    offenders.append(f"{name}: {literal} on `{selector[-60:]}`")
+
+    assert not offenders, (
+        "radius values outside the declared tiers and the tracked legacy list:\n"
+        + "\n".join(offenders)
+        + "\nUse var(--radius) / var(--ui-outer-r), var(--radius-sm) / "
+          "var(--ui-inner-r), var(--ui-control-r) / var(--ui-collapse-radius) "
+          "or var(--radius-xs)."
+    )
+
+
 def test_appearance_rows_are_not_targeted_by_type_position_selectors():
     """Positional selectors cannot address the appearance rows.
 

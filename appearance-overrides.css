@@ -1134,7 +1134,7 @@ html .text-button[class]{
   min-height:46px!important;
   height:46px!important;
   padding:7px 10px!important;
-  border-radius:12px!important;
+  border-radius:var(--radius-sm)!important;
   box-shadow:none!important;
 }
 #page-calendar .calendar-summary-grid .metric-card span{
@@ -1171,7 +1171,7 @@ html .text-button[class]{
   height:52px!important;
   margin:0!important;
   padding:8px 12px!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
 }
 #page-calendar .calendar-date-toggle span{
@@ -1505,7 +1505,7 @@ html .hero h2{
   min-height:0!important;
   height:auto!important;
   padding:0!important;
-  border-radius:12px!important;
+  border-radius:var(--ui-inner-r)!important;
   box-shadow:none!important;
   overflow:hidden!important;
 }
@@ -2154,5 +2154,61 @@ html.neo-mode .collapse-control::after{
    Tools uses the control's aria-expanded; date groups use the parent button. */
 html[data-reduce-motion="true"] .collapse-control::after{
   transition:none!important;
+}
+
+/* ==========================================================================
+   One treatment for grey gutter panels.
+
+   Measured across all five tabs: a grey panel at nesting depth 1 is
+   borderless everywhere -- metric-grid, stack, signals-date-list,
+   history-summary-grid, history-date-list, history-live-list,
+   calendar-summary-grid, calendar-date-list and tool-body all render with no
+   border. `.chart-card` was the single exception and drew one, so "Signal
+   activity" read as a different kind of box from every panel beside it.
+
+   The rule applied here: a grey gutter panel carries no outline of its own --
+   the fill change is what separates it -- and the contents inside it carry the
+   borders (chips, buttons, tiles). Controls at depth 2 keep their own.
+
+   Two rules here were grouping .chart-card with genuinely bordered cards,
+   which is where the stray outline came from.
+   ========================================================================== */
+html #page-overview .chart-card,
+html #page-overview .section-block .chart-card{
+  border:0!important;
+}
+
+/* ==========================================================================
+   Expanded signal: ONE outline, not three.
+
+   Five successive rules redefine `.signal-card.expanded .detail-grid`, and the
+   last to win left it at `border:1px solid var(--line)` on `--surface`.
+   `.reason` finished the same way, and `.expand-content` adds its own
+   `border-top`. The card already carries a 1px border, so expanding a signal
+   drew a doubled line under the header plus a second outline around the grid
+   and the reason block -- three white boxes stacked inside one card.
+
+   The card is the only surface that gets an outline. What opens beneath it is
+   interior: it keeps a fill and a radius, and the grid's own nth-child
+   hairlines still separate cells, so the table still reads without a second
+   frame competing with the card edge.
+   ========================================================================== */
+html #page-signals .signal-card.expanded .expand-content,
+html #page-overview .overview-signals .signal-card.expanded .expand-content,
+html[data-style="neo"] #page-signals .signal-card.expanded .expand-content,
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .expand-content{
+  border-top:0!important;
+}
+html #page-signals .signal-card.expanded .detail-grid,
+html #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html #page-signals .signal-card.expanded .reason,
+html #page-overview .overview-signals .signal-card.expanded .reason,
+html[data-style="neo"] #page-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .detail-grid,
+html[data-style="neo"] #page-signals .signal-card.expanded .reason,
+html[data-style="neo"] #page-overview .overview-signals .signal-card.expanded .reason{
+  border:0!important;
+  background:var(--surface-2)!important;
+  border-radius:var(--radius-sm)!important;
 }
 
