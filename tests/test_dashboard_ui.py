@@ -124,7 +124,10 @@ def test_dashboard_has_exactly_five_navigation_slots():
 
 
 def test_tools_workspace_uses_rebuilt_sections_and_simple_backtest_asset_names():
-    for token in ('tools-layout', 'tool-backtest', 'tool-universe', 'tool-accounts', 'tool-rules', 'tool-runtime'):
+    # `tool-runtime` is gone: the Diagnostics card was read-only telemetry that
+    # the topbar status badge and the release modal already carried, and it cost
+    # a whole Tools card. Its stylesheet rules remain, unreferenced by markup.
+    for token in ('tools-layout', 'tool-backtest', 'tool-universe', 'tool-accounts', 'tool-rules'):
         assert token in HTML
     assert '${escapeHtml(asset.label)} · ${escapeHtml(asset.ticker)}' not in APP
     assert '<option value="${escapeHtml(asset.key||asset.ticker)}">${escapeHtml(asset.label)}</option>' in APP

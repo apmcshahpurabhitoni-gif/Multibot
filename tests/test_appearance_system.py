@@ -358,9 +358,11 @@ def test_tools_gutters_are_borderless_and_their_tiles_uniform():
     carries no outline, a tile (white, holds content) carries one hairline, and
     nothing is drawn as an outline with no fill behind it.
 
-    ``.universe-grid``, ``.account-grid``, ``.rule-list``, ``.diagnostic-grid``
-    and ``.schedule-inline`` were all painted ``--surface-2`` *and* given a 1px
-    border while sitting inside ``.tool-body``, which is also ``--surface-2``.
+    ``.universe-grid``, ``.account-grid`` and ``.rule-list`` were all painted
+    ``--surface-2`` *and* given a 1px border while sitting inside ``.tool-body``,
+    which is also ``--surface-2``. (``.diagnostic-grid`` and ``.schedule-inline``
+    were in the same list until the Runtime card was removed, and their rules
+    were deleted with it rather than left to describe nothing.)
     Two greys cannot be separated by a fill, so the border was the only thing
     doing any work: a line floating in a flat grey field. Their tiles were then
     drawn as a borderless table (``gap:0``, per-side hairlines dropped by
@@ -384,14 +386,12 @@ def test_tools_gutters_are_borderless_and_their_tiles_uniform():
         "html body #page-tools .tool-universe .tool-body .universe-grid",
         "html body #page-tools .tool-accounts .tool-body .account-grid",
         "html body #page-tools .tool-rules .tool-body .rule-list",
-        "html body #page-tools .tool-runtime .tool-body .diagnostic-grid",
-        "html body #page-tools .tool-runtime .tool-body .schedule-inline",
     )
     for selector in gutters:
         assert selector in code, f"missing borderless gutter rule for {selector}"
     # Rule-precise: the gutter rule must actually kill the outline.
     assert (
-        "html body #page-tools .tool-runtime .tool-body .schedule-inline{\n"
+        "html body #page-tools .tool-rules .tool-body .rule-list{\n"
         "  border:0!important;\n"
         "  border-radius:var(--radius-sm)!important;\n"
         "}" in code
@@ -400,8 +400,6 @@ def test_tools_gutters_are_borderless_and_their_tiles_uniform():
     tiles = (
         "html body #page-tools .tool-accounts .tool-body .account-grid>article",
         "html body #page-tools .tool-rules .tool-body .rule-list>div",
-        "html body #page-tools .tool-runtime .tool-body .diagnostic-grid>article",
-        "html body #page-tools .tool-runtime .tool-body .schedule-inline>span",
     )
     for selector in tiles:
         assert selector in code, f"missing uniform tile rule for {selector}"
@@ -422,10 +420,6 @@ def test_tools_gutters_are_borderless_and_their_tiles_uniform():
         "no rule declares the uniform tile border for .account-grid>article"
     )
     positional = (
-        ".diagnostic-grid>.compact-metric:nth-child(2n)",
-        ".diagnostic-grid>.compact-metric:nth-last-child(-n+2)",
-        ".schedule-inline>span:nth-child(3n)",
-        ".schedule-inline>span:nth-last-child(-n+3)",
         ".rule-list>div:nth-child(odd)",
         ".rule-list>div:last-child",
         ".account-grid>article:last-child",

@@ -510,12 +510,35 @@ def test_tool_card_heading_keeps_its_controls_on_one_line():
         "foundation.css wraps `.section-heading`, so without this the collapse "
         "chevron falls onto a line of its own on a phone"
     )
+    # The tag contract is one rule for every card. It used to be declared per
+    # card, so the settings session tag rendered a 10px pill beside the Markets
+    # card's 11px one and the Backtest tag was dropped entirely below 390px.
     tag = _declarations_for_selector(
-        "appearance-overrides.css", "#page-tools .tool-settings>.section-heading>.tool-tag", "font-size"
+        "appearance-overrides.css", "#page-tools .tool-card>.section-heading .tool-tag", "font-size"
     )
     assert tag == ["10px!important"], (
-        "the settings session tag must take the same small step the Backtest tag "
-        f"uses, found {tag!r}; at 11px it is 112px wide and starves the title"
+        "every Tools card tag must take one small step, found "
+        f"{tag!r}; at 11px the session tag is 112px wide and starves the title"
+    )
+    # A rule that names one Tools card and the tag is a per-card override. The
+    # shared `status-badge / inline-status / tool-tag` pill group is not: it is
+    # one contract for every pill on the dashboard.
+    per_card_tag = [
+        prelude
+        for prelude, _body, _media in _iter_rules(SHEETS["appearance-overrides.css"])
+        if ".tool-tag" in prelude
+        and ".tool-card" not in prelude
+        and any(
+            card in prelude
+            for card in (
+                ".tool-backtest", ".tool-settings", ".tools-appearance",
+                ".tool-universe", ".tool-accounts", ".tool-rules", ".tool-runtime",
+            )
+        )
+    ]
+    assert not per_card_tag, (
+        "a single card still claims its own `.tool-tag` geometry, which is how the "
+        f"tags drifted apart in the first place: {per_card_tag}"
     )
     assert _declarations_for_selector(
         "appearance-overrides.css", "#page-tools .tool-collapse>.section-heading>div", "flex"
@@ -534,9 +557,22 @@ def test_tools_body_and_row_inset_add_up_to_the_heading_inset():
     assert _declarations_for_selector(
         "appearance-overrides.css", "#page-tools .tool-card>.section-heading", "padding-inline"
     ), "every Tools card heading must declare one horizontal inset"
+    # `_declarations` drops custom properties, so this has to read the sheet.
+    # The point is that the row inset is *derived* from the heading inset: two
+    # independent numbers is exactly how they drifted 10px apart before.
+    settings_inset = re.search(
+        r"#page-tools\s*\.tool-settings\s*\{[^}]*--ui-settings-inset\s*:\s*([^;}]+)",
+        SHEETS["appearance-overrides.css"],
+    )
+    assert settings_inset, "the settings cards must name their row inset, not hard-code it"
+    assert "--ui-heading-pad-x" in settings_inset.group(1), (
+        "the settings row inset must be derived from the heading inset, found "
+        f"{settings_inset.group(1).strip()!r}; a second independent number is what "
+        "let row labels sit 10px right of the eyebrow above them"
+    )
     assert _declarations_for_selector(
-        "appearance-overrides.css", "#page-tools .tool-settings", "--ui-settings-inset"
-    ) is not None
+        "appearance-overrides.css", "#page-tools .tool-card>.section-heading", "padding-inline"
+    ), "the heading inset must be declared once for every card"
     inset = _declarations_for_selector(
         "appearance-overrides.css", "#page-tools .tool-settings .settings-row", "padding-inline"
     )
@@ -624,16 +660,29 @@ def test_settings_save_and_reset_are_not_the_same_component():
     on `rgb(241,243,246)` with a 1px grey border and no shadow. A programmatic
     diff over ten computed axes returned no differences at all.
     """
-    save = re.search(r'id="saveSettingsButton" class="([^"]+)"', HTML)
-    reset = re.search(r'id="resetSettingsButton" class="([^"]+)"', HTML)
-    assert save and reset, "the Changes row must still carry both actions"
-    assert "primary-button" in save.group(1), (
-        f"Save is the card's one committing action but renders as {save.group(1)!r}"
+    save = re.findall(r'<button class="([^"]+)"[^>]*data-save-settings>', HTML)
+    reset = re.findall(r'<button class="([^"]+)"[^>]*data-reset-settings>', HTML)
+    assert save and len(save) == len(reset), (
+        "every card that owns data must carry its own Save and Reset: adding an "
+        "asset must not mean scrolling to a different card to commit it"
     )
-    assert "secondary-button" in reset.group(1), (
-        f"Reset renders as {reset.group(1)!r}, the same component as Save"
+    for key in ("universe", "accounts", "routing"):
+        card = _tools_card_html(key)
+        assert "data-save-settings" in card and "data-reset-settings" in card, (
+            f"the {key} card owns data but has nowhere to commit it"
+        )
+    for classes in save:
+        assert "primary-button" in classes, (
+            f"Save is a committing action but renders as {classes!r}"
+        )
+    for classes in reset:
+        assert "secondary-button" in classes, (
+            f"Reset renders as {classes!r}, the same component as Save"
+        )
+    assert save[0] != reset[0], "Save and Reset must not share a class list"
+    assert 'id="saveSettingsButton"' not in HTML, (
+        "the single Changes card is back; Save belongs in the card it saves"
     )
-    assert save.group(1) != reset.group(1), "Save and Reset must not share a class list"
 
 
 def test_settings_dirty_state_is_visible_on_the_card():
@@ -643,13 +692,18 @@ def test_settings_dirty_state_is_visible_on_the_card():
     sat 2,220px below the first settings row in a 2,456px card, and a diff of
     the two buttons found nothing to tell them apart.
     """
-    assert 'id="settingsDirtyBadge"' in HTML, (
-        "the Changes row must carry a badge so an unsaved edit is visible "
-        "without scrolling to the bottom of a 2,000px card"
+    assert 'id="settingsDirtyBadge"' not in HTML and 'id="settingsStatus"' not in HTML, (
+        "the dirty state lives on the Save button in each card now; one badge "
+        "and one status line in a distant card is exactly what it replaced"
     )
+    for key in ("universe", "accounts", "routing"):
+        assert "data-settings-status" in _tools_card_html(key), (
+            f"the {key} card commits data but cannot say whether Save worked "
+            "without the operator leaving the card"
+        )
     assert "function paintSettingsDirty()" in APP, (
-        "the badge is declared in dashboard.html but nothing in app.js ever "
-        "shows or hides it"
+        "the Save buttons are declared in dashboard.html but nothing in app.js "
+        "ever marks them"
     )
     mark = re.search(r"function markSettingsDirty\(\)\{(.*?)\n?\}", APP, re.S)
     assert mark and "paintSettingsDirty()" in mark.group(1), (
@@ -658,15 +712,23 @@ def test_settings_dirty_state_is_visible_on_the_card():
     )
     saved = APP.split("state.settingsDirty=false;", 1)
     assert len(saved) == 2 and "paintSettingsDirty()" in saved[1].split("renderSettings()", 1)[0], (
-        "a successful save never clears the badge before the card re-renders, "
-        "so a card with no unsaved changes still reads as dirty"
+        "a successful save never clears the dirty state before the card "
+        "re-renders, so a card with no unsaved changes still reads as dirty"
+    )
+    # The card the operator pressed Save in has to be the one that answers.
+    assert '$$("[data-settings-status]")' in APP, (
+        "the status is written to a single element again, so the cards that own "
+        "the other Save buttons show nothing when one of them is pressed"
     )
     assert _declarations_for_selector(
-        "appearance-overrides.css", "#page-tools .tool-settings .settings-dirty[hidden]", "display"
-    ) == ["none!important"], (
-        "the badge is laid out with `display:inline-flex`, which beats the "
-        "`hidden` attribute unless it is re-asserted"
-    )
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-actions .primary-button.is-dirty",
+        "box-shadow",
+    ), "the dirty state on Save must be visible, not just a class name"
+    for prelude, _body, _media in _iter_rules(SHEETS["appearance-overrides.css"]):
+        assert not any(".settings-dirty" in s for s in _selectors(prelude)), (
+            f"`{prelude}` still styles the removed Changes badge"
+        )
 
 
 def test_settings_reorder_buttons_have_their_own_geometry_and_disabled_state():
@@ -735,15 +797,64 @@ def test_settings_rows_do_not_repeat_the_group_they_sit_in():
         f"the empty Assets row is labelled {labels!r}; repeating the group "
         "header above it reads as two sections that are both called Assets"
     )
-    assert "class=\"settings-row settings-rule\"" in APP, (
+    assert 'class="settings-row settings-rule' in APP, (
         "a routing rule must be one block, not three rows that each repeat the "
         "account name"
+    )
+    assert 'class="settings-rule-summary"' in APP and 'class="settings-rule-body"' in APP, (
+        "a routing rule must state its contract on one line and keep its chip "
+        "groups behind a control, or four rules bury the order they are in"
+    )
+    # Read-only chip geometry, layered: the row is a summary, the groups are
+    # behind a control, and the contract has to survive the re-render every
+    # edit triggers.
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-rule>.settings-rule-body",
+        "display",
+    ) == ["none!important"], (
+        "a routing row must start collapsed, or the chip wall is back"
+    )
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-rule.is-open>.settings-rule-body",
+        "display",
+    ) == ["flex!important"], "an opened routing row must show its chip groups"
+    assert "state.expandedRules.add(" in APP and "state.expandedRules.delete(" in APP, (
+        "the open row is not remembered in state, so the re-render every edit "
+        "triggers collapses the row the operator is working in"
+    )
+    # The session was two rows: a start/end pair plus a full-width read-out.
+    # Three 32px controls fit on one line at every supported width.
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .session-controls",
+        "grid-template-columns",
+    ) == ["repeat(3,minmax(0,1fr))!important"], (
+        "the session must stay on one line; stacking it re-adds the row it gave up"
     )
     for group in ("Strategies", "Assets", "Session"):
         assert f'group("{group}"' in APP, (
             f'the "{group}" chip group has no caption, so the chips have no '
             "visible owner"
         )
+
+
+def test_removed_runtime_card_render_is_null_guarded():
+    """Removing a Tools card must not take the dashboard down with it.
+
+    `loadDashboard()` renders the Diagnostics grid by id. With the card gone the
+    lookup returns null, so the unguarded `$("diagnostics").innerHTML=...` would
+    throw inside loadDashboard and take every other panel down with it.
+    """
+    assert '$("diagnostics").innerHTML=' not in APP, (
+        "the Diagnostics render is unguarded; the card it filled was removed, "
+        "so the lookup returns null and loadDashboard throws"
+    )
+    assert 'const diagnosticGrid=$("diagnostics");' in APP and "if(diagnosticGrid)" in APP, (
+        "the Diagnostics render must read the element once and test it before "
+        "writing to it"
+    )
 
 
 def test_neo_hard_shadow_never_reaches_the_modern_style():
@@ -779,4 +890,450 @@ def test_neo_hard_shadow_never_reaches_the_modern_style():
     ), (
         "the settings field is no longer enrolled in the Neo surface contract, "
         "so switching style would leave it with a flat border and no shadow"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Round 4: the Tools page carried four different heading blocks on one screen.
+# ---------------------------------------------------------------------------
+
+TOOLS_CARD_NAMES = (
+    ".tool-backtest", ".tool-settings", ".tool-universe",
+    ".tool-accounts", ".tool-rules", ".tool-runtime",
+)
+APPEARANCE_SHEET = "appearance-overrides.css"
+# `_iter_rules` keeps the comment that precedes an at-rule in its prelude, so a
+# documented `@media` block never looks like one. Comment-free copies let these
+# guards see every at-rule wherever it sits; that quirk is what let a
+# phone-only heading sneak past the first draft of these tests.
+PLAIN = {
+    name: re.sub(r"/\*.*?\*/", " ", css, flags=re.S)
+    for name, css in SHEETS.items()
+}
+
+
+def _rules_naming_one_tools_card(css, needle):
+    """Rules that scope `needle` to a single Tools card rather than to all."""
+    return [
+        prelude
+        for prelude, _body, _media in _iter_rules(css)
+        if needle in prelude
+        and ".tool-card" not in prelude
+        and ".tools-appearance" not in prelude
+        and any(card in prelude for card in TOOLS_CARD_NAMES)
+    ]
+
+
+def _tools_card_html(key):
+    """The markup of one Tools card, delimited by its own `</section>`.
+
+    A Tool card contains no nested `<section>`, so this is exact and a control
+    that escaped the card cannot still be counted as inside it.
+    """
+    match = re.search(
+        rf'<section class="tool-card [^"]*" data-tool-collapse data-tool-key="{re.escape(key)}".*?</section>',
+        HTML,
+        re.S,
+    )
+    assert match, f"the {key} card was not found in dashboard.html"
+    return match.group(0)
+
+
+def test_every_tools_card_heading_is_the_same_block():
+    """One heading geometry for all ten Tools cards.
+
+    Measured defect at 390x844, one row per card: appearance 64px, backtest 51,
+    universe 57, accounts 57, settings 55, rules 57, runtime 57 -- with a 15px,
+    a 16px and a 17px title and both a 10px and an 11px tag on the same page.
+    Three separate blocks had each claimed the heading (Appearance, Backtest and
+    the settings cards) and, being more specific, they outranked the 17px step
+    that `html #page-tools .section-heading h2` already declared.
+    """
+    owners = [
+        (prelude, media, _declarations(body))
+        for prelude, body, media in _iter_rules(PLAIN[APPEARANCE_SHEET])
+        if "#page-tools .tool-card>.section-heading" in _selectors(prelude)
+    ]
+    assert owners, "nothing declares the shared Tools heading geometry"
+
+    contract_prelude, contract_media, contract = owners[-1]
+    required = ("min-height", "padding-block", "padding-inline", "gap", "align-items", "flex-wrap")
+    missing = [prop for prop in required if prop not in contract]
+    assert not missing, (
+        f"the rule that wins the cascade for the Tools heading (`{contract_prelude}`) "
+        f"does not declare {missing}. An incomplete contract can only be completed by "
+        "a card-specific rule, and three of those are what produced four different "
+        "heading heights on one page."
+    )
+    assert contract_media == "none", (
+        f"the winning heading rule sits inside {contract_media}; the contract must "
+        "hold at every width or a card is one size on a phone and another on a desktop"
+    )
+
+    claiming = _rules_naming_one_tools_card(PLAIN[APPEARANCE_SHEET], ".section-heading")
+    assert not claiming, (
+        "a single Tools card claims its own heading geometry again, so it renders a "
+        f"different size block from its neighbours: {claiming}"
+    )
+
+    titles = _declarations_for_selector(
+        APPEARANCE_SHEET, "#page-tools .tool-card>.section-heading h2", "font-size"
+    )
+    assert titles == ["17px!important"], (
+        f"every Tools title must sit on the 17px display step, found {titles!r}"
+    )
+
+
+def test_tools_card_heading_has_no_breakpoint():
+    """No breakpoint may restate any Tools card's heading geometry.
+
+    Measured defect: the Appearance, Backtest and settings headings each
+    re-declared their padding and a 15px title inside `@media(max-width:560px)`,
+    and the shared header block did too with a 50px min-height -- so the same
+    card measured one height on a phone and another on a desktop.
+    """
+    for prelude, body, media in _iter_rules(PLAIN[APPEARANCE_SHEET]):
+        if media == "none":
+            continue
+        for selector in _selectors(prelude):
+            if ".section-heading" not in selector:
+                continue
+            assert ".tool-card" not in selector, (
+                f"`{selector}` re-declares the shared heading contract inside "
+                f"{media}; the contract must hold at every width"
+            )
+            assert not any(card in selector for card in TOOLS_CARD_NAMES), (
+                f"`{selector}` re-declares one card's heading inside {media}"
+            )
+        if any(".section-heading" in s for s in _selectors(prelude)):
+            assert "font-size:15px" not in body and "font-size:16px" not in body, (
+                f"`{prelude}` restores a phone-only Tools title size inside {media}"
+            )
+
+
+def test_tools_card_tags_are_one_size():
+    """A tag is content, not geometry: one pill on every card.
+
+    Measured defect: the Markets tag rendered 11px beside the settings card's
+    10px, and the Backtest tag was hidden entirely below 560px, so one heading
+    showed a pill and the next did not.
+    """
+    assert _declarations_for_selector(
+        APPEARANCE_SHEET, "#page-tools .tool-card>.section-heading .tool-tag", "font-size"
+    ) == ["10px!important"], "every Tools tag must take one small-text step"
+    claiming = _rules_naming_one_tools_card(PLAIN[APPEARANCE_SHEET], ".tool-tag")
+    assert not claiming, f"a single Tools card claims its own tag geometry: {claiming}"
+    assert ".tool-backtest .tool-tag{display:none}" not in SHEETS["styles.css"], (
+        "styles.css hides the Backtest tag on a phone again, so one heading shows "
+        "a pill and its neighbour does not"
+    )
+
+
+def test_appearance_note_is_not_part_of_the_heading():
+    """The Appearance panel's note must not be inside its heading.
+
+    Measured defect: the note sat under the title, which alone made the
+    Appearance heading 64px against 57px on its neighbours -- the one card whose
+    block size was decided by prose. It is a footnote on the card now, and the
+    heading is the same eyebrow + title as every other card.
+
+    The Heading is read out of the Appearance card itself: the first
+    `<div class="section-heading">` on the page belongs to Home's equity chart,
+    so a whole-document search silently checked the wrong element.
+    """
+    card = re.search(
+        r'<section class="tool-card [^"]*tools-appearance[^"]*".*?</section>', HTML, re.S
+    )
+    assert card, "the Appearance card was not found"
+    heading = re.search(r'<div class="section-heading">(.*?)</div></div>', card.group(0), re.S)
+    assert heading, "the Appearance card must still have a .section-heading"
+    assert "section-note" not in heading.group(1), (
+        "a note is inside the Appearance heading again, so that heading is taller "
+        "than every other heading on the page"
+    )
+    assert 'class="section-note section-foot"' in HTML, (
+        "the Appearance note must still be rendered, as a footnote on the card"
+    )
+    assert _declarations_for_selector(
+        APPEARANCE_SHEET, "#page-tools .tools-appearance>.section-note", "border-top"
+    ), "the footnote needs its separator, or it reads as part of the last row"
+
+
+def test_bot_settings_is_split_into_one_card_per_concern():
+    """Accounts, assets, routing and saving are separate cards.
+
+    The single "Accounts, assets and routing" card held four unrelated editing
+    surfaces behind one heading, so the account limits and the routing order --
+    which do not affect each other -- shared one heading and one scroll position.
+    """
+    assert 'class="tool-card tool-settings tool-collapse"' not in HTML, (
+        "the monolithic settings card is back; accounts and routing must not "
+        "share one heading"
+    )
+    keys = dict(
+        (key, classes)
+        for classes, key in re.findall(
+            r'<section class="tool-card ([^"]*)"[^>]*data-tool-key="([^"]+)"', HTML
+        )
+    )
+    for key in ("universe", "accounts", "routing"):
+        assert key in keys, f"the {key} card is missing"
+        assert "tool-settings" in keys[key], (
+            f"the {key} card must keep the shared `tool-settings` marker so the "
+            "row, chip and inset contracts reach it"
+        )
+    for key in ("account-limits", "added-assets", "changes", "runtime"):
+        assert key not in keys, (
+            f"the {key} card is back: it either repeats a card that already "
+            "shows that data or holds only a control that belongs beside it"
+        )
+    for control, key in (
+        ("addAccountButton", "accounts"),
+        ("settingsAccounts", "accounts"),
+        ("accountsGrid", "accounts"),
+        ("addAssetButton", "universe"),
+        ("settingsAssets", "universe"),
+        ("universeGrid", "universe"),
+        ("settingsRules", "routing"),
+        ("settingsStartHour", "routing"),
+    ):
+        assert control in _tools_card_html(key), (
+            f"`{control}` must live inside the {key} card, beside the data it "
+            "acts on, not in a neighbouring section"
+        )
+    assert 'id="saveSettingsButton"' not in HTML, (
+        "Save is in the card that owns the data now, not in a shared Changes card"
+    )
+
+
+def test_tools_cards_own_their_own_height():
+    """A Tools card must not be taller than the content inside it.
+
+    Measured defect: `.tool-universe,.tool-accounts,.tool-rules,.tool-runtime`
+    took `min-height:100%`, which read as tidy while each of those cards was one
+    line of summary. Once Assets and Accounts carried their own editor, the
+    shorter card of a grid row was stretched to whatever the card beside it
+    measured and rendered ~229px of empty surface inside its border -- the same
+    dead space this page was already reported for. `align-items:start` on
+    `.tools-layout` keeps the tops aligned, which is what reads as alignment.
+    """
+    stretched = {".tool-universe", ".tool-accounts", ".tool-rules", ".tool-runtime"}
+    for name, sheet in SHEETS.items():
+        for prelude, body, _media in _iter_rules(sheet):
+            if "min-height:100%" not in body:
+                continue
+            offenders = [s for s in _selectors(prelude) if s.strip() in stretched]
+            assert not offenders, (
+                f"`{prelude}` in {name} stretches a Tools card to fill its grid "
+                "row again, so the shorter card of the row renders empty surface "
+                "inside its own border"
+            )
+
+
+def test_account_limits_are_editable_on_every_account():
+    """The editor must not refuse an edit the API accepts.
+
+    Measured defect: `accountRows()` appended `${fixed?" disabled":""}` to all
+    three number fields, so every one of the twelve fields on the four shipped
+    accounts rendered disabled at `opacity:.62` with `cursor:not-allowed` and the
+    operator could not change capital, trade cap or risk per trade. The server
+    guards only *deletion* -- `bot_settings.py` raises "Built-in accounts cannot
+    be removed" -- while capital, trade cap and risk are range-checked and
+    written for every account alike.
+    """
+    field = re.search(r"const field=\(key,label,min,max,step\)=>(.*?)\n", APP, re.S)
+    assert field, "the account field helper was renamed or removed"
+    assert "disabled" not in field.group(1), (
+        "the limit fields are disabled again, so the dashboard refuses an edit "
+        "that bot_settings.py validates and applies"
+    )
+    assert '${fixed?" disabled":""}' not in APP, (
+        "the per-account disabled flag is back on the settings fields"
+    )
+    # Only deletion is withheld from the shipped books.
+    assert 'const remove=fixed?"":' in APP, (
+        "the shipped accounts lost their remove guard: the server rejects the "
+        "whole document when one of the four is missing"
+    )
+
+
+def test_per_account_performance_is_derived_from_the_trade_ledger():
+    """Per-account performance costs no extra request and cannot disagree.
+
+    Measured defect: the Accounts card showed a read-only grid of balances and,
+    below it, an editor for the same books, so reading an account and changing
+    it were two places and neither said how the account was doing. The grid is
+    now that account's performance line, derived from the trade ledger the
+    dashboard already receives.
+    """
+    assert "function accountPerformance(" in APP, (
+        "there is no per-account performance helper; the grid is a balance "
+        "read-out again"
+    )
+    helper = APP.split("function accountPerformance(", 1)[1].split("\nfunction ", 1)[0]
+    assert "trades" in helper and "winRate" in helper, (
+        "the helper must derive closed trades and a win rate from the ledger"
+    )
+    grid = re.search(r'\$\("accountsGrid"\)\.innerHTML=(.*?)\.join\(""\);', APP, re.S)
+    assert grid, "the account performance grid is no longer rendered"
+    body = grid.group(1)
+    assert "accountPerformance(" in body, (
+        "the grid no longer asks the helper, so it shows balances and no "
+        "performance"
+    )
+    for fact in ("remaining_planned_risk", "closed", "account-pnl"):
+        assert fact in body, (
+            f"the per-account line dropped {fact!r}; it has to carry the live "
+            "state and the result in one compact row"
+        )
+    # The result must be legible on both signs without a colour-only cue.
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .account-grid>article strong.account-pnl.positive",
+        "color",
+    ) == ["var(--positive)!important"], (
+        "a profit is signalled by colour alone again"
+    )
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .account-grid>article strong.account-pnl.negative",
+        "color",
+    ) == ["var(--negative)!important"]
+    assert 'p.pnl>=0?"+":"−"' in APP, (
+        "the P/L is printed without a sign, so a loss reads as a gain"
+    )
+
+
+def test_session_row_is_one_line_including_the_live_readout():
+    """`grid-template-columns` alone does not prove the row is one line.
+
+    Measured defect: the three-column rule was present and measured correct,
+    and a guard that only read `grid-template-columns` passed -- while
+    `#page-tools .tool-settings .settings-session-live{grid-column:1/-1}` still
+    pushed "Right now" onto a row of its own, so the session rendered as a
+    start/end pair plus a full-width third control. The span has to be asserted
+    as well, or the half of the fix that did not work looks like a pass.
+    """
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-session-live",
+        "grid-column",
+    ) == ["auto!important"], (
+        "the live read-out spans the grid again, which puts the session back on "
+        "two rows while the column rule still reports a pass"
+    )
+
+
+def test_reorder_controls_look_like_controls():
+    """`↑` / `↓` must read as the controls that decide the routing order.
+
+    Measured defect: 32px of transparent background on `--muted` at 12px, so
+    the pair rendered as two grey specks with nothing saying what they did. A
+    reader could not tell they were buttons, let alone which end of the order
+    they moved a rule to. They now carry the chip surface, a 13px glyph, a
+    `title`/`aria-label` naming the action, and a "Move" caption in front of
+    the pair.
+    """
+    assert _declarations_for_selector(
+        "appearance-overrides.css", "#page-tools .tool-settings .settings-move", "background"
+    ) == ["var(--surface)!important"], (
+        "the reorder buttons are transparent again, so they read as decoration"
+    )
+    # The chip step is declared on `html #page-tools .tool-settings
+    # .chip-option`; an unprefixed rule loses to it and the glyph stays 9.5px.
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "html #page-tools .tool-settings .settings-move",
+        "font-size",
+    ) == ["13px!important"], (
+        "the reorder glyph is back on the 9.5px chip-label step, which is too "
+        "small to read as an arrow"
+    )
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-rule-move::before",
+        "content",
+        # `_declarations_for_selector` lowercases the value it returns.
+    ) == ['"move"!important'], (
+        "the pair has no caption, so nothing on screen says what it does"
+    )
+    assert 'title="${escapeHtml(label)}"' in APP, (
+        "the reorder buttons have no hover title, so the action is still unnamed"
+    )
+    assert '"Move "+rule.account+" up"' in APP and '"Move "+rule.account+" down"' in APP, (
+        "the reorder names lost their direction, so up and down read the same"
+    )
+
+
+def test_typing_a_limit_does_not_rebuild_the_row():
+    """A re-render mid-typing drops focus, which makes a field uneditable.
+
+    Measured defect: both input handlers ended in `renderSettings()`, which
+    replaces the row's `innerHTML`. Typing one character into capital measured
+    `sameNodeAfter: false` and `activeElement === document.body`, so the limit
+    fields accepted exactly one character per click -- enabled, and still
+    impossible to edit. This is the half of the complaint that removing
+    `disabled` did not fix.
+    """
+    for handler in ("settingsAccounts", "settingsAssets"):
+        split = APP.split(f'bindEvent("{handler}","input",', 1)
+        assert len(split) == 2, f'`{handler}` has no input handler left'
+        body = split[1].split("\n});", 1)[0]
+        # Comments stripped first: the handler explains in prose which function
+        # it must not call, and a bare substring check matched that prose.
+        body = re.sub(r"/\*.*?\*/", "", body, flags=re.S)
+        body = re.sub(r"(?m)^\s*//.*$", "", body)
+        assert "renderSettings()" not in body, (
+            f'`{handler}` rebuilds its rows while the operator types, so focus '
+            "falls to <body> after one keystroke"
+        )
+        assert "markSettingsDirty()" in body, (
+            f'`{handler}` must still mark the edit unsaved'
+        )
+    # The derived line has one definition, shared by the first render and the
+    # in-place update, so the two cannot drift apart.
+    assert "function accountSummary(" in APP, (
+        "the derived account line has no shared builder again"
+    )
+    assert "hint.textContent=accountSummary(account)" in APP, (
+        "the in-place update and the first render no longer agree on the "
+        "derived account line"
+    )
+
+
+def test_adding_an_asset_can_actually_be_saved():
+    """The Assets editor must be able to build a document the API accepts.
+
+    Measured defect: `bot_settings.py::_normalize_assets` requires `symbol`
+    ("Asset N needs a symbol") and rejects an asset whose strategy list is empty
+    ("strategies must select at least one name, or null for all"), while the
+    editor offered no symbol field at all and seeded `strategies:[]`. Every
+    "+ New asset" therefore posted `symbol:""` with nothing ticked and was
+    refused -- verified in the browser as `error | IDEA strategies must select
+    at least one name` before the fix, and `success | Settings saved` after.
+    """
+    assert 'text("symbol","Symbol")' in APP, (
+        "the asset row has no symbol field, which the server requires"
+    )
+    payload = APP.split("function settingsPayload()", 1)[1].split("\nfunction ", 1)[0]
+    assert "toUpperCase()" in payload and "trim()" in payload, (
+        "the payload sends the symbol untrimmed, so it cannot match what "
+        "_normalize_assets stores"
+    )
+    add = APP.split("function addAsset()", 1)[1].split("\nfunction ", 1)[0]
+    assert "strategies:null" in add, (
+        "a new asset is seeded ticking nothing, which the server refuses"
+    )
+    click = APP.split('bindEvent("settingsAssets","click",', 1)[1].split("\n});", 1)[0]
+    assert "must ride at least one strategy" in click, (
+        "the chip handler no longer refuses to empty an asset's strategy list, "
+        "so the UI can build a document the server rejects"
+    )
+    assert "??[...every]" in click, (
+        "the chip handler does not read null as every strategy, so untick/retick "
+        "on a default row silently loses the others"
+    )
+    assert "asset.strategies||model.strategies" in APP, (
+        "the asset chips read `asset.strategies` directly, so a default (null) "
+        "row throws while rendering"
     )
