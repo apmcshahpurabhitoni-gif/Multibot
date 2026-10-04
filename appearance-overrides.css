@@ -289,9 +289,7 @@ button,input,select{font-family:var(--font)}
 #page-tools .backtest-status,
 #page-tools .universe-grid,
 #page-tools .account-grid,
-#page-tools .rule-list,
-#page-tools .diagnostic-grid,
-#page-tools .schedule-inline{
+#page-tools .rule-list{
   border-radius:var(--ui-inner-r)!important;
 }
 
@@ -305,9 +303,7 @@ button,input,select{font-family:var(--font)}
 #page-tools .backtest-status,
 #page-tools .universe-grid,
 #page-tools .account-grid,
-#page-tools .rule-list,
-#page-tools .diagnostic-grid,
-#page-tools .schedule-inline{
+#page-tools .rule-list{
   box-shadow:none!important;
 }
 
@@ -602,9 +598,7 @@ button,input,select{font-family:var(--font)}
 
 #page-tools .universe-grid,
 #page-tools .account-grid,
-#page-tools .rule-list,
-#page-tools .diagnostic-grid,
-#page-tools .schedule-inline{
+#page-tools .rule-list{
   border:var(--ui-border)!important;
   background:var(--surface-2)!important;
   overflow:hidden!important;
@@ -668,48 +662,10 @@ button,input,select{font-family:var(--font)}
 #page-tools .rule-list b{font-size:12px!important;font-weight:650!important}
 #page-tools .rule-list span{font-size:11px!important;color:var(--muted)!important}
 
-#page-tools .diagnostic-grid{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:0!important;
-}
-#page-tools .diagnostic-grid>.compact-metric{
-  min-height:52px!important;
-  padding:9px 12px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:10px!important;
-  background:var(--surface)!important;
-  border-right:var(--ui-border)!important;
-  border-bottom:var(--ui-border)!important;
-}
-#page-tools .diagnostic-grid>.compact-metric:nth-child(2n){border-right:0!important}
-#page-tools .diagnostic-grid>.compact-metric:nth-last-child(-n+2){border-bottom:0!important}
-#page-tools .diagnostic-grid .compact-metric span{font-size:11px!important;color:var(--muted)!important}
-#page-tools .diagnostic-grid .compact-metric b{font-size:12px!important;font-weight:650!important}
-
-#page-tools .schedule-inline{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:0!important;
-  margin-top:10px!important;
-}
-#page-tools .schedule-inline>span{
-  min-height:52px!important;
-  padding:8px 10px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:center!important;
-  gap:2px!important;
-  background:var(--surface)!important;
-  border-right:var(--ui-border)!important;
-  border-bottom:var(--ui-border)!important;
-}
-#page-tools .schedule-inline>span:nth-child(3n){border-right:0!important}
-#page-tools .schedule-inline>span:nth-last-child(-n+3){border-bottom:0!important}
-#page-tools .schedule-inline b{font-size:12px!important;font-weight:650!important}
-#page-tools .schedule-inline small{font-size:10px!important;color:var(--muted)!important}
+/* Removed with the Runtime card: `.diagnostic-grid` and `.schedule-inline`
+   described tiles and a candle-shift strip that no markup renders any more.
+   The release modal was the last thing that emitted the schedule markup, into
+   a `hidden` element nothing ever revealed, so that went too. */
 
 /* ---------- Home: same metric/card contract, richer content allowed -------- */
 #page-overview>.metric-grid{gap:8px!important}
@@ -748,8 +704,10 @@ button,input,select{font-family:var(--font)}
   #page-calendar .calendar-date-list{padding:8px!important}
   #page-signals .workspace-heading,
   #page-history .workspace-heading,
-  #page-calendar .calendar-agenda-bar,
-  #page-tools .tool-card>.section-heading{min-height:50px!important;padding:11px 14px!important}
+  #page-calendar .calendar-agenda-bar{min-height:50px!important;padding:11px 14px!important}
+  /* Superseded: `#page-tools .tool-card>.section-heading` used to take a 50px
+     min-height and 11px padding here, so a Tools heading measured one height on
+     a phone and another on a desktop. The shared contract has no breakpoint. */
   #page-history .history-summary-grid,
   #page-calendar .calendar-summary-grid{
     gap:8px!important;
@@ -761,11 +719,6 @@ button,input,select{font-family:var(--font)}
   #page-tools .settings-row{padding:9px 14px!important;align-items:flex-start!important}
   #page-tools .settings-inline{justify-content:flex-end!important}
   #page-tools .asset-category-items{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  #page-tools .schedule-inline{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  #page-tools .schedule-inline>span:nth-child(3n){border-right:var(--ui-border)!important}
-  #page-tools .schedule-inline>span:nth-child(2n){border-right:0!important}
-  #page-tools .schedule-inline>span:nth-last-child(-n+3){border-bottom:var(--ui-border)!important}
-  #page-tools .schedule-inline>span:nth-last-child(-n+2){border-bottom:0!important}
   #page-calendar .calendar-item{min-height:72px!important}
   #page-calendar .calendar-details{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
@@ -999,8 +952,6 @@ button:focus:not(:focus-visible){outline:none!important}
 #page-tools .universe-grid[class],
 #page-tools .account-grid[class],
 #page-tools .rule-list[class],
-#page-tools .diagnostic-grid[class],
-#page-tools .schedule-inline[class],
 #page-tools .backtest-controls[class],
 #page-tools .asset-category-label[class]{
   border-radius:var(--f-inner-radius)!important;
@@ -1014,15 +965,13 @@ html .text-button[class]{
 
 /* Nested chips/panels that were painted the same colour as their parent, so
    they only existed as a 1px outline.
-   The backtest form and the Runtime grids take the same grey body treatment as
-   the Markets/Accounts/Rules panels they sit beside, which is what lets their
-   controls and tiles be genuinely white instead of white-on-white. */
+   The backtest form takes the same grey body treatment as the
+   Markets/Accounts/Rules panels it sits beside, which is what lets its
+   controls be genuinely white instead of white-on-white. */
 #page-overview .hero-pills span{
   background:var(--f-inner-bg)!important;
 }
-#page-tools .backtest-controls[class],
-#page-tools .diagnostic-grid[class],
-#page-tools .schedule-inline[class]{
+#page-tools .backtest-controls[class]{
   background:var(--f-inner-bg)!important;
 }
 #page-tools .backtest-controls select{
@@ -1234,9 +1183,7 @@ html #page-signals .detail-grid > div,
 html #page-overview .detail-grid > div > span,
 html #page-signals .detail-grid > div > span,
 html #page-overview .overview-signals .signal-card.expanded .detail-grid > div,
-html #page-signals .signal-card.expanded .detail-grid > div,
-html #page-tools .tool-runtime .schedule-inline > span,
-html #page-tools .tool-runtime .diagnostic-grid > article{
+html #page-signals .signal-card.expanded .detail-grid > div{
   border-radius:var(--radius-xs)!important;
 }
 
@@ -1415,8 +1362,6 @@ html .status-badge,
 html .hero-pills span,
 html #page-tools .asset-category-label,
 html #page-tools .tool-universe .asset-category-label,
-html #page-tools .tool-runtime .schedule-inline small,
-html #page-tools .tool-runtime .diagnostic-grid span,
 html #page-tools .tools-appearance .settings-label,
 html #page-tools .tools-appearance .chip-option,
 html #page-tools .tool-settings .settings-label,
@@ -1720,35 +1665,24 @@ html .hero h2{
    TOOLS — APPEARANCE COMPACT PASS 1
    Scoped to Appearance only. Keep other Tools sections and frozen pages intact.
    ========================================================================== */
-#page-tools .tools-appearance>.section-heading{
-  min-height:0!important;
-  padding:10px 12px!important;
-  align-items:flex-start!important;
-}
-#page-tools .tools-appearance>.section-heading>div{
-  min-width:0!important;
-}
-#page-tools .tools-appearance>.section-heading .eyebrow{
-  margin:0 0 3px!important;
-  font-size:10px!important;
-  line-height:1!important;
-}
-#page-tools .tools-appearance>.section-heading h2{
+/* Superseded: this block gave the Appearance heading its own `min-height:0`,
+   its own padding, `align-items:flex-start` and a 16px title, so it rendered a
+   visibly different size block from every other Tools card. The one heading
+   contract now lives at the end of this sheet. The explanatory note it used to
+   sit under the title, which made the heading the tallest on the page, moved to
+   the card's foot where it is a footnote rather than part of the heading. */
+#page-tools .tools-appearance>.section-note{
   margin:0!important;
-  font-size:16px!important;
-  line-height:1.15!important;
-  font-weight:650!important;
-}
-#page-tools .tools-appearance>.section-heading .section-note{
-  margin:3px 0 0!important;
-  max-width:560px!important;
+  padding:10px var(--ui-heading-pad-x) 12px!important;
+  border-top:var(--border-w) solid var(--line)!important;
+  max-width:100%!important;
   font-size:10.5px!important;
   line-height:1.25!important;
 }
 
 #page-tools .tools-appearance .settings-row{
   min-height:46px!important;
-  padding:6px 12px!important;
+  padding:6px var(--ui-heading-pad-x)!important;
   display:grid!important;
   grid-template-columns:76px minmax(0,1fr)!important;
   align-items:center!important;
@@ -1798,19 +1732,15 @@ html .hero h2{
 }
 
 @media(max-width:560px){
-  #page-tools .tools-appearance>.section-heading{
-    padding:9px 12px!important;
-  }
-  #page-tools .tools-appearance>.section-heading h2{
-    font-size:15px!important;
-  }
-  #page-tools .tools-appearance>.section-heading .section-note{
+  #page-tools .tools-appearance>.section-note{
+    padding:10px var(--ui-heading-pad-x) 12px!important;
     font-size:10px!important;
     line-height:1.2!important;
   }
   #page-tools .tools-appearance .settings-row{
     min-height:44px!important;
-    padding:6px 12px!important;
+    padding-block:6px!important;
+    padding-inline:var(--ui-heading-pad-x)!important;
     grid-template-columns:72px minmax(0,1fr)!important;
     gap:7px!important;
   }
@@ -1882,31 +1812,10 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
    Backtest only. Keep the existing DOM/API/rendering intact; this is a
    presentation contract for compact mobile geometry and safe text flow.
    ========================================================================== */
-#page-tools .tool-backtest>.section-heading{
-  min-height:46px!important;
-  padding:9px 12px!important;
-  gap:8px!important;
-}
-#page-tools .tool-backtest>.section-heading>div{
-  min-width:0!important;
-  flex:1 1 auto!important;
-}
-#page-tools .tool-backtest>.section-heading h2{
-  font-size:15px!important;
-  line-height:1.15!important;
-}
-#page-tools .tool-backtest>.section-heading .eyebrow{
-  margin-bottom:3px!important;
-  font-size:10px!important;
-}
-#page-tools .tool-backtest>.section-heading .tool-tag{
-  flex:0 0 auto!important;
-  min-width:0!important;
-  min-height:28px!important;
-  height:28px!important;
-  padding:5px 9px!important;
-  font-size:10px!important;
-}
+/* Superseded: Backtest carried a 46px heading with a 15px title, so it rendered
+   the smallest block on the page beside its 17px neighbours, and it was the only
+   card whose tag was dropped on a narrow phone. The one heading contract is at
+   the end of this sheet. */
 #page-tools .tool-backtest>.tool-body{
   padding:9px!important;
 }
@@ -2106,12 +2015,6 @@ html.neo-mode #page-tools .tools-appearance .settings-toggle.active{
   white-space:nowrap!important;
 }
 @media(max-width:390px){
-  #page-tools .tool-backtest>.section-heading{
-    padding-inline:10px!important;
-  }
-  #page-tools .tool-backtest>.section-heading .tool-tag{
-    display:none!important;
-  }
   #page-tools .tool-backtest>.tool-body{
     padding:8px!important;
   }
@@ -2359,9 +2262,9 @@ html #page-overview .overview-activity .empty-state{
 
    Three kinds of box broke that, all on Tools and Calendar:
 
-   1. GREY ON GREY WITH A BORDER. `.universe-grid`, `.account-grid`,
-      `.rule-list`, `.diagnostic-grid` and `.schedule-inline` are all painted
-      `--surface-2` and all carried a 1px border -- while sitting inside
+   1. GREY ON GREY WITH A BORDER. `.universe-grid`, `.account-grid` and
+      `.rule-list` are all painted `--surface-2` and all carried a 1px border
+      -- while sitting inside
       `.tool-body`, which is *also* `--surface-2`. Two greys on top of each
       other cannot be separated by a fill, so the border was the only thing
       doing any work: a line floating in the middle of a flat grey field, with
@@ -2373,7 +2276,8 @@ html #page-overview .overview-activity .empty-state{
       a borderless table: `gap:0`, `border-right` + `border-bottom` per tile,
       then `:nth-child(2n)` dropping the right edge and
       `:nth-last-child(-n+2)` dropping the bottom one. Measured in the live
-      DOM, `.diagnostic-grid`'s four tiles came back as
+      DOM, the Runtime card's four tiles (that card has since been removed)
+      came back as
 
           [0] border-top 0px    [1] border-top 0px
           [2] border-top 1px    [3] border-top 1px
@@ -2406,26 +2310,17 @@ html #page-overview .overview-activity .empty-state{
        section.tool-card.tool-<x> > div.tool-body > div.<grid> > <tile>
 
    so every selector below names that chain. `html body` + two classes in the
-   chain outranks `html #page-tools .tool-runtime .<grid> > <tile>` on class
-   count, which is what the pile-up above actually competes with. */
+   chain outranks the higher-specificity pile-up above on class count, which
+   is what that pile-up actually competes with. */
 html body #page-tools .tool-universe .tool-body .universe-grid,
 html body #page-tools .tool-accounts .tool-body .account-grid,
-html body #page-tools .tool-rules .tool-body .rule-list,
-html body #page-tools .tool-runtime .tool-body .diagnostic-grid,
-html body #page-tools .tool-runtime .tool-body .schedule-inline{
+html body #page-tools .tool-rules .tool-body .rule-list{
   border:0!important;
   border-radius:var(--radius-sm)!important;
 }
 html body #page-tools .tool-universe .tool-body .universe-grid>span,
 html body #page-tools .tool-accounts .tool-body .account-grid>article,
 html body #page-tools .tool-rules .tool-body .rule-list>div,
-html body #page-tools .tool-runtime .tool-body .diagnostic-grid>article,
-html body #page-tools .tool-runtime .tool-body .diagnostic-grid>.compact-metric,
-html body #page-tools .tool-runtime .tool-body .schedule-inline>span,
-html body #page-tools .tool-runtime .tool-body .diagnostic-grid>.compact-metric:nth-child(2n),
-html body #page-tools .tool-runtime .tool-body .diagnostic-grid>.compact-metric:nth-last-child(-n+2),
-html body #page-tools .tool-runtime .tool-body .schedule-inline>span:nth-child(3n),
-html body #page-tools .tool-runtime .tool-body .schedule-inline>span:nth-last-child(-n+3),
 html body #page-tools .tool-rules .tool-body .rule-list>div:nth-child(odd),
 html body #page-tools .tool-rules .tool-body .rule-list>div:last-child,
 html body #page-tools .tool-accounts .tool-body .account-grid>article:last-child{
@@ -2540,19 +2435,9 @@ html[data-style="material3"] #page-calendar .calendar-date-group .calendar-detai
 html #page-tools .tool-card>.section-heading{
   flex-wrap:nowrap!important;
 }
-#page-tools .tool-settings>.section-heading>.tool-tag{
-  flex:0 1 auto!important;
-  min-width:0!important;
-  height:28px!important;
-  min-height:28px!important;
-  padding:5px 9px!important;
-  font-size:10px!important;
-  line-height:1!important;
-  letter-spacing:.04em!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  white-space:nowrap!important;
-}
+/* Superseded: the settings tag used to be the only shrunk one, so it rendered a
+   10px pill beside the Markets card's 11px one. The tag contract is now declared
+   once for every card; see "ONE HEADING CONTRACT" at the end of this sheet. */
 
 /* --- (2) One gutter: body padding + row inset = the heading inset ---------
    Two sheets gave the same card heading a 12px and a 16px horizontal inset,
@@ -2562,11 +2447,7 @@ html #page-tools .tool-card>.section-heading{
    above them. One inset is declared once and used by every card, row, group
    label and note.
    ---------------------------------------------------------------------- */
-#page-tools .tool-card>.section-heading,
-#page-tools .tools-appearance>.section-heading{
-  padding-inline:12px!important;
-}
-#page-tools .tool-settings{--ui-settings-inset:4px}
+#page-tools .tool-settings{--ui-settings-inset:calc(var(--ui-heading-pad-x) - 8px)}
 #page-tools .tool-settings .settings-row,
 #page-tools .tool-settings .settings-group>.settings-label,
 #page-tools .tool-settings .settings-group>.section-note{
@@ -2574,18 +2455,6 @@ html #page-tools .tool-card>.section-heading{
 }
 #page-tools .tool-settings .settings-row{
   align-items:center!important;
-}
-@media(max-width:560px){
-  #page-tools .tool-settings>.section-heading h2{
-    font-size:15px!important;
-    line-height:1.15!important;
-  }
-  #page-tools .tool-settings>.section-heading .eyebrow{
-    margin-bottom:3px!important;
-  }
-  #page-tools .tool-settings>.section-heading{
-    gap:8px!important;
-  }
 }
 
 /* --- (3) Account rows: labelled fields, one grid, one row each -----------
@@ -2653,8 +2522,13 @@ html #page-tools .tool-card>.section-heading{
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:10px!important;
 }
+/* Superseded: `grid-column:1/-1` gave "Right now" a row of its own, so the
+   session rendered as a start/end pair plus a full-width third control while
+   every other row in the card was a single line -- and a rule that only
+   checked `grid-template-columns` could not see it. It is the third of three
+   32px controls and shares the line. */
 #page-tools .tool-settings .settings-session-live{
-  grid-column:1/-1!important;
+  grid-column:auto!important;
 }
 #page-tools .tool-settings .backtest-controls label{
   position:relative!important;
@@ -2693,35 +2567,10 @@ html #page-tools .tool-card>.section-heading{
    status line. Save is now the card's only accent button and the Changes row
    carries a live "Unsaved changes" badge.
    ---------------------------------------------------------------------- */
-#page-tools .tool-settings .settings-changes-head{
-  display:flex!important;
-  align-items:center!important;
-  gap:8px!important;
-  min-width:0!important;
-}
-#page-tools .tool-settings .settings-changes .settings-label{
-  min-width:0!important;
-}
-#page-tools .tool-settings .settings-dirty{
-  display:inline-flex!important;
-  align-items:center!important;
-  height:20px!important;
-  padding:0 8px!important;
-  border:var(--ui-border)!important;
-  border-radius:999px!important;
-  background:var(--warning-soft)!important;
-  color:var(--warning)!important;
-  font-size:9.5px!important;
-  line-height:1!important;
-  font-weight:700!important;
-  letter-spacing:.06em!important;
-  text-transform:uppercase!important;
-  white-space:nowrap!important;
-}
-#page-tools .tool-settings .settings-dirty[hidden]{
-  display:none!important;
-}
-#page-tools .tool-settings .settings-changes .primary-button.is-dirty{
+/* Superseded: the Changes card and its "Unsaved changes" badge are gone. Save
+   and Reset live in every card that owns data now, so the dirty state is
+   carried by the Save button the operator's hand is already on. */
+#page-tools .tool-settings .settings-actions .primary-button.is-dirty{
   box-shadow:0 0 0 2px var(--accent-soft)!important;
 }
 
@@ -2737,26 +2586,26 @@ html #page-tools .tool-card>.section-heading{
   padding:0!important;
   display:grid!important;
   place-items:center!important;
-  font-size:12px!important;
+  font-size:13px!important;
   line-height:1!important;
-  background:transparent!important;
-  border-color:transparent!important;
-  color:var(--muted)!important;
-  -webkit-text-fill-color:var(--muted)!important;
-}
-#page-tools .tool-settings .settings-move:hover:not(:disabled){
-  background:var(--surface-2)!important;
+  font-weight:700!important;
+  background:var(--surface)!important;
   border-color:var(--line)!important;
   color:var(--text)!important;
   -webkit-text-fill-color:var(--text)!important;
+}
+#page-tools .tool-settings .settings-move:hover:not(:disabled){
+  border-color:var(--accent)!important;
+  color:var(--accent)!important;
+  -webkit-text-fill-color:var(--accent)!important;
   transform:none!important;
 }
 #page-tools .tool-settings .settings-move:disabled{
-  background:transparent!important;
-  border-color:transparent!important;
+  background:var(--surface)!important;
+  border-color:var(--line)!important;
   color:var(--muted)!important;
   -webkit-text-fill-color:var(--muted)!important;
-  opacity:.34!important;
+  opacity:.45!important;
   cursor:not-allowed!important;
   transform:none!important;
 }
@@ -2862,4 +2711,228 @@ html.neo-mode #page-tools .tool-settings .settings-move:disabled{
 #page-tools .tool-settings .settings-row:has(#addAssetButton){
   justify-content:flex-start!important;
   gap:10px!important;
+}
+
+/* ==========================================================================
+   TOOLS — ONE HEADING CONTRACT FOR EVERY CARD
+
+   Measured before this block (390x844, modern/light/rose), one row per card:
+
+     card        height   padding      title   tag
+     appearance    64      9px 12px     15px    --
+     backtest      51      9px 12px     15px    hidden below 390
+     universe      57     11px 12px     17px    11px
+     accounts      57     11px 12px     17px    --
+     settings      55     11px 12px     15px    10px
+     rules         57     11px 12px     17px    --
+     runtime       57     11px 12px     17px    --
+
+   Four different heights and two different title sizes on one page, because
+   four separate blocks had each claimed the heading: Appearance, Backtest and
+   the settings cards set their own padding and a 15/16px title, which outranked
+   the 17px step that `html #page-tools .section-heading h2` already declared.
+   Those blocks are gone; this is the only heading geometry in the layer, and it
+   deliberately has no breakpoint, so a card cannot be one size on a phone and
+   another on a desktop.
+
+   Three values, one relationship: the body is inset 8px, and every row inside
+   it takes `--ui-heading-pad-x - 8px`, so row text always lands on the same x
+   as the eyebrow above it whatever the inset becomes.
+   ========================================================================== */
+:root{
+  --ui-heading-h:56px;
+  --ui-heading-pad-y:10px;
+  --ui-heading-pad-x:14px;
+}
+#page-tools .tool-card>.section-heading,
+#page-tools .tools-appearance>.section-heading{
+  min-height:var(--ui-heading-h)!important;
+  padding-block:var(--ui-heading-pad-y)!important;
+  padding-inline:var(--ui-heading-pad-x)!important;
+  gap:12px!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+}
+#page-tools .tool-card>.section-heading h2,
+#page-tools .tools-appearance>.section-heading h2{
+  margin:0!important;
+  font-size:17px!important;
+  line-height:1.15!important;
+  font-weight:650!important;
+  letter-spacing:-.02em!important;
+}
+#page-tools .tool-card>.section-heading .eyebrow,
+#page-tools .tools-appearance>.section-heading .eyebrow{
+  margin:0 0 4px!important;
+  font-size:10px!important;
+  line-height:1!important;
+  letter-spacing:.13em!important;
+}
+/* The tag is content, not geometry: one pill size everywhere so "Fixed" and
+   "08:00-17:00 NY" cannot render at two different sizes beside each other. */
+#page-tools .tool-card>.section-heading .tool-tag,
+#page-tools .tools-appearance>.section-heading .tool-tag{
+  flex:0 1 auto!important;
+  min-width:0!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:5px 9px!important;
+  font-size:10px!important;
+  line-height:1!important;
+  letter-spacing:.04em!important;
+  border-radius:999px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* --- (14) Reorder says what it is ----------------------------------------
+   `↑` / `↓` were 32px of transparent nothing on the muted colour, so they read
+   as decoration rather than as the controls that decide which account catches
+   a trade first. They take the project's chip surface, a readable glyph, a
+   hover/screen-reader name from `title`/`aria-label`, and a "Move" caption in
+   front of the pair so the row explains itself without spending a line.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-rule-move{
+  gap:6px!important;
+}
+#page-tools .tool-settings .settings-rule-move::before{
+  content:"Move"!important;
+  color:var(--muted)!important;
+  font-size:9.5px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  letter-spacing:.13em!important;
+  text-transform:uppercase!important;
+}
+/* The summary is a full-width sentence under the rule's name now, not a third
+   column that wrapped into a tall ragged block beside it. */
+#page-tools .tool-settings .settings-rule>.settings-rule-summary{
+  flex:none!important;
+  width:100%!important;
+}
+
+/* --- (15) Per-account performance lives beside its own limits -------------
+   The Accounts card showed live balances in one grid and the limits in
+   another, so reading a book and changing it were two different places. The
+   grid is the performance line for each account (balance, trades used, risk
+   left, closed, win rate) and the editor sits directly under it, derived from
+   the same trade ledger Home already reads -- no extra request.
+   ---------------------------------------------------------------------- */
+#page-tools .account-grid>article strong.account-pnl{
+  font-size:11.5px!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+  font-variant-numeric:tabular-nums!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+}
+#page-tools .account-grid>article strong.account-pnl.positive{color:var(--positive)!important}
+#page-tools .account-grid>article strong.account-pnl.negative{color:var(--negative)!important}
+
+/* The 9.5px chip step is declared on `html #page-tools .tool-settings
+   .chip-option`, which carries an extra `html` type selector. The reorder
+   button is a chip, so it inherited that group's 9.5px muted glyph and my
+   unprefixed rule lost on specificity: the arrows stayed unreadable even after
+   they gained a surface. Same reach, so the glyph is a glyph and not a chip
+   label. */
+html #page-tools .tool-settings .settings-move{
+  font-size:13px!important;
+  font-weight:700!important;
+  color:var(--text)!important;
+  -webkit-text-fill-color:var(--text)!important;
+}
+html #page-tools .tool-settings .settings-move:disabled{
+  color:var(--muted)!important;
+  -webkit-text-fill-color:var(--muted)!important;
+}
+html #page-tools .tool-settings .settings-move:hover:not(:disabled){
+  border-color:var(--accent)!important;
+  color:var(--accent)!important;
+  -webkit-text-fill-color:var(--accent)!important;
+}
+
+/* --- (12) Every card that owns data owns its Save ------------------------
+   There was one Changes card holding Save and Reset, so adding an asset in the
+   Assets card meant scrolling to a different card to commit it, and the only
+   status line sat at the bottom of a 2,000px page. Save, Reset and the status
+   line now live inside the card whose data they write.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-actions{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+  margin-top:10px!important;
+  padding:10px var(--ui-settings-inset) 0!important;
+  border-top:var(--ui-border)!important;
+}
+#page-tools .tool-settings .settings-actions-status{
+  flex:1 1 150px!important;
+  min-width:0!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+  color:var(--muted)!important;
+  overflow-wrap:anywhere!important;
+}
+#page-tools .tool-settings .settings-actions-status.loading{color:var(--warning)!important}
+#page-tools .tool-settings .settings-actions-status.success{color:var(--positive)!important}
+#page-tools .tool-settings .settings-actions-status.error{color:var(--negative)!important}
+/* The read-only grid and the editor for the same thing are one card, so the
+   editor reads as a labelled second half rather than a second component. */
+#page-tools .tool-settings .universe-grid+.settings-group,
+#page-tools .tool-settings .account-grid+.settings-group{
+  margin-top:10px!important;
+  padding-top:10px!important;
+  border-top:var(--ui-border)!important;
+}
+#page-tools .tool-settings .settings-group-head{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:baseline!important;
+  gap:4px 10px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-group-head>.settings-label{min-width:0!important}
+
+/* --- (13) A routing row is a summary until it is being edited -------------
+   Three captioned chip groups per rule measured ~170px each, so four rules
+   buried the routing order -- the thing that actually decides trades -- under
+   ~680px of chips that only matter while editing. A row now states its own
+   contract on one line and opens in place when it is worked on. A row with
+   nothing ticked is not blank either: the summary spells out "every strategy /
+   every asset group", which is what the prose note used to explain instead.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-rule-summary{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  margin:0!important;
+  color:var(--muted)!important;
+  font-size:11px!important;
+  line-height:1.3!important;
+  overflow-wrap:anywhere!important;
+}
+#page-tools .tool-settings .settings-rule>.settings-rule-body{
+  display:none!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-rule.is-open>.settings-rule-body{display:flex!important}
+/* The chips say the same thing as the summary, so it steps aside while open. */
+#page-tools .tool-settings .settings-rule.is-open .settings-rule-summary{display:none!important}
+/* Three fields on one line at every width: the session is three 32px controls,
+   which fit side by side on the narrowest phone this project supports. */
+#page-tools .tool-settings .session-controls{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:end!important;
+}
+#page-tools .tool-settings .session-controls label{gap:4px!important}
+#page-tools .tool-settings .session-controls select{
+  height:var(--ui-control-h)!important;
+  min-height:var(--ui-control-h)!important;
+  padding:0 9px!important;
+  font-size:11px!important;
+  font-weight:650!important;
 }

@@ -7,7 +7,7 @@ const CONFIG=Object.freeze({apiUrl:window.DASHBOARD_API_URL||"/api/dashboard",ti
 // the ID and letting the registry supply the name keeps the stored history
 // intact and survives a future rename without another edit here.
 const LEGACY_STRATEGY_NAMES=Object.freeze({"Sweep V2":"sweep_v2","Engulfing Entries @ 66 SMA":"engulfing_66_sma","Adaptive Trend Momentum":"adaptive_trend"});
-const state={data:null,lastUpdate:null,activePage:"overview",expanded:new Set(),signalDates:new Set(),historyTradeDates:new Set(),historyScanDates:new Set(),groupInit:new Set(),selectedTrade:null,calendarDate:dateInputValue(new Date()),calendarImpacts:new Set(["All"]),calendarDates:new Set(),calendar:null,backtest:null,settings:null,settingsDirty:false,settingsMessage:null};
+const state={data:null,lastUpdate:null,activePage:"overview",expanded:new Set(),signalDates:new Set(),historyTradeDates:new Set(),historyScanDates:new Set(),groupInit:new Set(),selectedTrade:null,calendarDate:dateInputValue(new Date()),calendarImpacts:new Set(["All"]),calendarDates:new Set(),calendar:null,backtest:null,settings:null,settingsDirty:false,settingsMessage:null,expandedRules:new Set()};
 const $=id=>document.getElementById(id);const $$=selector=>Array.from(document.querySelectorAll(selector));
 function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
 function number(value,digits=2){const n=Number(value);return Number.isFinite(n)?n.toLocaleString("en-IN",{minimumFractionDigits:digits,maximumFractionDigits:digits}):"—";}
@@ -216,7 +216,12 @@ function renderTools(){const data=state.data||{},universe=Array.isArray(data.uni
     const group=raw.includes("NIFTY")||upper.includes("NIFTY")?"Indices":raw.includes("GOLD")||upper.includes("GOLD")?"Commodities":raw.includes("BTC")||upper.includes("BITCOIN")?"Crypto":raw.includes("/")||upper.includes("EUR/")||upper.includes("GBP/")||upper.includes("AUD/")||upper.includes("USD/")||upper.includes("NZD/")?"Forex":"Indian Equities";
     assetGroups[group].push(label);
   });
-  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>`<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} planned risk remaining</small></article>`).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");$("candleSchedule").innerHTML=["10:15|First close","11:15|Hourly close","12:15|Hourly close","13:15|Hourly close","14:15|Hourly close","15:15|Final close"].map(item=>{const [time,label]=item.split("|");return `<span><b>${time}</b><small>${label}</small></span>`;}).join("");$("diagnostics").innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;if(!state.settingsDirty){if(!state.settings)loadSettings();}else if(state.settingsMessage?.kind!=="error")settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
+  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>{const p=accountPerformance(a.name),sign=p.pnl>=0?"positive":"negative";return `<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} risk left · ${number(p.closed,0)} closed · ${p.winRate===null?"—":p.winRate+"% win"}${p.open?` · ${number(p.open,0)} open`:''}</small><strong class="account-pnl ${sign}">${p.pnl>=0?"+":"−"}${inr(Math.abs(p.pnl))}</strong></article>`;}).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");  // The Diagnostics card is gone: the same facts are in the topbar status
+  // badge and the release modal, and it was a whole Tools card for read-only
+  // telemetry nobody changed from here. The render is kept for the release
+  // modal, which mounts the same markup into its own container.
+  const diagnosticGrid=$("diagnostics");
+  if(diagnosticGrid)diagnosticGrid.innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;if(!state.settingsDirty){if(!state.settings)loadSettings();}else if(state.settingsMessage?.kind!=="error")settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
 function backtestMetricLabel(key){return ({return_pct:"Return",max_drawdown_pct:"Max drawdown",sharpe:"Sharpe",sortino:"Sortino",win_rate_pct:"Win rate",profit_factor:"Profit factor",number_of_trades:"Trades",average_trade:"Average trade",max_losing_streak:"Max losing streak",exposure_pct:"Exposure",risk_adjusted_performance:"Risk-adjusted performance"})[key]||key.replaceAll("_"," ");}
 function formatBacktestMetric(key,value){const n=Number(value);if(!Number.isFinite(n))return "—";if(["return_pct","max_drawdown_pct","win_rate_pct","exposure_pct"].includes(key))return `${number(n,2)}%`;if(key==="average_trade")return inr(n);if(["number_of_trades","max_losing_streak"].includes(key))return number(n,0);return number(Math.max(-9999,Math.min(9999,n)),2);}
 function renderBacktest(result){const status=$("backtestStatus"),box=$("backtestResults");if(!result){box.hidden=true;return;}if(result.ok===false){status.className="backtest-status error";status.textContent=`Backtest failed: ${result.error||"Unknown error"}`;box.hidden=true;return;}status.className="backtest-status success";status.textContent=`${result.strategy} · ${result.asset?.label||result.symbol} · ${result.period} · ${number(result.candle_count,0)} candles`;const curve=Array.isArray(result.equity_curve)?result.equity_curve:[];const trades=Array.isArray(result.trades)?result.trades:[];const metrics=Object.entries(result.metrics||{}).filter(([key])=>!["rating","rating_label","breakdown"].includes(key));box.innerHTML=`<section class="backtest-section backtest-overview-section"><div class="backtest-summary"><div><span>START</span><b>${inr(curve[0]?.equity||100000)}</b></div><div><span>END</span><b>${inr(curve[curve.length-1]?.equity||100000)}</b></div><div><span>TRADES</span><b>${number(result.trades_taken,0)}</b></div><div><span>RETURN</span><b>${formatBacktestMetric("return_pct",result.metrics?.return_pct)}</b></div></div></section><section class="backtest-section backtest-curve-section"><div class="chart-head"><div><strong>Equity curve</strong><small>Paper account value after each completed backtest trade</small></div><span>${trades.length} trade${trades.length===1?"":"s"}</span></div>${curve.length?renderEquityLine(curve,{label:"Backtest equity curve"}):empty("No completed trades","◇","The selected period produced no completed trades to plot.")}</section><section class="backtest-section backtest-performance-section"><div class="backtest-section-heading"><div><span class="eyebrow">PERFORMANCE</span><h3>Results</h3></div><span class="backtest-rating">${escapeHtml(result.metrics?.rating_label||result.metrics?.rating||"—")}</span></div><div class="backtest-metrics">${metrics.map(([key,value])=>`<div><span>${escapeHtml(backtestMetricLabel(key))}</span><b title="${escapeHtml(formatBacktestMetric(key,value))}">${escapeHtml(formatBacktestMetric(key,value))}</b></div>`).join("")}</div></section><section class="backtest-section backtest-trades-section"><div class="backtest-section-heading"><div><span class="eyebrow">EXECUTION</span><h3>Completed trades</h3></div><span>${trades.length} recorded</span></div><div class="backtest-trades">${trades.length?trades.slice().reverse().map(trade=>{const d=direction(trade.direction),pnl=Number(trade.pnl);return `<article class="backtest-trade-row ${d.cls}"><span class="backtest-trade-side ${d.cls}">${d.text}</span><div><b>${escapeHtml(timestamp(trade.timestamp))}</b><small>Entry ${price(trade.entry)} · Exit ${price(trade.exit)} · ${number(trade.bars_held,0)} bars</small></div><strong class="${pnl>=0?"positive":"negative"}">${inr(pnl)}</strong></article>`;}).join(""):empty("No completed trades","◷","Trades will appear here separately from performance metrics.")}</div></section>`;box.hidden=false;}
@@ -259,8 +264,32 @@ bindEvent("reduceMotionToggle","click",()=>{const next=localStorage.getItem("mav
 bindEvent("runBacktestButton","click",runBacktest);
 bindEvent("settingsStartHour","change",markSettingsDirty);
 bindEvent("settingsEndHour","change",markSettingsDirty);
-bindEvent("saveSettingsButton","click",saveSettings);
-bindEvent("resetSettingsButton","click",resetSettings);
+  // Every card that owns data carries its own Save, Reset and status line, so
+  // the action sits beside the data it commits. One delegated listener covers
+  // all of them rather than one binding per card, and it hands the pressed
+  // button to postSettings() so the loading state lands where the operator
+  // clicked.
+  document.addEventListener("click",event=>{
+    const target=event.target instanceof Element?event.target:null;if(!target)return;
+    const save=target.closest("[data-save-settings]"),reset=target.closest("[data-reset-settings]");
+    if(save)saveSettings(save);
+    else if(reset)resetSettings(reset);
+  });
+  // A routing row shows its summary until it is being edited: twelve chips per
+  // rule stacked to ~170px and buried the order they are in. Toggled in place
+  // rather than re-rendered so the button keeps focus.
+  document.addEventListener("click",event=>{
+    const target=event.target instanceof Element?event.target:null;if(!target)return;
+    const toggle=target.closest("[data-rule-toggle]"),row=toggle&&toggle.closest(".settings-rule");
+    if(!row)return;
+    const open=!row.classList.contains("is-open");
+    row.classList.toggle("is-open",open);
+    row.querySelectorAll("[data-rule-toggle]").forEach(button=>{button.classList.toggle("is-open",open);button.setAttribute("aria-expanded",String(open));});
+    // Held in state because every edit re-renders the list, and a re-render
+    // would otherwise collapse the row the operator is working in.
+    const account=row.dataset.ruleAccount;
+    if(account){if(open)state.expandedRules.add(account);else state.expandedRules.delete(account);}
+  });
 bindEvent("addAccountButton","click",addAccount);
 bindEvent("addAssetButton","click",addAsset);
 bindEvent("settingsAccounts","input",event=>{
@@ -268,21 +297,41 @@ bindEvent("settingsAccounts","input",event=>{
   const account=state.settings?.accounts[Number(field.dataset.accountIndex)];if(!account)return;
   const key=field.dataset.accountField;
   account[key]=key==="daily_trade_limit"?Math.round(Number(field.value)||0):Number(field.value);
-  markSettingsDirty();renderSettings();
+  markSettingsDirty();
+  // Updated in place, never by re-rendering the row. `renderSettings()` replaces
+  // the input's DOM node, so focus fell to <body> after a single keystroke and
+  // the limit fields took one character per click -- enabled but not editable,
+  // which is the complaint that removing `disabled` alone did not fix.
+  const hint=field.closest(".settings-account")?.querySelector(".settings-hint");
+  if(hint)hint.textContent=accountSummary(account);
 });
 bindEvent("settingsAssets","input",event=>{
   const field=event.target.closest("[data-asset-field]");if(!field)return;
   const asset=state.settings?.assets[Number(field.dataset.assetIndex)];if(!asset)return;
   asset[field.dataset.assetField]=field.value;
   if(field.dataset.assetField==="group"){asset.currency=field.value==="Global Markets"?"USD":"INR";asset.sweep_timeframe=field.value==="NSE Indices"?"1H":"4H";}
-  markSettingsDirty();renderSettings();
+  markSettingsDirty();
+  // Same trap as the account fields: a full re-render mid-typing replaces the
+  // input and drops focus. Only the row's own name is derived from these text
+  // fields, so that is what gets rewritten in place.
+  const tag=asset.symbol||"new asset";
+  const rows=document.querySelectorAll(`[data-asset-row="${field.dataset.assetIndex}"] .settings-label`);
+  rows.forEach((label,position)=>{label.textContent=position===0?tag:tag+" scan";});
 });
 bindEvent("settingsAssets","click",event=>{
   const chip=event.target.closest("[data-asset-strategy]");
   if(chip){
     const asset=state.settings?.assets[Number(chip.dataset.assetIndex)];if(!asset)return;
     const id=chip.dataset.assetStrategy;
-    asset.strategies=asset.strategies.includes(id)?asset.strategies.filter(x=>x!==id):[...asset.strategies,id];
+    // Same null-means-every-strategy convention as `settingsToggle`, and the
+    // same refusal to let a row end up ticking nothing: `_normalize_assets`
+    // rejects an asset with an empty list ("strategies must select at least one
+    // name, or null for all"), so the UI must not be able to build one.
+    const every=state.settings.strategies;
+    const current=asset.strategies??[...every];
+    const next=current.includes(id)?current.filter(x=>x!==id):[...current,id];
+    if(!next.length){settingsStatus("An added asset must ride at least one strategy.","error");return;}
+    asset.strategies=next.length===every.length?null:next;
     markSettingsDirty();renderSettings();return;
   }
   const remove=event.target.closest("[data-remove-asset]");
@@ -342,30 +391,63 @@ async function loadSettings(){
     settingsStatus("Saved on the server and applied to the running bot. Nothing here changes a trade until you save.","info");
   }catch(error){settingsStatus(error.message,"error");}
   finally{settingsRequested=false;}
-}
-function paintSettingsStatus(){
-  const el=$("settingsStatus"),message=state.settingsMessage;if(!el||!message)return;
-  el.className=`backtest-status${message.kind==="info"?"":` ${message.kind}`}`;
-  el.textContent=message.text;
+}function paintSettingsStatus(){
+  const message=state.settingsMessage;if(!message)return;
+  const kind=message.kind==="info"?"":` ${message.kind}`;
+  // Written to every card's own status line, because the card the operator is
+  // looking at is the one that has to answer. They are not live regions: one
+  // shared announcer carries the message once instead of three times.
+  $$("[data-settings-status]").forEach(el=>{el.className=`settings-actions-status${kind}`;el.textContent=message.text;});
+  const region=$("dashboardAnnouncer");
+  if(region)region.textContent=`Settings: ${message.text}`;
 }
 function settingsStatus(text,kind){state.settingsMessage={text,kind:kind||"info"};paintSettingsStatus();}
 function paintSettingsDirty(){
-  const badge=$("settingsDirtyBadge");if(badge)badge.hidden=!state.settingsDirty;
-  const save=$("saveSettingsButton");if(save)save.classList.toggle("is-dirty",!!state.settingsDirty);
+  // The dirty affordance is the Save button in each card: it is already where
+  // the operator's hand is, so it carries the state instead of a badge in a
+  // separate card at the bottom of the page.
+  $$("[data-save-settings]").forEach(button=>button.classList.toggle("is-dirty",!!state.settingsDirty));
 }
-function markSettingsDirty(){state.settingsDirty=true;paintSettingsDirty();settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");}
+function markSettingsDirty(){state.settingsDirty=true;paintSettingsDirty();settingsStatus("Unsaved changes. Save here to apply them to the running bot.","info");}
 function money(value){return "₹"+Number(value||0).toLocaleString("en-IN");}
+function accountSummary(a){
+  // The one derived line on an account row. Shared with the input handler so
+  // an edit and a redraw can never disagree about what the account buys.
+  return `${money(a.starting_balance)} · ${a.daily_trade_limit} trades · ${money(a.risk_per_trade)} risk · ${money(a.daily_trade_limit*a.risk_per_trade)}/day`;
+}
+function accountPerformance(name){
+  // Per-account performance is derived from the trade ledger the dashboard
+  // already receives, so it costs no extra request and cannot disagree with
+  // Home: same closed trades, same P/L. It is the "see" half of the Accounts
+  // card, sitting directly above the limits that are its "edit" half.
+  const wanted=String(name||"").toLowerCase();
+  const trades=Array.isArray(state?.data?.trades)?state.data.trades:[];
+  const mine=trades.filter(t=>String(t.account||"").toLowerCase()===wanted);
+  const closed=mine.filter(t=>String(t.status||"").toUpperCase()==="CLOSED");
+  const wins=closed.filter(t=>Number(t.pnl||0)>0);
+  return {
+    closed:closed.length,
+    open:mine.length-closed.length,
+    pnl:closed.reduce((sum,t)=>sum+Number(t.pnl||0),0),
+    winRate:closed.length?Math.round(wins.length/closed.length*100):null,
+  };
+}
 function accountRows(){
   const model=state.settings;if(!model)return "";
   return model.accounts.map((a,index)=>{
     const fixed=BUILTIN_ACCOUNTS.includes(a.name);
     // Every number carries a visible unit label: three bare boxes in a row gave
     // no way to tell capital from trade count from risk.
-    const field=(key,label,min,max,step)=>`<label class="settings-field"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}"${fixed?" disabled":""} aria-label="${escapeHtml(a.name)} ${escapeHtml(label)}"></label>`;
+    // Editable for every account, built-in or not. The server refuses only the
+    // *deletion* of the four shipped books (bot_settings.py: "Built-in accounts
+    // cannot be removed"); their capital, trade cap and risk are validated and
+    // written like any other, so disabling these fields made the dashboard
+    // refuse an edit the API accepts and apply.
+    const field=(key,label,min,max,step)=>`<label class="settings-field"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}" aria-label="${escapeHtml(a.name)} ${escapeHtml(label)}"></label>`;
     const remove=fixed?"":`<button class="chip-option settings-toggle" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
     return`<div class="settings-row settings-account"><div class="settings-account-head"><span class="settings-label">${escapeHtml(a.name)}</span>${remove}</div>`
       +`<div class="settings-account-fields">${field("starting_balance","Capital",1,100000000,1000)}${field("daily_trade_limit","Trades / day",1,500,1)}${field("risk_per_trade","Risk / trade",100,500000,100)}</div>`
-      +`<span class="settings-hint">${money(a.starting_balance)} · ${a.daily_trade_limit} trades · ${money(a.risk_per_trade)} risk · ${money(a.daily_trade_limit*a.risk_per_trade)}/day</span></div>`;
+      +`<span class="settings-hint">${accountSummary(a)}</span></div>`;
   }).join("");
 }
 function assetRows(){
@@ -374,11 +456,20 @@ function assetRows(){
   if(!model.assets.length)return`<div class="settings-row"><span class="settings-label">Added assets</span><div class="settings-inline"><span class="settings-hint">None added. The 25 shipped assets are always traded.</span></div></div>`;
   return model.assets.map((asset,index)=>{
     const groups=`<select class="settings-input" data-asset-index="${index}" data-asset-field="group" aria-label="Asset group">${model.groups.map(x=>`<option value="${escapeHtml(x)}"${x===asset.group?" selected":""}>${escapeHtml(x)}</option>`).join("")}</select>`;
-    const strategies=model.strategies.map(id=>`<button class="chip-option${asset.strategies.includes(id)?" active":""}" type="button" aria-pressed="${asset.strategies.includes(id)}" data-asset-index="${index}" data-asset-strategy="${escapeHtml(id)}">${escapeHtml(model.strategyNames[id]||id)}</button>`).join("");
+    // `null` means "every strategy", the same convention the routing rows use:
+    // an all-ticked row is stored as null so it keeps up with the strategy list.
+    const chosen=asset.strategies||model.strategies;
+    const strategies=model.strategies.map(id=>`<button class="chip-option${chosen.includes(id)?" active":""}" type="button" aria-pressed="${chosen.includes(id)}" data-asset-index="${index}" data-asset-strategy="${escapeHtml(id)}">${escapeHtml(model.strategyNames[id]||id)}</button>`).join("");
     const text=(field,placeholder)=>`<input class="settings-input" type="text" value="${escapeHtml(asset[field])}" placeholder="${escapeHtml(placeholder)}" data-asset-index="${index}" data-asset-field="${field}" aria-label="${escapeHtml(placeholder)}">`;
     const tag=asset.symbol||"new asset";
-    return`<div class="settings-row"><span class="settings-label">${escapeHtml(tag)}</span><div class="settings-inline">${text("label","Label")}${text("yahoo_symbol","Yahoo symbol")}${groups}<button class="chip-option settings-toggle" type="button" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(tag)}">Remove</button></div></div>`
-      +`<div class="settings-row"><span class="settings-label">${escapeHtml(tag)} scan</span><div class="settings-inline">${strategies}</div></div>`;
+    // `symbol` is required by the server (`_normalize_assets`: "Asset N needs a
+    // symbol") and it was the one field this editor never offered, so every
+    // "+ New asset" posted `symbol:""` and was refused. It leads the row because
+    // the other fields hang off it, and it names the row.
+    // `data-asset-row` lets the input handler rewrite that name in place instead
+    // of re-rendering the list and stealing focus mid-typing.
+    return`<div class="settings-row" data-asset-row="${index}"><span class="settings-label">${escapeHtml(tag)}</span><div class="settings-inline">${text("symbol","Symbol")}${text("label","Label")}${text("yahoo_symbol","Yahoo symbol")}${groups}<button class="chip-option settings-toggle" type="button" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(tag)}">Remove</button></div></div>`
+      +`<div class="settings-row" data-asset-row="${index}"><span class="settings-label">${escapeHtml(tag)} scan</span><div class="settings-inline">${strategies}</div></div>`;
   }).join("");
 }
 function settingsChip(kind,index,value,label,active){
@@ -394,14 +485,34 @@ function ruleRows(){
     // Reorder buttons are not options: `settings-move` gives them their own
     // square icon geometry and a visible disabled state. They belong to the
     // rule they move, so they sit on the rule's own heading.
-    const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle settings-move" type="button" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${escapeHtml(label)}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
+    // A bare grey glyph said nothing about what it did. `title` names the
+    // action on hover, `aria-label` names it to a screen reader, and the
+    // stylesheet puts a "Move" caption and a real button surface in front of
+    // the pair so the row reads as "these two reorder me".
+    const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle settings-move" type="button" title="${escapeHtml(label)}" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${escapeHtml(label)}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
     const group=(caption,chips)=>`<div class="settings-rule-group"><span class="settings-field-label">${escapeHtml(caption)}</span><div class="settings-inline">${chips}</div></div>`;
     // One block per rule. It used to be three rows whose labels repeated the
     // account name, so a screen reader and the eye both read twelve chips with
     // no owner: strategies, asset groups and session window now belong to the
     // single heading above them.
-    return`<div class="settings-row settings-rule"><div class="settings-rule-head"><span class="settings-label">${index+1} · ${account}</span><span class="settings-rule-move">${move(-1,"Move "+rule.account+" earlier",index===0)}${move(1,"Move "+rule.account+" later",index===model.rules.length-1)}</span></div>`
-      +group("Strategies",strategies)+group("Assets",assets)+group("Session",windows)+`</div>`;
+    // A rule reads as one summary line and opens only while it is edited. Three
+    // captioned chip groups per rule stacked to ~170px each and pushed the
+    // routing order -- the thing that actually decides trades -- off the screen.
+    // A row with nothing ticked is not blank either: the summary spells out that
+    // it covers everything, which is what the prose note under the list used to
+    // explain instead.
+    const summary=[
+      (rule.strategies||model.strategies).map(id=>model.strategyNames[id]||id).join(", ")||"every strategy",
+      (rule.asset_groups||model.groups).join(", ")||"every asset group",
+      (ROUTING_WINDOWS.find(([value])=>String(rule.in_ny_session)===value)||["","Any time"])[1]
+    ].map(escapeHtml).join(" · ");
+    const open=state.expandedRules.has(rule.account);
+    // The summary sits under the whole row rather than in a middle column: as a
+    // third flex child it wrapped into a tall ragged block that left the name
+    // floating in whitespace, which is what made the card look unlike every
+    // other one on the page.
+    return`<div class="settings-row settings-rule${open?" is-open":""}" data-rule-account="${escapeHtml(rule.account)}"><div class="settings-rule-head"><span class="settings-label">${index+1} · ${account}</span><span class="settings-rule-move">${move(-1,"Move "+rule.account+" up",index===0)}${move(1,"Move "+rule.account+" down",index===model.rules.length-1)}<button class="collapse-control" type="button" data-rule-toggle aria-expanded="${open?"true":"false"}" aria-label="${open?"Close":"Edit"} routing for ${escapeHtml(rule.account)}"></button></span></div><p class="settings-rule-summary">${summary}</p>`
+      +`<div class="settings-rule-body">${group("Strategies",strategies)}${group("Assets",assets)}${group("Session",windows)}</div></div>`;
   }).join("");
 }
 function renderSettings(){
@@ -454,20 +565,25 @@ function addAccount(){
 }
 function addAsset(){
   const model=state.settings;if(!model)return;
-  model.assets.push({symbol:"",label:"",yahoo_symbol:"",market:"",asset_type:"",group:model.groups[0]||"",currency:"INR",sweep_timeframe:"4H",strategies:[]});
+  // Seeded on every strategy, not none. `_normalize_assets` refuses an asset
+  // that ticks nothing, so a blank row that could not be saved was the default
+  // outcome of pressing "+ New asset".
+  model.assets.push({symbol:"",label:"",yahoo_symbol:"",market:"",asset_type:"",group:model.groups[0]||"",currency:"INR",sweep_timeframe:"4H",strategies:null});
   markSettingsDirty();renderSettings();
 }
 function settingsPayload(){
   const model=state.settings,start=$("settingsStartHour"),end=$("settingsEndHour");
   return{settings:{
     accounts:model.accounts.map(a=>({name:a.name,starting_balance:a.starting_balance,daily_trade_limit:a.daily_trade_limit,risk_per_trade:a.risk_per_trade})),
-    assets:model.assets.map(a=>({symbol:a.symbol,label:a.label,yahoo_symbol:a.yahoo_symbol,market:a.market,asset_type:a.asset_type,group:a.group,currency:a.currency,strategies:a.strategies})),
+    // Trimmed and upper-cased here to match what `_normalize_assets` stores, so
+    // the value that comes back on the next load is the one that was typed.
+    assets:model.assets.map(a=>({symbol:String(a.symbol||"").trim().toUpperCase(),label:a.label,yahoo_symbol:String(a.yahoo_symbol||"").trim(),market:a.market,asset_type:a.asset_type,group:a.group,currency:a.currency,strategies:a.strategies})),
     session:{start_hour:Number(start?.value||0),end_hour:Number(end?.value||0)},
     rules:model.rules.map(r=>({account:r.account,strategies:r.strategies,asset_groups:r.asset_groups,in_ny_session:r.in_ny_session}))}};
 }
 async function postSettings(body,button){
   const model=state.settings;if(!model)return;
-  button.disabled=true;settingsStatus("Saving to the server…","loading");
+  setSettingsActionsBusy(true);settingsStatus("Saving to the server…","loading");
   try{
     const response=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
     const result=await readJsonResponse(response,"Settings API");
@@ -484,10 +600,16 @@ async function postSettings(body,button){
     // The running configuration is untouched when a save is refused, so keep
     // the edits on screen for the operator to correct.
     settingsStatus(error.message,"error");
-  }finally{button.disabled=false;}
+  }finally{setSettingsActionsBusy(false);}
 }
-function saveSettings(){const button=$("saveSettingsButton");if(button)postSettings(settingsPayload(),button);}
-function resetSettings(){const button=$("resetSettingsButton");if(button)postSettings({settings:{action:"reset"}},button);}
+function setSettingsActionsBusy(busy){
+  // Whichever card's Save was pressed, one whole document is posted, so every
+  // Save and Reset is locked for the duration: the other two would otherwise
+  // fire a second complete write of the same document.
+  $$("[data-save-settings],[data-reset-settings]").forEach(node=>{node.disabled=busy;});
+}
+function saveSettings(button){postSettings(settingsPayload(),button);}
+function resetSettings(button){postSettings({settings:{action:"reset"}},button);}
 function bootstrapDashboard(){try{initAppearance();bindEvents();syncAllToolCollapseControls();const marketClock=$("marketClock");if(marketClock){marketClock.textContent=clock();setInterval(()=>{const clockEl=$("marketClock");if(clockEl)clockEl.textContent=clock();},1000);}loadDashboard();setInterval(loadDashboard,CONFIG.refreshMs);}catch(error){console.error("Dashboard bootstrap failed",error);showConnectionStatus(false,"Dashboard startup problem. Check browser console.");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootstrapDashboard,{once:true});else bootstrapDashboard();
 
