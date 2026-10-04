@@ -591,7 +591,11 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 .backtest-trade-row small{margin-top:4px;font-size:11px;color:var(--muted)}
 .backtest-trade-row>strong{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
 
-.universe-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+/* Superseded: this declared three columns and `#page-tools .universe-grid`
+   later sets `display:block!important`, so the declaration never took effect at
+   any width and the categories always rendered as full-width rows. The Tools
+   container is a stack of rows; it carries no `grid-template-columns`. */
+.universe-grid{display:grid;gap:8px}
 .universe-grid span{display:grid;place-items:center;padding:8px 6px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);font-size:10.5px;font-weight:800;text-align:center;min-width:0;overflow-wrap:anywhere}
 .account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--grid-gap)}
 .account-grid article{padding:13px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);min-width:0}
@@ -920,7 +924,6 @@ html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
   .hero-pills span:last-child{grid-column:1/-1}
   .page-heading{align-items:flex-start;flex-direction:column}
   .page-heading .secondary-button{width:100%}
-  .universe-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .account-grid{grid-template-columns:1fr}
   .appearance-style-grid{grid-template-columns:1fr}
   .backtest-controls{grid-template-columns:1fr}

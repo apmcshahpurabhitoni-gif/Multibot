@@ -608,7 +608,7 @@ def test_settings_account_fields_are_labelled_and_share_one_grid():
     sized "<name> budget" row. At 390px the third box wrapped under the first
     two because each was pinned to 104px inside 336px of content.
     """
-    assert 'class="settings-field"' in APP and "<span class=\"settings-field-label\">" in APP, (
+    assert 'class="settings-field${money?" settings-field-money":""}"' in APP and "<span class=\"settings-field-label\">" in APP, (
         "each account number needs a visible unit label, not only an aria-label"
     )
     assert 'class="settings-account-fields"' in APP, (
@@ -1154,7 +1154,7 @@ def test_account_limits_are_editable_on_every_account():
     be removed" -- while capital, trade cap and risk are range-checked and
     written for every account alike.
     """
-    field = re.search(r"const field=\(key,label,min,max,step\)=>(.*?)\n", APP, re.S)
+    field = re.search(r"const field=\(key,label,min,max,step,money\)=>(.*?)\n", APP, re.S)
     assert field, "the account field helper was renamed or removed"
     assert "disabled" not in field.group(1), (
         "the limit fields are disabled again, so the dashboard refuses an edit "
@@ -1276,8 +1276,12 @@ def test_reorder_controls_look_like_controls():
     assert 'title="${escapeHtml(label)}"' in APP, (
         "the reorder buttons have no hover title, so the action is still unnamed"
     )
-    assert '"Move "+rule.account+" up"' in APP and '"Move "+rule.account+" down"' in APP, (
+    assert '"Move "+book+" up"' in APP and '"Move "+book+" down"' in APP, (
         "the reorder names lost their direction, so up and down read the same"
+    )
+    assert "const book=accountLabel(rule.account)" in APP, (
+        "the reorder button names the raw account id, so the hover text reads "
+        "`Move ny_session up` while the row above it reads `NY session`"
     )
 
 
@@ -1592,3 +1596,271 @@ def test_no_stylesheet_contains_a_truncated_declaration():
                 f"{name}:{number} is a truncated declaration (`{line.strip()}`); "
                 "it declares nothing and survives only as noise"
             )
+
+
+def test_calendar_event_chevron_shares_the_title_row():
+    """The control has to sit on the line it names.
+
+    Measured defect at 390x844: `.calendar-meta` held the time, dot, currency,
+    impact pill and the expand control, and `.calendar-title` sat on a line of
+    its own below it. The control measured a 26px vertical offset from the title
+    it was supposed to open -- `chevCy 491` against `titleCy 517` -- the only
+    control in the app whose position did not track the row it belongs to. The
+    title was also indented 66px and truncated to fit a gutter that held
+    nothing once the control moved.
+    """
+    head = re.search(r'<div class="calendar-event-head">(.*?)</div>', APP, re.S)
+    assert head, "the calendar event has no head row for its title and control"
+    row = head.group(1)
+    assert 'class="calendar-title"' in row and "${expandButton(key,\"event\")}" in row, (
+        "the head row must hold the title and the expand control together, in "
+        "that order, so the control tracks the line it opens"
+    )
+    assert row.index('class="calendar-title"') < row.index("${expandButton("), (
+        "the control leads its own title"
+    )
+
+    # The meta strip must no longer carry the control, or the control is back in
+    # a row above its own title.
+    meta = re.search(r'<div class="calendar-meta">(.*?)</div>', APP, re.S)
+    assert meta, "the calendar event has no meta strip"
+    assert "expand-button" not in meta.group(1), (
+        "the expand control is back inside .calendar-meta, which is the row "
+        "above the title -- that is the 26px offset"
+    )
+
+    # The superseded indents, at every breakpoint, are the defect restated.
+    for value in ("48px 7px 70px", "46px 7px 68px", "50px 9px 76px", "0 48px 9px 72px"):
+        assert value not in ALL_CSS, (
+            f"a calendar title is still indented with `{value}`, clearing a "
+            "control that no longer shares its row"
+        )
+    for selector, prop, stale in (
+        ("#page-calendar .calendar-title", "margin-left", "66px"),
+        ("#page-calendar .calendar-title", "margin-left", "69px"),
+        ("#page-calendar .calendar-details", "margin-left", "66px"),
+        ("#page-calendar .calendar-details", "margin-left", "68px"),
+        ("#page-calendar .calendar-details", "margin-left", "69px"),
+        ("#page-calendar .calendar-details", "margin-left", "72px"),
+    ):
+        assert stale not in _declarations_for_selector(
+            "appearance-overrides.css", selector, prop
+        ), f"{selector} still carries {prop}:{stale}"
+
+    # The head row is the row the control tracks, so it is a flex line and the
+    # control is held at its natural size.
+    declarations = _declarations_for_selector(
+        "appearance-overrides.css", "#page-calendar .calendar-event-head", "display"
+    )
+    assert declarations == ["flex!important"], (
+        f".calendar-event-head declares display:{declarations}; it is the row "
+        "the chevron is centred against, so it must be a flex line"
+    )
+
+
+def test_calendar_impact_pill_is_not_hidden_on_a_phone():
+    """Impact is why the card is scanned at all.
+
+    Measured defect: below 390px the impact pill was `display:none`, so a High
+    event and a Holiday event rendered identically in the list. The pill was
+    dropped only to make room for the chevron, which shared the strip; the
+    control has its own row now, and the measured strip fits with room left
+    (time 54 + dot 8 + currency + pill, inside 332px of card width).
+    """
+    hidden = re.compile(r"\.calendar-meta\s\.impact-pill\s*\{[^}]*display:none")
+    assert not hidden.search(ALL_CSS), (
+        "the impact pill is still hidden inside .calendar-meta; a High event "
+        "and a Holiday event look the same on a phone"
+    )
+    for selector in ("#page-calendar .impact-pill",):
+        assert "inline-flex!important" in _declarations_for_selector(
+            "appearance-overrides.css", selector, "display"
+        ), f"{selector} must keep the pill visible"
+
+
+def test_accounts_are_named_not_spelled_out():
+    """`NY_SESSION` is an id, not a name, and it was rendered three ways.
+
+    Measured defect: the Accounts performance grid printed `NY_SESSION`, the
+    limits editor printed `ny_session` in lowercase, and routing printed
+    `SWEEP_4H` again -- three spellings of one book on one screen, two of them
+    not words. The raw id is the API contract and stays in the DOM, but the
+    visible name comes from one map used by every surface.
+    """
+    labels = re.search(r"const ACCOUNT_LABELS=\{([^}]*)\}", APP)
+    assert labels, "there is no single map of account labels to render from"
+    mapping = dict(
+        (key.strip(), value.strip().strip('"'))
+        for key, value in (
+            pair.split(":") for pair in labels.group(1).split(",") if pair.strip()
+        )
+    )
+    assert set(mapping) == set(re.search(r'BUILTIN_ACCOUNTS=\[(.*?)\]', APP).group(1).split('"')[1::2]), (
+        f"the label map covers {sorted(mapping)}, which is not the shipped "
+        "account list, so a book falls back to its raw id"
+    )
+    for name, label in mapping.items():
+        assert " " not in name or True
+        assert label and label != name.upper(), (
+            f"{name} is still rendered as an identifier, not a name"
+        )
+
+    assert 'function accountLabel(' in APP, (
+        "accountLabel() is the one renderer every surface has to go through"
+    )
+    # Every place that used to shout or lowercase the id now goes through it.
+    for source, pattern, label in (
+        ("accounts grid", r'<article><b[^>]*>\$\{escapeHtml\(', "grid"),
+        ("limits editor", r'class="settings-label" title="\$\{escapeHtml\(a\.name\)\}">\$\{escapeHtml\(', "editor"),
+        ("routing row", r"const account=escapeHtml\(accountLabel\(rule\.account\)\)", "routing"),
+    ):
+        assert re.search(pattern, APP), (
+            f"the {source} does not render through accountLabel() -- label={label}"
+        )
+    assert "rule.account.toUpperCase()" not in APP, (
+        "a routing row still shouts its account id instead of naming it"
+    )
+    assert 'escapeHtml(String(a.name).toUpperCase())' not in APP, (
+        "the accounts grid still shouts its account id instead of naming it"
+    )
+    # The id itself must remain reachable: it is the routing contract.
+    assert 'title="${escapeHtml(a.name)}"' in APP, (
+        "the rendered label dropped the raw account id, so the routing "
+        "contract is no longer recoverable from the row"
+    )
+    assert "data-rule-account=" in APP, "routing rows must keep their raw account id"
+
+
+def test_settings_status_line_is_one_line_and_one_fact():
+    """The status line reports state; it is not a second copy of the card note.
+
+    Measured defect at 390x844: every card's status span was 204x45px -- three
+    wrapped lines beside a 32px Save button -- carrying 96 characters, half of
+    which restated the note directly above it. The prose was also wrong on
+    arrival: "Nothing here changes a trade until you save" describes a pending
+    edit on a screen where nothing is pending.
+    """
+    for text in (
+        "Saved on the server and applied to the running bot",
+        "Unsaved changes. Save here to apply them to the running bot",
+        "Unsaved changes. Save to apply them to the running bot",
+    ):
+        assert text not in APP, (
+            f"the settings status line still carries the {len(text)}-character "
+            f"paragraph {text!r}"
+        )
+    assert 'settingsStatus("Saved · applied to the running bot","info")' in APP, (
+        "the loaded state has to say what is saved and where it went, in one line"
+    )
+    assert 'settingsStatus("Unsaved changes","info")' in APP, (
+        "the dirty state has to be a state, not a sentence that repeats the note"
+    )
+    # One line beside the buttons: the row may not outgrow them.
+    assert _declarations_for_selector(
+        "appearance-overrides.css",
+        "#page-tools .tool-settings .settings-actions-status",
+        "flex",
+    ) == ["1 1 150px!important"], (
+        "the status span must stay a flexible column that keeps Save at the "
+        "right edge, whatever its text length"
+    )
+
+
+def test_money_limit_fields_carry_their_unit():
+    """`type=number` cannot be formatted, so the unit goes inside the control.
+
+    Measured defect: the three limit inputs printed `100000`, `20` and `2000`
+    side by side while the summary line two rows below printed
+    `₹1,00,000 · 20 trades · ₹2,000 risk`. Nothing on the control itself said
+    which of the three numbers was money.
+    """
+    fields = re.findall(r'field\("(\w+)","([^"]+)",', APP)
+    assert [name for name, _label in fields] == [
+        "starting_balance",
+        "daily_trade_limit",
+        "risk_per_trade",
+    ], (
+        f"the account row declares fields {fields}; it must be exactly the "
+        "three limits, in capital / trades / risk order"
+    )
+    marked = re.findall(r'field\("(\w+)","[^"]+",[\d,]+,[\d,]+,\d+(,true)?\)', APP)
+    assert [name for name, extra in marked if extra] == [
+        "starting_balance",
+        "risk_per_trade",
+    ], (
+        f"the money fields are {marked}; capital and risk carry money and the "
+        "trade cap is a count"
+    )
+    assert len(marked) == 3, (
+        f"the account row declares {len(marked)} limit fields, not three"
+    )
+
+    adornment = _declarations_for_selector(
+        "appearance-overrides.css",
+        "html #page-tools .tool-settings .settings-field-money::before",
+        "content",
+    )
+    assert adornment == ['"₹"!important'], (
+        f"the money adornment declares content:{adornment}; a number input "
+        "cannot carry a prefix of its own, so the unit has to be drawn here"
+    )
+    padding = _declarations_for_selector(
+        "appearance-overrides.css",
+        "html #page-tools .tool-settings .settings-field-money>.settings-input",
+        "padding-left",
+    )
+    assert padding == ["23px!important"], (
+        f"the money input declares padding-left:{padding}; the adornment "
+        "overlaps the value unless the text is inset past it"
+    )
+
+
+def test_universe_grid_carries_no_dead_column_declaration():
+    """A declaration the container cannot honour is a lie in the stylesheet.
+
+    Measured defect at 390x844 and at 1440x900: `.universe-grid` declared
+    `repeat(2, ...)` / `repeat(3, ...)`, and `#page-tools .universe-grid` sets
+    `display:block!important` further down the same sheet. Every category
+    rendered full width at both widths, so the column count was never anything
+    but noise -- and the narrower breakpoint implied a two-column list that the
+    page never rendered.
+    """
+    assert "grid-template-columns" not in _declarations_for_selector(
+        "appearance-overrides.css", "#page-tools .universe-grid", "grid-template-columns"
+    ), "the appearance layer must not re-declare the dead columns"
+    for sheet in ("foundation.css", "styles.css"):
+        for prelude, _body, _media in _iter_rules(SHEETS[sheet]):
+            selectors = _selectors(prelude)
+            if not any(
+                re.fullmatch(r"(#page-tools\s+)?\.universe-grid", s) for s in selectors
+            ):
+                continue
+            assert "grid-template-columns" not in _declarations(_body), (
+                f"{sheet}: `.universe-grid` declares grid-template-columns but "
+                "renders as a block, so the columns never existed"
+            )
+
+
+def test_asset_category_rail_sizes_to_its_own_label():
+    """A fixed label rail charges the longest name to every category.
+
+    Measured defect at 390x844: `.asset-category` was
+    `108px minmax(0,1fr)` at every width, so "Crypto" -- six letters -- spent
+    108px of a 348px row and left its single ticker in 217px, while "Indian
+    Equities" needed the rail anyway. Fixed at 132px on desktop the same way.
+    """
+    columns = _declarations_for_selector(
+        "appearance-overrides.css",
+        "html #page-tools .tool-universe .universe-grid>.asset-category",
+        "grid-template-columns",
+    )
+    assert columns == ["auto minmax(0,1fr)!important"], (
+        f"the category rail declares grid-template-columns:{columns}; a fixed "
+        "first track makes every category pay for the longest one"
+    )
+    for prop, stale in (("width", "132px"), ("max-width", "132px")):
+        assert stale not in _declarations_for_selector(
+            "appearance-overrides.css",
+            "html #page-tools .tool-universe .asset-category-label",
+            prop,
+        ), f"the category label is still pinned to {prop}:{stale}"

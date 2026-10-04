@@ -195,16 +195,24 @@ function calendarTimeline(items){
 function calendarCard(item,index){
   const key=keyFor("calendar",item,index),impact=String(item.impact||"Low").toLowerCase(),open=state.expanded.has(key);
   const details=open?`<div class="calendar-details"><span>Actual <b>${escapeHtml(item.actual||"—")}</b></span><span>Forecast <b>${escapeHtml(item.forecast||"—")}</b></span><span>Previous <b>${escapeHtml(item.previous||"—")}</b></span></div>`:"";
+  // The title and the chevron share a row, and the meta strip sits under it.
+  // The control used to live at the end of the meta strip while the title
+  // occupied a line of its own below it, measured 26px lower than the button:
+  // the one control on the page that did not track the line it names. This is
+  // the same `<span><b>primary</b><small>secondary</small></span>` + chevron
+  // shape the Signals and History date rows already use.
   return `<article class="calendar-item impact-${escapeHtml(impact)} ${open?"expanded":""}">
     <div class="calendar-event">
+      <div class="calendar-event-head">
+        <strong class="calendar-title">${escapeHtml(item.title||"Economic event")}</strong>
+        ${expandButton(key,"event")}
+      </div>
       <div class="calendar-meta">
         <strong class="calendar-time-value">${escapeHtml(item.time||"All day")}</strong>
         <i class="news-dot impact-${escapeHtml(impact)}" aria-hidden="true"></i>
         <span class="currency-code">${escapeHtml(item.currency||"ALL")}</span>
         <b class="impact-pill ${escapeHtml(impact)}">${escapeHtml(item.impact||"Low")}</b>
-        ${expandButton(key,"event")}
       </div>
-      <strong class="calendar-title">${escapeHtml(item.title||"Economic event")}</strong>
       ${details}
     </div>
   </article>`;
@@ -221,12 +229,12 @@ function renderTools(){const data=state.data||{},universe=Array.isArray(data.uni
     const group=raw.includes("NIFTY")||upper.includes("NIFTY")?"Indices":raw.includes("GOLD")||upper.includes("GOLD")?"Commodities":raw.includes("BTC")||upper.includes("BITCOIN")?"Crypto":raw.includes("/")||upper.includes("EUR/")||upper.includes("GBP/")||upper.includes("AUD/")||upper.includes("USD/")||upper.includes("NZD/")?"Forex":"Indian Equities";
     assetGroups[group].push(label);
   });
-  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>{const p=accountPerformance(a.name),sign=p.pnl>=0?"positive":"negative";return `<article><b>${escapeHtml(String(a.name).toUpperCase())}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} risk left · ${number(p.closed,0)} closed · ${p.winRate===null?"—":p.winRate+"% win"}${p.open?` · ${number(p.open,0)} open`:''}</small><strong class="account-pnl ${sign}">${p.pnl>=0?"+":"−"}${inr(Math.abs(p.pnl))}</strong></article>`;}).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");  // The Diagnostics card is gone: the same facts are in the topbar status
+  $("universeGrid").innerHTML=Object.entries(assetGroups).filter(([,rows])=>rows.length).map(([group,rows])=>`<section class="asset-category"><span class="asset-category-label">${escapeHtml(group)}</span><div class="asset-category-items">${rows.map(label=>`<span>${escapeHtml(label)}</span>`).join("")}</div></section>`).join("");$("accountsGrid").innerHTML=accounts.map(a=>{const p=accountPerformance(a.name),sign=p.pnl>=0?"positive":"negative";return `<article><b title="${escapeHtml(a.name)}">${escapeHtml(accountLabel(a.name))}</b><span>${inr(a.balance)} · ${number(a.trades_today,0)}/${number(a.daily_trade_limit,0)} trades</span><small>${inr(a.remaining_planned_risk)} risk left · ${number(p.closed,0)} closed · ${p.winRate===null?"—":p.winRate+"% win"}${p.open?` · ${number(p.open,0)} open`:''}</small><strong class="account-pnl ${sign}">${p.pnl>=0?"+":"−"}${inr(Math.abs(p.pnl))}</strong></article>`;}).join("");$("versionText").textContent=`v${data.version||"2.0.0"}`;$("whatsNewList").innerHTML=(data.whats_new||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("");  // The Diagnostics card is gone: the same facts are in the topbar status
   // badge and the release modal, and it was a whole Tools card for read-only
   // telemetry nobody changed from here. The render is kept for the release
   // modal, which mounts the same markup into its own container.
   const diagnosticGrid=$("diagnostics");
-  if(diagnosticGrid)diagnosticGrid.innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;if(!state.settingsDirty){if(!state.settings)loadSettings();}else if(state.settingsMessage?.kind!=="error")settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
+  if(diagnosticGrid)diagnosticGrid.innerHTML=`<article class="compact-metric"><span>API</span><b>Connected</b></article><article class="compact-metric"><span>Provider</span><b>${escapeHtml(data.system?.provider||data.health?.provider||"UNKNOWN")}</b></article><article class="compact-metric"><span>Timezone</span><b>${escapeHtml(data.system?.timezone||CONFIG.timezone)}</b></article><article class="compact-metric"><span>Snapshot</span><b>${escapeHtml(timestamp(data.generated_at))}</b></article>`;if(!state.settingsDirty){if(!state.settings)loadSettings();}else if(state.settingsMessage?.kind!=="error")settingsStatus("Unsaved changes","info");$$('[data-theme-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-style-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});$$('[data-accent-choice]').forEach(b=>{b.classList.add("chip-option");b.classList.remove("appearance-option");});applyAppearanceControls();if(state.backtest)renderBacktest(state.backtest);}
 function backtestMetricLabel(key){return ({return_pct:"Return",max_drawdown_pct:"Max drawdown",sharpe:"Sharpe",sortino:"Sortino",win_rate_pct:"Win rate",profit_factor:"Profit factor",number_of_trades:"Trades",average_trade:"Average trade",max_losing_streak:"Max losing streak",exposure_pct:"Exposure",risk_adjusted_performance:"Risk-adjusted performance"})[key]||key.replaceAll("_"," ");}
 function formatBacktestMetric(key,value){const n=Number(value);if(!Number.isFinite(n))return "—";if(["return_pct","max_drawdown_pct","win_rate_pct","exposure_pct"].includes(key))return `${number(n,2)}%`;if(key==="average_trade")return inr(n);if(["number_of_trades","max_losing_streak"].includes(key))return number(n,0);return number(Math.max(-9999,Math.min(9999,n)),2);}
 function renderBacktest(result){const status=$("backtestStatus"),box=$("backtestResults");if(!result){box.hidden=true;return;}if(result.ok===false){status.className="backtest-status error";status.textContent=`Backtest failed: ${result.error||"Unknown error"}`;box.hidden=true;return;}status.className="backtest-status success";status.textContent=`${result.strategy} · ${result.asset?.label||result.symbol} · ${result.period} · ${number(result.candle_count,0)} candles`;const curve=Array.isArray(result.equity_curve)?result.equity_curve:[];const trades=Array.isArray(result.trades)?result.trades:[];const metrics=Object.entries(result.metrics||{}).filter(([key])=>!["rating","rating_label","breakdown"].includes(key));box.innerHTML=`<section class="backtest-section backtest-overview-section"><div class="backtest-summary"><div><span>START</span><b>${inr(curve[0]?.equity||100000)}</b></div><div><span>END</span><b>${inr(curve[curve.length-1]?.equity||100000)}</b></div><div><span>TRADES</span><b>${number(result.trades_taken,0)}</b></div><div><span>RETURN</span><b>${formatBacktestMetric("return_pct",result.metrics?.return_pct)}</b></div></div></section><section class="backtest-section backtest-curve-section"><div class="chart-head"><div><strong>Equity curve</strong><small>Paper account value after each completed backtest trade</small></div><span>${trades.length} trade${trades.length===1?"":"s"}</span></div>${curve.length?renderEquityLine(curve,{label:"Backtest equity curve"}):empty("No completed trades","◇","The selected period produced no completed trades to plot.")}</section><section class="backtest-section backtest-performance-section"><div class="backtest-section-heading"><div><span class="eyebrow">PERFORMANCE</span><h3>Results</h3></div><span class="backtest-rating">${escapeHtml(result.metrics?.rating_label||result.metrics?.rating||"—")}</span></div><div class="backtest-metrics">${metrics.map(([key,value])=>`<div><span>${escapeHtml(backtestMetricLabel(key))}</span><b title="${escapeHtml(formatBacktestMetric(key,value))}">${escapeHtml(formatBacktestMetric(key,value))}</b></div>`).join("")}</div></section><section class="backtest-section backtest-trades-section"><div class="backtest-section-heading"><div><span class="eyebrow">EXECUTION</span><h3>Completed trades</h3></div><span>${trades.length} recorded</span></div><div class="backtest-trades">${trades.length?trades.slice().reverse().map(trade=>{const d=direction(trade.direction),pnl=Number(trade.pnl);return `<article class="backtest-trade-row ${d.cls}"><span class="backtest-trade-side ${d.cls}">${d.text}</span><div><b>${escapeHtml(timestamp(trade.timestamp))}</b><small>Entry ${price(trade.entry)} · Exit ${price(trade.exit)} · ${number(trade.bars_held,0)} bars</small></div><strong class="${pnl>=0?"positive":"negative"}">${inr(pnl)}</strong></article>`;}).join(""):empty("No completed trades","◷","Trades will appear here separately from performance metrics.")}</div></section>`;box.hidden=false;}
@@ -370,6 +378,15 @@ document.addEventListener("click",event=>{const refetch=event.target.closest("[d
 // inside bootstrapDashboard().
 const ROUTING_WINDOWS=[["null","Any time"],["true","Inside session"],["false","Outside session"]];
 const BUILTIN_ACCOUNTS=["macro","nifty","ny_session","sweep_4h"];
+// The account id is the API contract, not a name to read. `NY_SESSION` and
+// `SWEEP_4H` were rendered raw in three different casings on one screen -- the
+// performance grid shouted them, the editor lower-cased them, and routing
+// shouted them again -- so the same book appeared under three spellings and two
+// of them were not words. One map, one spelling, used by every surface. The raw
+// id stays in `title`/`data-` so the technical identity is never lost, and an
+// operator-added book falls back to its own id rather than disappearing.
+const ACCOUNT_LABELS={macro:"Macro",nifty:"Nifty",ny_session:"NY session",sweep_4h:"Sweep 4H"};
+function accountLabel(name){const key=String(name||"").trim().toLowerCase();return ACCOUNT_LABELS[key]||key;}
 let settingsRequested=false;
 
 function settingsModel(payload){
@@ -393,7 +410,11 @@ async function loadSettings(){
     if(payload.ok===false)throw new Error(payload.error||"Settings API failed");
     state.settings=settingsModel(payload.settings);
     renderSettings();
-    settingsStatus("Saved on the server and applied to the running bot. Nothing here changes a trade until you save.","info");
+    // The status line is a state, not a paragraph. It was 96 characters, which
+    // is three wrapped lines beside a 32px Save button, and half of it restated
+    // the card note directly above it. One line, one fact: what is saved and
+    // where it went.
+    settingsStatus("Saved · applied to the running bot","info");
   }catch(error){settingsStatus(error.message,"error");}
   finally{settingsRequested=false;}
 }function paintSettingsStatus(){
@@ -413,7 +434,7 @@ function paintSettingsDirty(){
   // separate card at the bottom of the page.
   $$("[data-save-settings]").forEach(button=>button.classList.toggle("is-dirty",!!state.settingsDirty));
 }
-function markSettingsDirty(){state.settingsDirty=true;paintSettingsDirty();settingsStatus("Unsaved changes. Save here to apply them to the running bot.","info");}
+function markSettingsDirty(){state.settingsDirty=true;paintSettingsDirty();settingsStatus("Unsaved changes","info");}
 function money(value){return "₹"+Number(value||0).toLocaleString("en-IN");}
 function accountSummary(a){
   // The one derived line on an account row. Shared with the input handler so
@@ -448,10 +469,15 @@ function accountRows(){
     // cannot be removed"); their capital, trade cap and risk are validated and
     // written like any other, so disabling these fields made the dashboard
     // refuse an edit the API accepts and apply.
-    const field=(key,label,min,max,step)=>`<label class="settings-field"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}" aria-label="${escapeHtml(a.name)} ${escapeHtml(label)}"></label>`;
-    const remove=fixed?"":`<button class="secondary-button" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
-    return`<div class="settings-row settings-account"><div class="settings-account-head"><span class="settings-label">${escapeHtml(a.name)}</span>${remove}</div>`
-      +`<div class="settings-account-fields">${field("starting_balance","Capital",1,100000000,1000)}${field("daily_trade_limit","Trades / day",1,500,1)}${field("risk_per_trade","Risk / trade",100,500000,100)}</div>`
+    // A number input can only ever hold `100000`, never the `₹1,00,000` the
+    // summary line two rows below prints. The two money fields therefore carry
+    // a `₹` adornment inside the control, which is the only place the unit can
+    // live: `type=number` rejects any prefix, and the trade cap must stay
+    // unadorned because it is a count.
+    const field=(key,label,min,max,step,money)=>`<label class="settings-field${money?" settings-field-money":""}"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}" aria-label="${escapeHtml(accountLabel(a.name))} ${escapeHtml(label)}"></label>`;
+    const remove=fixed?"":`<button class="secondary-button" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(accountLabel(a.name))}">Remove</button>`;
+    return`<div class="settings-row settings-account"><div class="settings-account-head"><span class="settings-label" title="${escapeHtml(a.name)}">${escapeHtml(accountLabel(a.name))}</span>${remove}</div>`
+      +`<div class="settings-account-fields">${field("starting_balance","Capital",1,100000000,1000,true)}${field("daily_trade_limit","Trades / day",1,500,1)}${field("risk_per_trade","Risk / trade",100,500000,100,true)}</div>`
       +`<span class="settings-hint">${accountSummary(a)}</span></div>`;
   }).join("");
 }
@@ -483,7 +509,7 @@ function settingsChip(kind,index,value,label,active){
 function ruleRows(){
   const model=state.settings;if(!model)return "";
   return model.rules.map((rule,index)=>{
-    const account=escapeHtml(rule.account.toUpperCase());
+    const account=escapeHtml(accountLabel(rule.account));
     const strategies=model.strategies.map(id=>settingsChip("strategies",index,id,model.strategyNames[id]||id,(rule.strategies||model.strategies).includes(id))).join("");
     const assets=model.groups.map(g=>settingsChip("asset_groups",index,g,g,(rule.asset_groups||model.groups).includes(g))).join("");
     const windows=ROUTING_WINDOWS.map(([value,label])=>settingsChip("in_ny_session",index,value,label,String(rule.in_ny_session)===value)).join("");
@@ -495,6 +521,7 @@ function ruleRows(){
     // stylesheet puts a "Move" caption and a real button surface in front of
     // the pair so the row reads as "these two reorder me".
     const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle settings-move" type="button" title="${escapeHtml(label)}" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${escapeHtml(label)}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
+    const book=accountLabel(rule.account);
     const group=(caption,chips)=>`<div class="settings-rule-group"><span class="settings-field-label">${escapeHtml(caption)}</span><div class="settings-inline">${chips}</div></div>`;
     // One block per rule. It used to be three rows whose labels repeated the
     // account name, so a screen reader and the eye both read twelve chips with
@@ -516,7 +543,7 @@ function ruleRows(){
     // third flex child it wrapped into a tall ragged block that left the name
     // floating in whitespace, which is what made the card look unlike every
     // other one on the page.
-    return`<div class="settings-row settings-rule${open?" is-open":""}" data-rule-account="${escapeHtml(rule.account)}"><div class="settings-rule-head"><span class="settings-label">${index+1} · ${account}</span><span class="settings-rule-move">${move(-1,"Move "+rule.account+" up",index===0)}${move(1,"Move "+rule.account+" down",index===model.rules.length-1)}<button class="collapse-control" type="button" data-rule-toggle aria-expanded="${open?"true":"false"}" aria-label="${open?"Close":"Edit"} routing for ${escapeHtml(rule.account)}"></button></span></div><p class="settings-rule-summary">${summary}</p>`
+    return`<div class="settings-row settings-rule${open?" is-open":""}" data-rule-account="${escapeHtml(rule.account)}"><div class="settings-rule-head"><span class="settings-label">${index+1} · ${account}</span><span class="settings-rule-move">${move(-1,"Move "+book+" up",index===0)}${move(1,"Move "+book+" down",index===model.rules.length-1)}<button class="collapse-control" type="button" data-rule-toggle aria-expanded="${open?"true":"false"}" aria-label="${open?"Close":"Edit"} routing for ${escapeHtml(book)}"></button></span></div><p class="settings-rule-summary">${summary}</p>`
       +`<div class="settings-rule-body">${group("Strategies",strategies)}${group("Assets",assets)}${group("Session",windows)}</div></div>`;
   }).join("");
 }
@@ -542,7 +569,7 @@ function settingsToggle(kind,index,value){
     const every=kind==="strategies"?state.settings.strategies:state.settings.groups;
     const current=rule[kind]??[...every];
     const next=current.includes(value)?current.filter(v=>v!==value):[...current,value];
-    if(!next.length){settingsStatus(rule.account.toUpperCase()+" must catch at least one "+(kind==="strategies"?"strategy":"asset group")+".","error");return;}
+    if(!next.length){settingsStatus(accountLabel(rule.account)+" must catch at least one "+(kind==="strategies"?"strategy":"asset group")+".","error");return;}
     rule[kind]=next.length===every.length?null:next;
   }
   markSettingsDirty();
