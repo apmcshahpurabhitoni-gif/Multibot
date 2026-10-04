@@ -61,9 +61,10 @@ html[data-style="neo"] .collapse-control,
 html.neo-mode .collapse-control,
 html[data-style="neo"] input,
 html.neo-mode input,
-#page-tools .settings-input,
 html[data-style="neo"] select,
-html.neo-mode select{
+html.neo-mode select,
+html[data-style="neo"] #page-tools .settings-input,
+html.neo-mode #page-tools .settings-input{
   border:2px solid var(--line-strong)!important;border-radius:7px!important;
   box-shadow:2px 2px 0 var(--line-strong)!important;background:var(--surface);
 }
@@ -2517,3 +2518,348 @@ html[data-style="material3"] #page-calendar .calendar-date-group .calendar-detai
   background:transparent!important;
 }
 
+
+/* ==========================================================================
+   TOOLS — "BOT SETTINGS" LAYOUT & HIERARCHY REPAIR
+   Ten defects measured on the running dashboard at 390x844 and 406x1440
+   (modern / light / rose). Each rule below replaces a superseded declaration
+   rather than adding to it.
+   ========================================================================== */
+
+/* --- (1) Heading: title, tag and chevron stay on one line ----------------
+   foundation.css puts `flex-wrap:wrap` on every `.section-heading`, so on a
+   phone the 17px title, the 112px session tag and the 32px chevron no longer
+   fit and the chevron dropped onto a line of its own (heading 101px tall).
+   The tag is the only thing that can give, so it shrinks to the same step the
+   Backtest card already uses and the title is allowed to shrink too.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-collapse>.section-heading>div{
+  flex:1 1 auto!important;
+  min-width:0!important;
+}
+html #page-tools .tool-card>.section-heading{
+  flex-wrap:nowrap!important;
+}
+#page-tools .tool-settings>.section-heading>.tool-tag{
+  flex:0 1 auto!important;
+  min-width:0!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:5px 9px!important;
+  font-size:10px!important;
+  line-height:1!important;
+  letter-spacing:.04em!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* --- (2) One gutter: body padding + row inset = the heading inset ---------
+   Two sheets gave the same card heading a 12px and a 16px horizontal inset,
+   so full-width cards and column cards in the same page started their text at
+   different x positions; the expanded body then added 8px of its own and each
+   settings row another 14px, putting row labels 10px right of the eyebrow
+   above them. One inset is declared once and used by every card, row, group
+   label and note.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-card>.section-heading,
+#page-tools .tools-appearance>.section-heading{
+  padding-inline:12px!important;
+}
+#page-tools .tool-settings{--ui-settings-inset:4px}
+#page-tools .tool-settings .settings-row,
+#page-tools .tool-settings .settings-group>.settings-label,
+#page-tools .tool-settings .settings-group>.section-note{
+  padding-inline:var(--ui-settings-inset)!important;
+}
+#page-tools .tool-settings .settings-row{
+  align-items:center!important;
+}
+@media(max-width:560px){
+  #page-tools .tool-settings>.section-heading h2{
+    font-size:15px!important;
+    line-height:1.15!important;
+  }
+  #page-tools .tool-settings>.section-heading .eyebrow{
+    margin-bottom:3px!important;
+  }
+  #page-tools .tool-settings>.section-heading{
+    gap:8px!important;
+  }
+}
+
+/* --- (3) Account rows: labelled fields, one grid, one row each -----------
+   Three bare number boxes and a second, differently sized "<name> budget"
+   row described one account. It is now one row: the account name and its
+   Remove action, then three equally wide fields that each say what they hold,
+   then the derived numbers the server will apply.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-account{
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+}
+#page-tools .tool-settings .settings-account-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-account .settings-label{
+  font-size:11.5px!important;
+  line-height:1.1!important;
+  font-weight:700!important;
+  letter-spacing:.1em!important;
+}
+#page-tools .tool-settings .settings-account-fields{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-field{
+  display:grid!important;
+  gap:4px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-field-label{
+  font-size:9.5px!important;
+  line-height:1!important;
+  font-weight:650!important;
+  letter-spacing:.07em!important;
+  text-transform:uppercase!important;
+  color:var(--muted)!important;
+}
+#page-tools .tool-settings .settings-field .settings-input{
+  width:100%!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-account .settings-hint{
+  text-align:left!important;
+  line-height:1.3!important;
+}
+#page-tools .tool-settings .settings-inline .settings-input{
+  flex:1 1 96px!important;
+}
+
+/* --- (4) New York session selects share the control contract -------------
+   These were 36px OS-native selects at 12px with the platform bevel and its
+   own chevron, sitting in a card whose other controls are 32px at 11px. Start
+   and end share a row; "Right now" is a read-only status, so it spans both.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .backtest-controls{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+#page-tools .tool-settings .settings-session-live{
+  grid-column:1/-1!important;
+}
+#page-tools .tool-settings .backtest-controls label{
+  position:relative!important;
+}
+#page-tools .tool-settings .backtest-controls label::after{
+  content:""!important;
+  position:absolute!important;
+  right:10px!important;
+  top:calc(100% - 16px)!important;
+  width:6px!important;
+  height:6px!important;
+  border-right:1.5px solid var(--muted)!important;
+  border-bottom:1.5px solid var(--muted)!important;
+  transform:translateY(-50%) rotate(45deg)!important;
+  pointer-events:none!important;
+}
+#page-tools .tool-settings .backtest-controls select{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  min-height:var(--ui-control-h)!important;
+  height:var(--ui-control-h)!important;
+  padding:0 26px 0 10px!important;
+  border-radius:var(--ui-control-r)!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+@media(max-width:560px){
+  #page-tools .tool-settings .backtest-controls label::after{
+    top:calc(100% - 15px)!important;
+  }
+}
+
+/* --- (5) Save / Reset carry different weight and show the dirty state -----
+   Both used to be the same grey chip, so the two destructive outcomes looked
+   identical, and nothing on screen changed until you scrolled 2,200px to a
+   status line. Save is now the card's only accent button and the Changes row
+   carries a live "Unsaved changes" badge.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-changes-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-changes .settings-label{
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-dirty{
+  display:inline-flex!important;
+  align-items:center!important;
+  height:20px!important;
+  padding:0 8px!important;
+  border:var(--ui-border)!important;
+  border-radius:999px!important;
+  background:var(--warning-soft)!important;
+  color:var(--warning)!important;
+  font-size:9.5px!important;
+  line-height:1!important;
+  font-weight:700!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+  white-space:nowrap!important;
+}
+#page-tools .tool-settings .settings-dirty[hidden]{
+  display:none!important;
+}
+#page-tools .tool-settings .settings-changes .primary-button.is-dirty{
+  box-shadow:0 0 0 2px var(--accent-soft)!important;
+}
+
+/* --- (6) Reorder buttons stop looking like routing options ---------------
+   `↑` / `↓` are actions, not choices, and the disabled ones looked enabled
+   because no sheet had a `:disabled` rule for them at all.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-move{
+  width:var(--ui-collapse-size)!important;
+  min-width:var(--ui-collapse-size)!important;
+  height:var(--ui-collapse-size)!important;
+  min-height:var(--ui-collapse-size)!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:12px!important;
+  line-height:1!important;
+  background:transparent!important;
+  border-color:transparent!important;
+  color:var(--muted)!important;
+  -webkit-text-fill-color:var(--muted)!important;
+}
+#page-tools .tool-settings .settings-move:hover:not(:disabled){
+  background:var(--surface-2)!important;
+  border-color:var(--line)!important;
+  color:var(--text)!important;
+  -webkit-text-fill-color:var(--text)!important;
+  transform:none!important;
+}
+#page-tools .tool-settings .settings-move:disabled{
+  background:transparent!important;
+  border-color:transparent!important;
+  color:var(--muted)!important;
+  -webkit-text-fill-color:var(--muted)!important;
+  opacity:.34!important;
+  cursor:not-allowed!important;
+  transform:none!important;
+}
+html[data-style="neo"] #page-tools .tool-settings .settings-move,
+html.neo-mode #page-tools .tool-settings .settings-move,
+html[data-style="neo"] #page-tools .tool-settings .settings-move:disabled,
+html.neo-mode #page-tools .tool-settings .settings-move:disabled{
+  background:var(--surface)!important;
+  border-color:var(--line-strong)!important;
+}
+
+/* --- (7) Row labels: less condensed, one weight -------------------------
+   Every `.settings-label` inherited `letter-spacing:.13em` and rendered at
+   9.5px/650, which is 1.24px of tracking per character on a 10px cap height.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-label{
+  letter-spacing:.09em!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+}
+
+/* --- (8) One mobile clearance, not three ---------------------------------
+   foundation.css reserves `--f-mobile-nav-clearance` on both `body` and
+   `main`, and styles.css reserves another `92px` on `.app`, so the Tools page
+   ended in 244px of empty background under the last card. `.app` is the shell
+   that owns the space around the fixed nav, so the two inner reservations
+   collapse into it.
+   ---------------------------------------------------------------------- */
+@media(max-width:900px){
+  #main-content{padding-bottom:0!important}
+  body{padding-bottom:0!important}
+}
+
+/* --- (9) Routing: one block per rule -------------------------------------
+   Three rows per rule repeated the account name three times and put a
+   three-way exclusive choice beside two arrow buttons painted like it. Each
+   rule is now one block: the name and its own reorder buttons on a heading,
+   then a captioned group for strategies, asset groups and the session window.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-rule{
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+}
+#page-tools .tool-settings .settings-rule-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-rule .settings-label{
+  font-size:11.5px!important;
+  line-height:1.1!important;
+  font-weight:700!important;
+  letter-spacing:.1em!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-rule-move{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  flex:none!important;
+}
+#page-tools .tool-settings .settings-rule-group{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#page-tools .tool-settings .settings-rule-group>.settings-field-label{
+  flex:0 0 auto!important;
+  width:66px!important;
+}
+#page-tools .tool-settings .settings-rule-group>.settings-inline{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  justify-content:flex-start!important;
+}
+
+/* --- (10) The card has one left edge -------------------------------------
+   Rows line up with the heading eyebrow, but the session grid and the status
+   box were still reading from the body's own 8px inset. They take the same
+   inset so nothing in the card starts where nothing else does.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-group>.backtest-controls,
+#page-tools .tool-settings>.tool-body>.backtest-status{
+  padding-inline:var(--ui-settings-inset)!important;
+}
+/* "Right now" reports state; it cannot be changed, so it does not advertise a
+   dropdown the way the two editable hours do. */
+#page-tools .tool-settings .settings-session-live::after{
+  content:none!important;
+}
+
+/* --- (11) An "Add ..." row pairs a label with one action -----------------
+   `space-between` is right for a label and a value, but it pushed the lone
+   "+ New account" button 196px from the label it belongs to. The two add
+   rows start their action right after the label instead.
+   ---------------------------------------------------------------------- */
+#page-tools .tool-settings .settings-row:has(#addAccountButton),
+#page-tools .tool-settings .settings-row:has(#addAssetButton){
+  justify-content:flex-start!important;
+  gap:10px!important;
+}

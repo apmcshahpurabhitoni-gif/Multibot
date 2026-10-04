@@ -525,7 +525,9 @@ main{padding:var(--space-5) 0 var(--space-5) calc(var(--nav-w) + 26px);max-width
 /* Numeric and text fields in the Tools settings editor. Scoped to #page-tools so
    they cannot restyle the backtest controls or the search box. */
 #page-tools .settings-input{min-width:0;min-height:var(--control-height);padding:6px 9px;border:var(--border-w) solid var(--line);border-radius:var(--radius-xs);background:var(--surface-2);color:var(--text);font-size:11.5px;font-variant-numeric:tabular-nums}
-#page-tools .settings-input[type=number]{width:104px}
+/* Superseded: a fixed 104px made three number boxes refuse to share a 336px
+   phone row, so the last field wrapped under the first two. The fields now
+   take their width from the grid that holds them. */
 #page-tools .settings-input:disabled{opacity:.62;cursor:not-allowed}
 #page-tools .settings-hint{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;text-align:right}
 .appearance-style-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -2772,11 +2774,9 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
 }
 
 @media(max-width:560px){
-  #page-tools .tool-collapse.is-open>.tool-body{
-    padding:7px!important;
-    border-radius:11px!important;
-  }
-
+  /* Superseded: this 7px body variant only matched open collapsibles, so an
+     expanded Tool card sat one pixel tighter than its collapsed siblings. The
+     single 8px declaration lives in the unified rule above. */
   #page-tools .tools-appearance{
     padding:9px!important;
   }

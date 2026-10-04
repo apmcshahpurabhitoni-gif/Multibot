@@ -349,21 +349,29 @@ function paintSettingsStatus(){
   el.textContent=message.text;
 }
 function settingsStatus(text,kind){state.settingsMessage={text,kind:kind||"info"};paintSettingsStatus();}
-function markSettingsDirty(){state.settingsDirty=true;settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");}
+function paintSettingsDirty(){
+  const badge=$("settingsDirtyBadge");if(badge)badge.hidden=!state.settingsDirty;
+  const save=$("saveSettingsButton");if(save)save.classList.toggle("is-dirty",!!state.settingsDirty);
+}
+function markSettingsDirty(){state.settingsDirty=true;paintSettingsDirty();settingsStatus("Unsaved changes. Save to apply them to the running bot.","info");}
 function money(value){return "₹"+Number(value||0).toLocaleString("en-IN");}
 function accountRows(){
   const model=state.settings;if(!model)return "";
   return model.accounts.map((a,index)=>{
     const fixed=BUILTIN_ACCOUNTS.includes(a.name);
-    const field=(key,min,max,step)=>`<input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" data-account-index="${index}" data-account-field="${key}"${fixed?" disabled":""} aria-label="${escapeHtml(a.name)} ${escapeHtml(key.replace(/_/g," "))}">`;
+    // Every number carries a visible unit label: three bare boxes in a row gave
+    // no way to tell capital from trade count from risk.
+    const field=(key,label,min,max,step)=>`<label class="settings-field"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}"${fixed?" disabled":""} aria-label="${escapeHtml(a.name)} ${escapeHtml(label)}"></label>`;
     const remove=fixed?"":`<button class="chip-option settings-toggle" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
-    return`<div class="settings-row"><span class="settings-label">${escapeHtml(a.name)}</span><div class="settings-inline">${field("starting_balance",1,100000000,1000)}${field("daily_trade_limit",1,500,1)}${field("risk_per_trade",100,500000,100)}${remove}</div></div>`
-      +`<div class="settings-row"><span class="settings-label">${escapeHtml(a.name)} budget</span><div class="settings-inline"><span class="settings-hint">${money(a.starting_balance)} · ${a.daily_trade_limit} trades · ${money(a.risk_per_trade)} risk · ${money(a.daily_trade_limit*a.risk_per_trade)}/day</span></div></div>`;
+    return`<div class="settings-row settings-account"><div class="settings-account-head"><span class="settings-label">${escapeHtml(a.name)}</span>${remove}</div>`
+      +`<div class="settings-account-fields">${field("starting_balance","Capital",1,100000000,1000)}${field("daily_trade_limit","Trades / day",1,500,1)}${field("risk_per_trade","Risk / trade",100,500000,100)}</div>`
+      +`<span class="settings-hint">${money(a.starting_balance)} · ${a.daily_trade_limit} trades · ${money(a.risk_per_trade)} risk · ${money(a.daily_trade_limit*a.risk_per_trade)}/day</span></div>`;
   }).join("");
 }
 function assetRows(){
   const model=state.settings;if(!model)return "";
-  if(!model.assets.length)return`<div class="settings-row"><span class="settings-label">Assets</span><div class="settings-inline"><span class="settings-hint">None added. The 25 shipped assets are always traded.</span></div></div>`;
+  // "Assets" is already the group header directly above this row.
+  if(!model.assets.length)return`<div class="settings-row"><span class="settings-label">Added assets</span><div class="settings-inline"><span class="settings-hint">None added. The 25 shipped assets are always traded.</span></div></div>`;
   return model.assets.map((asset,index)=>{
     const groups=`<select class="settings-input" data-asset-index="${index}" data-asset-field="group" aria-label="Asset group">${model.groups.map(x=>`<option value="${escapeHtml(x)}"${x===asset.group?" selected":""}>${escapeHtml(x)}</option>`).join("")}</select>`;
     const strategies=model.strategies.map(id=>`<button class="chip-option${asset.strategies.includes(id)?" active":""}" type="button" aria-pressed="${asset.strategies.includes(id)}" data-asset-index="${index}" data-asset-strategy="${escapeHtml(id)}">${escapeHtml(model.strategyNames[id]||id)}</button>`).join("");
@@ -383,10 +391,17 @@ function ruleRows(){
     const strategies=model.strategies.map(id=>settingsChip("strategies",index,id,model.strategyNames[id]||id,(rule.strategies||model.strategies).includes(id))).join("");
     const assets=model.groups.map(g=>settingsChip("asset_groups",index,g,g,(rule.asset_groups||model.groups).includes(g))).join("");
     const windows=ROUTING_WINDOWS.map(([value,label])=>settingsChip("in_ny_session",index,value,label,String(rule.in_ny_session)===value)).join("");
-    const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle" type="button" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${label}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
-    return`<div class="settings-row"><span class="settings-label">${index+1} · ${account}</span><div class="settings-inline">${strategies}</div></div>`
-      +`<div class="settings-row"><span class="settings-label">${account} assets</span><div class="settings-inline">${assets}</div></div>`
-      +`<div class="settings-row"><span class="settings-label">${account} session</span><div class="settings-inline">${windows}${move(-1,"Move "+rule.account+" earlier",index===0)}${move(1,"Move "+rule.account+" later",index===model.rules.length-1)}</div></div>`;
+    // Reorder buttons are not options: `settings-move` gives them their own
+    // square icon geometry and a visible disabled state. They belong to the
+    // rule they move, so they sit on the rule's own heading.
+    const move=(delta,label,disabled)=>`<button class="chip-option settings-toggle settings-move" type="button" data-settings-move="${delta}" data-settings-index="${index}" aria-label="${escapeHtml(label)}"${disabled?" disabled":""}>${delta<0?"↑":"↓"}</button>`;
+    const group=(caption,chips)=>`<div class="settings-rule-group"><span class="settings-field-label">${escapeHtml(caption)}</span><div class="settings-inline">${chips}</div></div>`;
+    // One block per rule. It used to be three rows whose labels repeated the
+    // account name, so a screen reader and the eye both read twelve chips with
+    // no owner: strategies, asset groups and session window now belong to the
+    // single heading above them.
+    return`<div class="settings-row settings-rule"><div class="settings-rule-head"><span class="settings-label">${index+1} · ${account}</span><span class="settings-rule-move">${move(-1,"Move "+rule.account+" earlier",index===0)}${move(1,"Move "+rule.account+" later",index===model.rules.length-1)}</span></div>`
+      +group("Strategies",strategies)+group("Assets",assets)+group("Session",windows)+`</div>`;
   }).join("");
 }
 function renderSettings(){
@@ -458,6 +473,7 @@ async function postSettings(body,button){
     const result=await readJsonResponse(response,"Settings API");
     if(result.ok===false)throw new Error(result.error||"Settings change failed");
     state.settingsDirty=false;
+    paintSettingsDirty();
     if(result.settings){const fresh=settingsModel(result.settings);model.accounts=fresh.accounts;model.assets=fresh.assets;model.rules=fresh.rules;model.session=fresh.session;}
     renderSettings();
     // The refresh runs first: loadDashboard() re-renders Tools and would
