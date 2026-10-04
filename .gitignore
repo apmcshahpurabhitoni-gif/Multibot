@@ -23,9 +23,9 @@ bot_settings.json.tmp
 .playwright-cli/
 
 # Vendored third-party agent tooling (~26MB, not part of the bot).
-# Note: .agents/skills/ponytail/ and .agents/skills/ui-ux-pro-max/ were
-# committed before this rule existed and are still tracked; untracking them is a
-# separate, deliberate step.
+# The skill directories under here are deliberately untracked. The tracked
+# record of the ponytail-driven UI audit lives at the repository root, as
+# SENIOR_PONYTAIL_AUDIT.md and tests/test_ponytail_fixes.py.
 agent/
 .agents/
 .claude/

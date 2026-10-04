@@ -2578,7 +2578,7 @@ html #page-tools .tool-card>.section-heading{
    `↑` / `↓` are actions, not choices, and the disabled ones looked enabled
    because no sheet had a `:disabled` rule for them at all.
    ---------------------------------------------------------------------- */
-#page-tools .tool-settings .settings-move{
+html #page-tools .tool-settings .settings-move{
   width:var(--ui-collapse-size)!important;
   min-width:var(--ui-collapse-size)!important;
   height:var(--ui-collapse-size)!important;
@@ -2594,13 +2594,23 @@ html #page-tools .tool-card>.section-heading{
   color:var(--text)!important;
   -webkit-text-fill-color:var(--text)!important;
 }
-#page-tools .tool-settings .settings-move:hover:not(:disabled){
+html #page-tools .tool-settings .settings-move:hover:not(:disabled){
   border-color:var(--accent)!important;
   color:var(--accent)!important;
   -webkit-text-fill-color:var(--accent)!important;
   transform:none!important;
 }
-#page-tools .tool-settings .settings-move:disabled{
+/* The pressed state. Feedback is a fill, not a scale or a translate: the hover
+   rule above pins `transform:none`, because this control's geometry is fixed
+   (like every other disclosure in the app, only the chevron may move). Colour
+   and surface carry the press instead. */
+html #page-tools .tool-settings .settings-move:active:not(:disabled){
+  background:var(--accent-soft)!important;
+  border-color:var(--accent)!important;
+  color:var(--accent)!important;
+  -webkit-text-fill-color:var(--accent)!important;
+}
+html #page-tools .tool-settings .settings-move:disabled{
   background:var(--surface)!important;
   border-color:var(--line)!important;
   color:var(--muted)!important;
@@ -2836,22 +2846,6 @@ html.neo-mode #page-tools .tool-settings .settings-move:disabled{
    unprefixed rule lost on specificity: the arrows stayed unreadable even after
    they gained a surface. Same reach, so the glyph is a glyph and not a chip
    label. */
-html #page-tools .tool-settings .settings-move{
-  font-size:13px!important;
-  font-weight:700!important;
-  color:var(--text)!important;
-  -webkit-text-fill-color:var(--text)!important;
-}
-html #page-tools .tool-settings .settings-move:disabled{
-  color:var(--muted)!important;
-  -webkit-text-fill-color:var(--muted)!important;
-}
-html #page-tools .tool-settings .settings-move:hover:not(:disabled){
-  border-color:var(--accent)!important;
-  color:var(--accent)!important;
-  -webkit-text-fill-color:var(--accent)!important;
-}
-
 /* --- (12) Every card that owns data owns its Save ------------------------
    There was one Changes card holding Save and Reset, so adding an asset in the
    Assets card meant scrolling to a different card to commit it, and the only
@@ -2905,7 +2899,6 @@ html #page-tools .tool-settings .settings-move:hover:not(:disabled){
    every asset group", which is what the prose note used to explain instead.
    ---------------------------------------------------------------------- */
 #page-tools .tool-settings .settings-rule-summary{
-  flex:1 1 auto!important;
   min-width:0!important;
   margin:0!important;
   color:var(--muted)!important;

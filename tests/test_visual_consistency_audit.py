@@ -743,16 +743,29 @@ def test_settings_reorder_buttons_have_their_own_geometry_and_disabled_state():
         "the reorder buttons must carry `settings-move` so they can be told "
         "apart from the option chips beside them"
     )
+    # The rule carries the `html` prefix so it out-reaches the chip step it
+    # sits beside; one rule, not a second trio layered on top of the first.
     width = _declarations_for_selector(
-        "appearance-overrides.css", "#page-tools .tool-settings .settings-move", "width"
+        "appearance-overrides.css",
+        "html #page-tools .tool-settings .settings-move",
+        "width",
     )
     assert width == ["var(--ui-collapse-size)!important"], (
         f"a reorder button is a square icon target, found {width!r}"
     )
+    bases = [
+        prelude
+        for prelude, _body, _media in _iter_rules(SHEETS["appearance-overrides.css"])
+        if "html #page-tools .tool-settings .settings-move" in _selectors(prelude)
+    ]
+    assert len(bases) == 1, (
+        f"the reorder button's geometry is declared {len(bases)} times ({bases!r}); "
+        "superseded rules must be folded into the one that wins, not stacked"
+    )
     disabled = [
         prelude
         for prelude, _body, _media in _iter_rules(SHEETS["appearance-overrides.css"])
-        if "#page-tools .tool-settings .settings-move:disabled" in _selectors(prelude)
+        if "html #page-tools .tool-settings .settings-move:disabled" in _selectors(prelude)
     ]
     assert disabled, (
         "there is no disabled style for the reorder buttons; the first rule's "
@@ -1234,13 +1247,16 @@ def test_reorder_controls_look_like_controls():
     `title`/`aria-label` naming the action, and a "Move" caption in front of
     the pair.
     """
+    # The chip step is declared on `html #page-tools .tool-settings
+    # .chip-option`; an unprefixed rule loses to it and the glyph stays 9.5px,
+    # so the one rule carries the prefix and both declarations.
     assert _declarations_for_selector(
-        "appearance-overrides.css", "#page-tools .tool-settings .settings-move", "background"
+        "appearance-overrides.css",
+        "html #page-tools .tool-settings .settings-move",
+        "background",
     ) == ["var(--surface)!important"], (
         "the reorder buttons are transparent again, so they read as decoration"
     )
-    # The chip step is declared on `html #page-tools .tool-settings
-    # .chip-option`; an unprefixed rule loses to it and the glyph stays 9.5px.
     assert _declarations_for_selector(
         "appearance-overrides.css",
         "html #page-tools .tool-settings .settings-move",
@@ -1336,4 +1352,132 @@ def test_adding_an_asset_can_actually_be_saved():
     assert "asset.strategies||model.strategies" in APP, (
         "the asset chips read `asset.strategies` directly, so a default (null) "
         "row throws while rendering"
+    )
+
+
+# ---------------------------------------------------------------------------
+# UI/UX standard re-audit (2026-10-04) — state, token and lifecycle contracts.
+# The defect in every case below was one shared component doing two jobs, so
+# each guard asserts the replacement AND the absence of the superseded pattern.
+# ---------------------------------------------------------------------------
+
+def test_loading_is_a_skeleton_not_a_sentence_in_an_empty_tile():
+    """A loading list must show the shape of what is coming.
+
+    Measured defect: six containers shipped
+    ``<div class="empty-state">Loading signals…</div>``, so before the first
+    poll a list that was *loading* and a list that was genuinely *empty*
+    rendered the same component with different words in it.
+    """
+    for phrase in (
+        "Loading signals…",
+        "Loading history…",
+        "Loading open trades…",
+        "Loading scan history…",
+        "Loading saved calendar…",
+    ):
+        assert f'class="empty-state">{phrase}' not in HTML, (
+            f"{phrase!r} is still bare text inside an empty-state tile, so "
+            "loading and empty remain the same component"
+        )
+    assert HTML.count('class="loading-state" role="status"') >= 6, (
+        "every loading list must use .loading-state and declare role=status"
+    )
+    # Row-shaped bars, not one bar: the placeholder has to read as a list.
+    assert HTML.count('class="skeleton skeleton-row"') >= 12, (
+        "each loading list needs row-shaped skeletons to match the rows coming"
+    )
+    # The bars are decoration; the meaning is carried once, accessibly.
+    assert HTML.count('<span class="sr-only">Loading') >= 6, (
+        "each loading list needs one accessible loading label"
+    )
+
+
+def test_skeleton_respects_reduced_motion_and_matches_row_height():
+    """The shimmer must stop for reduced-motion users and use surface tokens."""
+    reduce_rules = [
+        body
+        for prelude, body, media in _iter_rules(SHEETS["styles.css"])
+        if "prefers-reduced-motion" in media and ".skeleton" in _selectors(prelude)
+    ]
+    assert reduce_rules, "the skeleton shimmer is not disabled under reduced motion"
+    assert "animation:none" in reduce_rules[0]
+    assert "background:var(--surface-2)" in SHEETS["styles.css"], (
+        "the skeleton must fill from a surface token, not a hex colour"
+    )
+    assert not re.search(r"\.skeleton\s*\{[^}]*#[0-9a-fA-F]", SHEETS["styles.css"]), (
+        "the skeleton hardcodes a colour instead of using a token"
+    )
+    # Dimension-matched, not eyeballed: 64px is a real row height in this app
+    # (.calendar-item measures 64px; .signal-card measures 70px), so a
+    # placeholder bar is the size of something that actually exists here.
+    assert re.findall(r"\.skeleton-row\{height:(\d+)px\}", SHEETS["styles.css"]) == ["64"], (
+        "the skeleton row must match a measured row height (64px)"
+    )
+
+
+def test_reorder_control_defines_a_pressed_state():
+    """The five-state contract: this control was the only one with no `:active`.
+
+    Measured defect: `.settings-move` defined base, hover and disabled but no
+    pressed rule at all, so pressing an arrow gave no feedback whatsoever.
+    """
+    sheet = SHEETS["appearance-overrides.css"]
+    for state in ("", ":hover:not(:disabled)", ":active:not(:disabled)", ":disabled"):
+        selector = f"html #page-tools .tool-settings .settings-move{state}"
+        found = [p for p, _b, _m in _iter_rules(sheet) if selector in _selectors(p)]
+        assert found, f"the reorder control defines no rule for {selector!r}"
+    pressed = [
+        body
+        for prelude, body, _media in _iter_rules(sheet)
+        if "html #page-tools .tool-settings .settings-move:active:not(:disabled)"
+        in _selectors(prelude)
+    ]
+    assert "background:var(--accent-soft)!important" in pressed[0], (
+        "the pressed state must actually change the surface"
+    )
+    assert "transform" not in pressed[0], (
+        "the press must not move a control whose geometry is pinned (the hover "
+        "rule sets transform:none, because only a chevron may move here)"
+    )
+
+
+def test_connection_error_offers_a_retry_and_can_still_hide():
+    """An error banner is an error contract: it needs a retry trigger.
+
+    Measured defect: the banner only ever received `textContent`, so an
+    operator whose dashboard went offline had no way to retry without a
+    full page reload.
+    """
+    assert 'class="connection-banner"' in HTML and 'role="alert"' in HTML
+    assert "data-retry-dashboard" in APP, "the error banner has no retry control"
+    # The banner is re-rendered after load, so the handler must be delegated:
+    # a one-time binding would never see the button.
+    assert 'closest("[data-refresh-dashboard],[data-retry-dashboard]")' in APP, (
+        "the retry button is rendered after hydration, so it needs delegation"
+    )
+    assert _declarations_for_selector(
+        "styles.css", ".connection-banner[hidden]", "display"
+    ) == ["none"], (
+        "`display:flex` defeats the `hidden` attribute, so the banner must "
+        "re-assert display:none or it shows an empty red bar on every healthy load"
+    )
+
+
+def test_empty_state_carries_an_action_and_it_is_wired():
+    """An empty or error tile needs a way forward, not only an explanation."""
+    assert re.search(r"function empty\([^)]*refresh", APP), (
+        "empty() offers no action slot"
+    )
+    assert APP.count("data-refresh-dashboard") >= 2, (
+        "empty() must render the refresh control it advertises"
+    )
+    opted_in = re.findall(
+        r'empty\("(?:No signals yet|No completed trades|History unavailable|'
+        r'Open positions unavailable|Scan history unavailable)"[^)]*,true\)',
+        APP,
+    )
+    assert len(opted_in) >= 5, (
+        f"only {len(opted_in)} call sites opt into the empty-state action; an "
+        "unused slot is dead code"
     )

@@ -228,10 +228,13 @@ html[data-theme="dark"] .icon-button .icon-moon{display:none}
 .theme-toggle{width:40px}
 
 .connection-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   margin:10px 0;padding:12px 15px;
   border:var(--border-w) solid var(--negative);border-radius:var(--radius-sm);
   background:var(--negative-soft);color:var(--negative);font-size:12px;font-weight:600;
 }
+.connection-banner button{flex:none}
+.connection-banner[hidden]{display:none}
 
 /* ---------- 4. Navigation: fixed sidebar (desktop), bottom bar (mobile) --- */
 .desktop-nav{
@@ -717,7 +720,23 @@ body.drawer-open{overflow:hidden}
 .empty-state{display:grid;place-items:center;gap:5px;min-height:90px;padding:16px 14px;text-align:center;border:var(--border-w) solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
 .empty-state span{font-size:17px;color:var(--accent-strong)}
 .empty-state strong{font-size:14px;font-weight:850}
-.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
+.empty-state small{max-width:440px;color:var(--muted);font-size:11.5px;line-height:1.5}
+
+/* ---------- 14b. Loading skeletons ----------------------------------------- */
+/* Loading used to borrow the empty-state tile and fill it with bare text
+   ("Loading signals…"), so a list had no shape before the first poll and a
+   loading list was indistinguishable from an empty result. A skeleton mirrors
+   the row geometry it stands in for. It carries no visible text: the shape is
+   the message, and the one #dashboardAnnouncer live region already reports the
+   arrival of real data, so a second narration would say it twice. */
+.loading-state{display:grid;gap:var(--grid-gap);width:100%}
+.skeleton{display:block;background:var(--surface-2);border-radius:var(--radius-sm);animation:skeletonPulse 1.4s ease-in-out infinite}
+.skeleton-row{height:64px}
+.skeleton-chart{height:180px}
+.skeleton-title{height:13px;width:min(220px,60%)}
+.skeleton-line{height:11px}
+@keyframes skeletonPulse{50%{opacity:.5}}
+@media (prefers-reduced-motion: reduce){.skeleton{animation:none}}/* ---------- 15. Neo Brutalism interactive surface ---------------------------- */
 html[data-style="neo"] .primary-button,
 html[data-style="neo"] .secondary-button,
 html[data-style="neo"] .icon-button,
