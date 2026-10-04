@@ -1830,12 +1830,7 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   line-height:1!important;
 }#page-calendar .calendar-meta .expand-button{
   flex:0 0 34px!important;
-  
-  
-  min-
-  min-
   margin-left:auto!important;
-  
 }
 #page-calendar .calendar-meta 
 /* Event title is now a first-class hierarchy level.
@@ -1955,10 +1950,6 @@ html[data-style="neo"] .calendar-workspace .calendar-date-group.is-open .calenda
   }
   #page-calendar .calendar-meta .impact-pill{
     display:inline-flex!important;
-  }#page-calendar .calendar-meta .expand-button{
-    
-    
-    min-
   }
   #page-calendar .calendar-details{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;

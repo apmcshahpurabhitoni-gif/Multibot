@@ -1481,3 +1481,114 @@ def test_empty_state_carries_an_action_and_it_is_wired():
         f"only {len(opted_in)} call sites opt into the empty-state action; an "
         "unused slot is dead code"
     )
+
+
+# ---------------------------------------------------------------------------
+# Reported "the design is not consistent" round (2026-10-04). Each guard pins
+# the fix and the absence of the superseded rule that caused it.
+# ---------------------------------------------------------------------------
+
+def test_calendar_chevron_sits_in_its_row_not_at_the_card_centre():
+    """The calendar event chevron was the only control tracking the card, not its row.
+
+    Measured defect: it was `position:absolute` with `top:calc(50% - 20px)` —
+    the vertical centre of the *card*. A collapsed 63px card therefore put the
+    control in the middle of an otherwise empty box (measured `chevCentreOffset`
+    -4px), and an expanded 147px card floated it 54px down, between the title
+    and the detail grid. Every other expandable in the app keeps its chevron in
+    the title row.
+    """
+    sheet = SHEETS["appearance-overrides.css"]
+    rules = [
+        (prelude, body)
+        for prelude, body, _media in _iter_rules(sheet)
+        if "#page-calendar .calendar-item .expand-button" in _selectors(prelude)
+    ]
+    assert rules, "the calendar event chevron is unstyled in the appearance layer"
+    for prelude, body in rules:
+        declared = _declarations(body)
+        assert declared.get("position") != "absolute", (
+            f"`{prelude.strip()}` still takes the chevron out of flow; absolute "
+            "positioning on the card is what made it drift to the card's centre"
+        )
+        assert "50%" not in body, (
+            f"`{prelude.strip()}` still positions the chevron against a "
+            "percentage of the card's height"
+        )
+    assert any(
+        str(_declarations(body).get("position", "")).startswith("static")
+        for _p, body in rules
+    ), (
+        "the chevron must be explicitly returned to the flow of its meta row"
+    )
+    # And the row still pushes it to the far edge, so it stays right-aligned.
+    assert _declarations_for_selector(
+        "styles.css", "#page-calendar .calendar-meta .expand-button", "margin-left"
+    ) == ["auto!important"], (
+        "the chevron must remain flush right inside the meta row"
+    )
+
+
+def test_save_is_the_rightmost_control_in_every_settings_card():
+    """Save belongs on the right, with the status line reading first.
+
+    Measured defect: `.settings-actions` had no `justify-content` and its status
+    span carried `flex:1 1 150px`, so the row rendered [Save][Reset][status]
+    with Save hard against the left inset. The status line is not focusable, so
+    putting it first in the markup keeps DOM order equal to visual order.
+    """
+    found = re.findall(
+        r'<div class="settings-actions">(.*?)</div>', HTML, re.S
+    )
+    assert len(found) == 3, f"expected one action row per card, found {len(found)}"
+    for row in found:
+        order = re.findall(r"(data-settings-status|data-reset-settings|data-save-settings)", row)
+        assert order == ["data-settings-status", "data-reset-settings", "data-save-settings"], (
+            f"the action row renders {order}; the status reads first and Save "
+            "must be the last control, at the right edge"
+        )
+
+
+def test_add_and_remove_controls_use_the_button_primitive_not_a_chip():
+    """An action is a button; a chip is an exclusive choice.
+
+    Measured defect: "+ New asset", "+ New account" and the per-row "Remove"
+    were all `chip-option` — a 9.5px pill that reads as one more selected
+    option in a list of selected options. They are the only actions in the app
+    not built from the shared button primitive.
+    """
+    for control in ("addAssetButton", "addAccountButton"):
+        markup = re.search(rf'<button id="{control}"[^>]*>', HTML)
+        assert markup, f"{control} is missing"
+        classes = markup.group(0)
+        assert "secondary-button" in classes, f"{control} must be a button"
+        assert "chip-option" not in classes, (
+            f"{control} is styled as an option chip, so it reads as a choice "
+            "rather than an action"
+        )
+    for source, text in (("dashboard.html", HTML), ("app.js", APP)):
+        for match in re.finditer(r'<button[^>]*data-remove-(?:asset|account)[^>]*>', text):
+            classes = match.group(0)
+            assert "secondary-button" in classes, (
+                f"{source}: a Remove control is not a button: {classes!r}"
+            )
+            assert "chip-option" not in classes and "settings-toggle" not in classes, (
+                f"{source}: Remove is still an option chip: {classes!r}"
+            )
+
+
+def test_no_stylesheet_contains_a_truncated_declaration():
+    """Half-written CSS is silently discarded, so it can only ever mislead.
+
+    Measured defect: six blocks held nothing but a bare `min-` — a property name
+    with no value — left behind by an earlier edit. The browser drops them, so
+    they rendered nothing while still looking like they declared the chevron's
+    size.
+    """
+    dangling = re.compile(r"^[ \t]*[a-zA-Z]+-[ \t]*$")
+    for name, css in SHEETS.items():
+        for number, line in enumerate(css.splitlines(), 1):
+            assert not dangling.match(line), (
+                f"{name}:{number} is a truncated declaration (`{line.strip()}`); "
+                "it declares nothing and survives only as noise"
+            )
