@@ -920,18 +920,22 @@ button:focus:not(:focus-visible){outline:none!important}
   flex:0 0 auto!important;
 }
 
-/* The calendar event chevron is the only control whose row (time + badges) is
-   not the whole card. Centre it on the card so it stops sitting above the
-   event title. No transform is used, so the foundation contract's
-   "transform:none" guarantee for expandable controls is preserved. */
 #page-calendar .calendar-item{position:relative!important}
+/* The event chevron belongs to its own row. It was absolutely positioned at
+   `top:calc(50% - 20px)` — the vertical centre of the *card* — so a collapsed
+   card put the control in the middle of an otherwise empty box, and an expanded
+   one floated it between the title and the detail grid. It was the only control
+   in the app whose position did not track the row it belonged to; every other
+   expandable (signals, history, routing, Tools) keeps its chevron pinned to the
+   title row. The card stays the positioning context, the control joins the meta
+   row, and it is still pushed to the far edge by the same `margin-left:auto`. */
 #page-calendar .calendar-item .expand-button{
-  position:absolute!important;
-  top:calc(50% - 20px)!important;
-  right:9px!important;
+  position:static!important;
+  top:auto!important;
+  right:auto!important;
   left:auto!important;
-  margin:0!important;
-  z-index:3!important;
+  margin:0 0 0 auto!important;
+  z-index:auto!important;
 }
 
 /* ---------- Remaining surface-radius drift --------------------------------

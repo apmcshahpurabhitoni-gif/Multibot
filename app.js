@@ -449,7 +449,7 @@ function accountRows(){
     // written like any other, so disabling these fields made the dashboard
     // refuse an edit the API accepts and apply.
     const field=(key,label,min,max,step)=>`<label class="settings-field"><span class="settings-field-label">${escapeHtml(label)}</span><input class="settings-input" type="number" value="${a[key]}" min="${min}" max="${max}" step="${step}" inputmode="numeric" data-account-index="${index}" data-account-field="${key}" aria-label="${escapeHtml(a.name)} ${escapeHtml(label)}"></label>`;
-    const remove=fixed?"":`<button class="chip-option settings-toggle" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
+    const remove=fixed?"":`<button class="secondary-button" type="button" data-remove-account="${index}" aria-label="Remove ${escapeHtml(a.name)}">Remove</button>`;
     return`<div class="settings-row settings-account"><div class="settings-account-head"><span class="settings-label">${escapeHtml(a.name)}</span>${remove}</div>`
       +`<div class="settings-account-fields">${field("starting_balance","Capital",1,100000000,1000)}${field("daily_trade_limit","Trades / day",1,500,1)}${field("risk_per_trade","Risk / trade",100,500000,100)}</div>`
       +`<span class="settings-hint">${accountSummary(a)}</span></div>`;
@@ -473,7 +473,7 @@ function assetRows(){
     // the other fields hang off it, and it names the row.
     // `data-asset-row` lets the input handler rewrite that name in place instead
     // of re-rendering the list and stealing focus mid-typing.
-    return`<div class="settings-row" data-asset-row="${index}"><span class="settings-label">${escapeHtml(tag)}</span><div class="settings-inline">${text("symbol","Symbol")}${text("label","Label")}${text("yahoo_symbol","Yahoo symbol")}${groups}<button class="chip-option settings-toggle" type="button" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(tag)}">Remove</button></div></div>`
+    return`<div class="settings-row" data-asset-row="${index}"><span class="settings-label">${escapeHtml(tag)}</span><div class="settings-inline">${text("symbol","Symbol")}${text("label","Label")}${text("yahoo_symbol","Yahoo symbol")}${groups}<button class="secondary-button" type="button" data-remove-asset="${index}" aria-label="Remove ${escapeHtml(tag)}">Remove</button></div></div>`
       +`<div class="settings-row" data-asset-row="${index}"><span class="settings-label">${escapeHtml(tag)} scan</span><div class="settings-inline">${strategies}</div></div>`;
   }).join("");
 }

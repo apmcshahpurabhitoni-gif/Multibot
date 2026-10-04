@@ -2491,11 +2491,6 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
   }
   #page-signals .signal-date-rows .card-state{
     gap:8px!important;
-  }#page-signals .signal-date-rows .expand-button{
-    
-    
-    min-
-    min-
   }
 }
 @media(hover:none){
@@ -2511,12 +2506,6 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     min-height:56px!important;
     height:56px!important;
     padding:7px 9px!important;
-  }#page-signals .signal-date-rows .expand-button{
-    
-    
-    min-
-    min-
-    
   }
   #page-signals .signal-date-rows .direction-icon{
     width:26px!important;
@@ -2619,12 +2608,6 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     font-size:10px!important;
     min-height:22px!important;
     padding:2px 8px!important;
-  }#page-signals .signal-date-rows .expand-button{
-    
-    
-    min-
-    min-
-    
   }
 
   /* Expanded data keeps the same label/value hierarchy: label muted,
@@ -2710,12 +2693,6 @@ html[data-style="neo"] #page-calendar .calendar-date-group.is-open > .calendar-d
     min-height:20px!important;
     padding:2px 7px!important;
     font-size:9.5px!important;
-  }#page-signals .signal-date-rows .expand-button{
-    
-    
-    min-
-    min-
-    
   }
 
   /* Two columns of complete label/value pairs. Both label and value start
