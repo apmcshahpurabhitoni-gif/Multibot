@@ -3005,12 +3005,69 @@ html #page-tools .tool-settings .settings-field-money>.settings-input{
    `display:block!important` later in styles.css, so every category rendered
    full width and the declaration was inert at both widths. It is deleted at
    the source rather than overridden; the container is a stack of rows.
+
+   Letting the rail take its own width fixed the cost and created the
+   jitter, because `auto` lets the label choose where the content column
+   starts. Measured at 390x844, inside a 366px card: the first ticker began
+   at 139 / 94 / 125 / 91 / 84 for Indian Equities / Indices / Commodities /
+   Crypto / Forex -- five starts, a 55px swing down one list. The same 55px
+   measured at 1440x900 inside the 513px Tools card. Separately,
+   `align-items:center` floated the label 62px below its first ticker row on
+   Indian Equities (8 lines of tickers) and 18px on Forex; only the
+   single-line categories lined up, and only by accident.
+
+   So the rail survives only where there is room for it. At 560px and under
+   the category is a single column: the label takes its own row and every
+   ticker starts at the card's left edge. Above 560px the rail stays, but it
+   is one width for every category rather than `auto`, so the ticker column
+   starts in the same place on every row. `minmax(102px, max-content)` is
+   102px for all five labels today -- 102px is the measured width of "Indian
+   Equities", the longest -- and grows rather than clips if the universe ever
+   gains a longer name.
+
+   That reintroduces a fixed rail where the previous pass had `auto`, so the
+   trade is worth stating. That pass measured its cost at 390x844: 108px of a
+   348px row. There is no rail at that width now, so the cost is only paid
+   where there is room -- at 561px the card is 537px and the rail is 19% of
+   it, at 1440 the card is 513px and the rail is 20%. Paying a fifth of the
+   row for a column that lines up beats paying it and having the content
+   start in five different places.
    ---------------------------------------------------------------------- */
 html #page-tools .tool-universe .universe-grid>.asset-category{
-  grid-template-columns:auto minmax(0,1fr)!important;
+  grid-template-columns:minmax(102px,max-content) minmax(0,1fr)!important;
+  align-items:start!important;
 }
 html #page-tools .tool-universe .asset-category-label{
   width:auto!important;
   max-width:none!important;
   min-width:0!important;
+}
+@media(max-width:560px){
+  html #page-tools .tool-universe .universe-grid>.asset-category{
+    grid-template-columns:minmax(0,1fr)!important;
+    row-gap:6px!important;
+  }
+  html #page-tools .tool-universe .asset-category-label{
+    justify-self:start!important;
+  }
+}
+/* --- (18) The ticker grid had four columns and rendered two --------------
+   `.asset-category-items` is declared in thirteen places, every one of them
+   `!important`, and the winner at desktop was
+   `#page-tools .tool-universe .asset-category-items { repeat(2, ...) }` --
+   which carries no media query. Its `@media(min-width:761px) repeat(4, ...)`
+   in the same sheet sits on `#page-tools .asset-category-items`, one class
+   less specific, so the media rule lost on specificity rather than on
+   order and the escalation to four columns was dead everywhere above
+   761px as well as below it.
+
+   Measured before this: 2 columns at 1440x900 and at 390x844 alike. At
+   1440 the Tools card is 513px, the ticker track 365px, and each of the two
+   columns was 176px wide holding a 14px ticker -- 15 tickers wrapped over
+   8 rows and made the category 155px tall to say 15 words.
+   ---------------------------------------------------------------------- */
+@media(min-width:761px){
+  html #page-tools .tool-universe .asset-category-items{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
 }
