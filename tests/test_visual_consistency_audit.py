@@ -41,7 +41,12 @@ def _iter_rules(css, media="none"):
     Without the context a responsive override looks like a duplicate of the
     base rule it legitimately replaces, which is the mistake these guards are
     meant to catch in the other direction.
+
+    Comments are blanked first: prose that quotes CSS (``{ repeat(2, ...) }``)
+    contains braces that are not rule bodies, and counting them silently
+    swallows the rest of the sheet -- a comment must never decide a guard.
     """
+    css = re.sub(r"/\*.*?\*/", " ", css, flags=re.S)
     prelude = ""
     index, length = 0, len(css)
     while index < length:
@@ -1841,26 +1846,216 @@ def test_universe_grid_carries_no_dead_column_declaration():
             )
 
 
-def test_asset_category_rail_sizes_to_its_own_label():
-    """A fixed label rail charges the longest name to every category.
+def _asset_category_row_rules(media):
+    """Declarations for the Tools universe category row inside one media context.
 
-    Measured defect at 390x844: `.asset-category` was
-    `108px minmax(0,1fr)` at every width, so "Crypto" -- six letters -- spent
-    108px of a 348px row and left its single ticker in 217px, while "Indian
-    Equities" needed the rail anyway. Fixed at 132px on desktop the same way.
+    `_declarations_for_selector` deliberately ignores media context, because a
+    responsive override otherwise looks like a duplicate of the rule it
+    replaces. Here the media context *is* the contract -- the same selector has
+    to mean two different things above and below 560px -- so the context has to
+    be part of the lookup.
     """
-    columns = _declarations_for_selector(
+    selector = "html #page-tools .tool-universe .universe-grid>.asset-category"
+    return [
+        _declarations(body)
+        for prelude, body, context in _iter_rules(SHEETS["appearance-overrides.css"])
+        if selector in _selectors(prelude) and context == media
+    ]
+
+
+def test_asset_category_stacks_on_a_phone_instead_of_paying_for_a_rail():
+    """A rail sized to its own word moves the content column with it.
+
+    Measured defect: `grid-template-columns: auto minmax(0,1fr)` sized the rail
+    to each label, so the ticker column started at a different x on every
+    row. At 390x844, inside a 366px card: 139 / 94 / 125 / 91 / 84 for Indian
+    Equities / Indices / Commodities / Crypto / Forex -- five starts, a 55px
+    swing down one list. The same 55px measured at 1440x900 inside the 513px
+    Tools card. `align-items:center` also floated the label 62px below its
+    first ticker row on Indian Equities and 18px on Forex.
+
+    The rail is kept where there is room for it, because a wide label paying
+    for a wide label is fair in 513px and a tax in 366px -- but not below the
+    phone breakpoint, where the category is a single column and every ticker
+    starts at the card's left edge. Above the breakpoint the rail is one
+    width for all categories, because the 55px stagger was the worse of the
+    two defects and it survived a whole extra pass unnoticed.
+    """
+    wide = _asset_category_row_rules("none")
+    narrow = _asset_category_row_rules("max-width:560px")
+
+    assert wide, (
+        "the appearance layer no longer declares the category row outside a "
+        "media query, so something else is deciding the rail"
+    )
+    assert narrow, (
+        "the category row is not overridden inside @media(max-width:560px); "
+        "on a phone the label width is driving the layout again"
+    )
+
+    assert [rule.get("grid-template-columns") for rule in wide] == [
+        "minmax(102px,max-content) minmax(0,1fr)!important"
+    ], (
+        "above 560px the rail must be one width for every category, or the "
+        "ticker column starts in a different place on each row -- that is the "
+        "55px stagger this replaced. max-content on the max side keeps a "
+        "future longer label growing rather than clipping."
+    )
+    assert "auto" not in wide[0].get("grid-template-columns", ""), (
+        "an `auto` first track lets each label choose where the tickers start"
+    )
+    for rule in wide:
+        assert rule.get("align-items") == "start!important", (
+            "the rail is aligned to the middle of the ticker block again, so "
+            "the label floats 62px below its first row on a long category"
+        )
+
+    assert [rule.get("grid-template-columns") for rule in narrow] == [
+        "minmax(0,1fr)!important"
+    ], (
+        "below 560px the category must be one column -- label on its own row, "
+        "tickers underneath -- or the label width keeps choosing where the "
+        "tickers start"
+    )
+    assert all(rule.get("align-items") != "center!important" for rule in narrow), (
+        "the phone row is centring its label again"
+    )
+    assert any(rule.get("row-gap") for rule in narrow), (
+        "the stacked row declares no row gap; the default `normal` row-gap is "
+        "zero in a grid, so the label sits flush against the first ticker"
+    )
+    assert "start!important" in _declarations_for_selector(
         "appearance-overrides.css",
-        "html #page-tools .tool-universe .universe-grid>.asset-category",
-        "grid-template-columns",
+        "html #page-tools .tool-universe .asset-category-label",
+        "justify-self",
+    ), (
+        "stacked in one column the label stretches to the full row width; it "
+        "must hug its own text the way it did beside the rail"
     )
-    assert columns == ["auto minmax(0,1fr)!important"], (
-        f"the category rail declares grid-template-columns:{columns}; a fixed "
-        "first track makes every category pay for the longest one"
-    )
+
+    # The original complaint -- a label pinned to a fixed pixel width so that
+    # "Crypto" spends a third of the row on six letters -- must not come back
+    # through the door this fix opened.
     for prop, stale in (("width", "132px"), ("max-width", "132px")):
         assert stale not in _declarations_for_selector(
             "appearance-overrides.css",
             "html #page-tools .tool-universe .asset-category-label",
             prop,
-        ), f"the category label is still pinned to {prop}:{stale}"
+        ), f"the category label is pinned to {prop}:{stale} again"
+
+
+def _specificity(selector):
+    """(id, class, type) counts for one selector -- enough for this cascade."""
+    selector = selector.strip()
+    ids = len(re.findall(r"#[\w-]+", selector))
+    classes = len(re.findall(r"\.[\w-]+", selector))
+    classes += len(re.findall(r"\[[^\]]*\]", selector))
+    classes += len(re.findall(r":(?!:)[a-zA-Z-]+", selector))
+    types = len(re.findall(r"(?:^|[\s>+~])([a-zA-Z][\w-]*)", selector))
+    return (ids, classes, types)
+
+
+def _media_matches(media, width):
+    """Whether a rule's at-rule context applies at ``width``; None if unknown."""
+    media = (media or "none").strip()
+    if media in ("", "none"):
+        return True
+    match = re.fullmatch(r"max-width:(\d+)px", media)
+    if match:
+        return width <= int(match.group(1))
+    match = re.fullmatch(r"min-width:(\d+)px", media)
+    if match:
+        return width >= int(match.group(1))
+    return None
+
+
+def _winning_asset_category_columns(width):
+    """The grid-template-columns the cascade actually applies at ``width``.
+
+    ``_declarations_for_selector`` deliberately ignores media context and
+    specificity, which is the wrong lens here: Cause 3 is exactly a rule that
+    lost on specificity while reading correctly in the source. This walks the
+    three sheets in load order, keeps the rules whose media query matches the
+    viewport and whose subject is the ticker container, and returns the
+    declaration a browser would paint -- (key, value, selector, sheet, media).
+    """
+    winner = None
+    order = 0
+    for sheet in SHEETS:
+        for prelude, body, media in _iter_rules(SHEETS[sheet]):
+            order += 1
+            if _media_matches(media, width) is not True:
+                continue
+            value = _declarations(body).get("grid-template-columns")
+            if value is None:
+                continue
+            for selector in _selectors(prelude):
+                if "#page-tools" not in selector:
+                    continue
+                # Only the rule whose *subject* is the container counts; the
+                # `>span` descendants declare font-size, never columns.
+                subject = re.split(r"\s*[>+~]\s*|\s+", selector.strip())[-1]
+                if ".asset-category-items" not in subject:
+                    continue
+                important = 1 if value.endswith("!important") else 0
+                key = (important, _specificity(selector), order)
+                if winner is None or key > winner[0]:
+                    winner = (key, value, selector, sheet, media)
+    return winner
+
+
+def test_asset_category_items_holds_four_columns_above_the_breakpoint():
+    """Cause 3: the four-column rule lost to a more specific two-column one.
+
+    `.asset-category-items` is declared thirteen times, every declaration
+    `!important`, and the winner above 761px was the *unscoped*
+    `#page-tools .tool-universe .asset-category-items { repeat(2, ...) }`.
+    The intended `@media(min-width:761px) repeat(4, ...)` sat on
+    `#page-tools .asset-category-items` -- one class less specific -- so it
+    lost on specificity rather than source order, and the ticker grid
+    rendered two 176px columns holding 14px tickers at 1440x900 and at
+    390x844 alike. This resolves the cascade itself, so any future rule that
+    outranks the four-column declaration fails here instead of shipping.
+    """
+    four = "repeat(4,minmax(0,1fr))!important"
+    two = "repeat(2,minmax(0,1fr))!important"
+
+    for width in (1440, 761):
+        winner = _winning_asset_category_columns(width)
+        assert winner, f"no rule sets grid-template-columns on the ticker container"
+        assert winner[1] == four, (
+            f"at {width}px the cascade applies grid-template-columns:{winner[1]} "
+            f"from `{winner[2]}` in {winner[3]}; four columns are expected above "
+            "761px, so the more specific two-column rule is winning again"
+        )
+
+    for width in (760, 600, 390):
+        winner = _winning_asset_category_columns(width)
+        assert winner, f"no rule sets grid-template-columns on the ticker container"
+        assert winner[1] == two, (
+            f"at {width}px the cascade applies grid-template-columns:{winner[1]} "
+            f"from `{winner[2]}` in {winner[3]}; the ticker grid must stay at "
+            "two columns at or below the 761px breakpoint"
+        )
+
+    # Pin the mechanism, not just the outcome: the escalation must be an
+    # `!important` declaration scoped to the desktop media query and specific
+    # enough to beat the unscoped two-column rule, or it will lose the same
+    # way it lost the first time.
+    escalations = [
+        (_declarations(body), prelude)
+        for prelude, body, media in _iter_rules(SHEETS["appearance-overrides.css"])
+        if media == "min-width:761px"
+        and _declarations(body).get("grid-template-columns") == four
+    ]
+    assert escalations, (
+        "no @media(min-width:761px) rule in appearance-overrides.css asks the "
+        "ticker container for four columns"
+    )
+    subjects = [s for _decls, prelude in escalations for s in _selectors(prelude)]
+    assert any(_specificity(s) > _specificity(
+        "#page-tools .tool-universe .asset-category-items"
+    ) for s in subjects), (
+        "the desktop four-column rule is not more specific than the unscoped "
+        "two-column rule it has to beat; the grid stays at two columns"
+    )

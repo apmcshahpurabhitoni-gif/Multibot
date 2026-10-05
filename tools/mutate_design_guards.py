@@ -16,6 +16,8 @@ SRC = Path(__file__).resolve().parents[1]
 APP = "app.js"
 AO = "appearance-overrides.css"
 ST = "styles.css"
+ASSETS_GUARD = "test_asset_category_stacks_on_a_phone_instead_of_paying_for_a_rail"
+CAUSE3_GUARD = "test_asset_category_items_holds_four_columns_above_the_breakpoint"
 
 MUTATIONS = [
     (
@@ -83,10 +85,55 @@ MUTATIONS = [
         "category rail pinned to a fixed 132px again",
         AO,
         (
-            "html #page-tools .tool-universe .universe-grid>.asset-category{\n  grid-template-columns:auto minmax(0,1fr)!important;\n}",
-            "html #page-tools .tool-universe .universe-grid>.asset-category{\n  grid-template-columns:132px minmax(0,1fr)!important;\n}",
+            "html #page-tools .tool-universe .universe-grid>.asset-category{\n  grid-template-columns:minmax(102px,max-content) minmax(0,1fr)!important;\n  align-items:start!important;\n}",
+            "html #page-tools .tool-universe .universe-grid>.asset-category{\n  grid-template-columns:132px minmax(0,1fr)!important;\n  align-items:start!important;\n}",
         ),
-        "test_asset_category_rail_sizes_to_its_own_label",
+        ASSETS_GUARD,
+    ),
+    (
+        "desktop rail goes back to sizing itself per label",
+        AO,
+        (
+            "grid-template-columns:minmax(102px,max-content) minmax(0,1fr)!important;",
+            "grid-template-columns:auto minmax(0,1fr)!important;",
+        ),
+        ASSETS_GUARD,
+    ),
+    (
+        "phone rows go back to a label-width rail",
+        AO,
+        (
+            "@media(max-width:560px){\n  html #page-tools .tool-universe .universe-grid>.asset-category{\n    grid-template-columns:minmax(0,1fr)!important;\n    row-gap:6px!important;\n  }",
+            "@media(max-width:560px){\n  html #page-tools .tool-universe .universe-grid>.asset-category{\n    grid-template-columns:auto minmax(0,1fr)!important;\n  }",
+        ),
+        ASSETS_GUARD,
+    ),
+    (
+        "the label floats in the middle of the ticker block again",
+        AO,
+        (
+            "  grid-template-columns:minmax(102px,max-content) minmax(0,1fr)!important;\n  align-items:start!important;",
+            "  grid-template-columns:minmax(102px,max-content) minmax(0,1fr)!important;\n  align-items:center!important;",
+        ),
+        ASSETS_GUARD,
+    ),
+    (
+        "the desktop four-column escalation drops back to two columns",
+        AO,
+        (
+            "  html #page-tools .tool-universe .asset-category-items{\n    grid-template-columns:repeat(4,minmax(0,1fr))!important;",
+            "  html #page-tools .tool-universe .asset-category-items{\n    grid-template-columns:repeat(2,minmax(0,1fr))!important;",
+        ),
+        CAUSE3_GUARD,
+    ),
+    (
+        "the four-column rule escapes its desktop media query onto a phone",
+        AO,
+        (
+            "@media(min-width:761px){\n  html #page-tools .tool-universe .asset-category-items{\n    grid-template-columns:repeat(4,minmax(0,1fr))!important;\n  }\n}",
+            "html #page-tools .tool-universe .asset-category-items{\n  grid-template-columns:repeat(4,minmax(0,1fr))!important;\n}",
+        ),
+        CAUSE3_GUARD,
     ),
 ]
 
