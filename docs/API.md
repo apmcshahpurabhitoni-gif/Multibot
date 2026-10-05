@@ -56,6 +56,8 @@ defensively rather than assume a type.
 | GET | `/api/backtest` | `strategy`, `symbol`, `period` | 200 JSON | **400** JSON |
 | GET | `/api/settings` | — | 200 JSON | — |
 | POST | `/api/settings` | body (see §11a) | 200 JSON | **400** JSON / **405** JSON |
+| GET | `/api/notifications` | — | 200 JSON | — |
+| POST | `/api/notifications` | body (see §11b) | 200 JSON | **400** JSON / **405** JSON |
 | GET | `/architecture` | — | 200 `text/html` | 404 |
 
 ### Static assets (`main.py::web_server`, the `files` dict)
@@ -70,6 +72,14 @@ defensively rather than assume a type.
 | `/appearance-overrides.css` | `appearance-overrides.css` | `text/css` |
 | `/appearance.js` | `appearance.js` | `application/javascript` |
 | `/dashboard-live-wiring.js` | `dashboard-live-wiring.js` | `application/javascript` |
+| `/notifications.js` | `notifications.js` | `application/javascript` |
+| `/manifest.webmanifest` | `manifest.webmanifest` | `application/manifest+json` |
+| `/sw.js` | `sw.js` | `application/javascript` |
+| `/app-icon.svg` | `app-icon.svg` | `image/svg+xml` |
+
+`manifest.webmanifest` + `sw.js` + `/app-icon.svg` make the dashboard installable
+as a standalone phone app. The service worker caches **nothing**: the dashboard
+is live paper-trading state and a cached shell would show stale signals.
 
 > **Adding a UI asset means adding a route.** There is no directory listing and no
 > catch-all static handler. A new file that is not in the `files` dict returns 404.
@@ -537,6 +547,72 @@ resolution.
 
 `GET /api/dashboard` echoes the same table under `rules.account_routing`,
 `rules.new_york_session` and `rules.accounts`.
+
+---
+
+## 11b. `/api/notifications` — delivery channels
+
+Telegram used to be the only transport, inlined in `notification_service.py`.
+It is now one of four channel types in `channels.py`, each with a target and an
+event subscription. See `docs/NOTIFICATIONS.md` for the operator guide.
+
+`GET` returns the saved channels with every webhook address and auth secret
+**redacted** — the dashboard is unauthenticated and a Discord/Slack webhook URL
+is itself a credential:
+
+```jsonc
+{
+  "ok": true,
+  "channels": [
+    {"id": "telegram", "type": "telegram", "label": "Telegram",
+     "target": "-1001234567890", "enabled": true,
+     "events": ["SIGNAL", "TRADE_CLOSED", "STALE", "SCAN", "ERROR", "SUMMARY"],
+     "secret": "", "has_secret": false},
+    {"id": "ops", "type": "webhook", "label": "Ops",
+     "target": "", "enabled": true, "events": ["ERROR"],
+     "secret": "", "has_secret": false, "has_target": true}
+  ],
+  "options": {
+    "types": ["telegram", "discord", "slack", "webhook"],
+    "events": ["SIGNAL", "TRADE_CLOSED", "REMINDER", "STALE", "SCAN", "ERROR", "SUMMARY"],
+    "telegram_configured": true
+  }
+}
+```
+
+| Type | Target | Body sent |
+|---|---|---|
+| `telegram` | chat id (bot token comes from `TELEGRAM_BOT_TOKEN`) | `sendMessage`, Markdown |
+| `discord` | webhook URL | `{"content": text}` |
+| `slack` | webhook URL | `{"text": text}` |
+| `webhook` | http(s) URL | `{"title", "event", "message_type", "text"}` |
+
+`POST` takes `{"channels": [ /* same shape */ ]}`, or `{"action": "reset"}` to
+go back to the environment default (a Telegram channel if `TELEGRAM_CHAT_ID` is
+set, otherwise none).
+
+```jsonc
+// 200 OK
+{"ok": true, "message": "Notification channels saved.", "channels": [...], "options": {...}}
+
+// 400 Bad Request — nothing was written
+{"ok": false, "error": "Channel ops: a webhook target must be an http(s) URL",
+ "channels": [ /* the channels still in force */ ], "options": {...}}
+```
+
+**A blank target or secret means "keep what is stored"**, because the read path
+cannot return one. Removing a channel is the only way to erase an address;
+typing a new one is the only way to change it.
+
+**Delivery.** `NotificationService.deliver()` records a `PENDING` row, sends, and
+records `SENT`/`FAILED` per channel, then retries a `FAILED` channel on its own
+exponential backoff — a fan-out never re-sends the copy a healthy channel already
+accepted. `deliver()` returns True when *any* channel accepted the message, so one
+transport being down never hides a copy the operator did receive.
+
+Events with no `signal_events` row — `SCAN`, `ERROR` and `SUMMARY` — are sent with
+`audit=False`, because `signal_deliveries.signal_id` is a foreign key into that
+table in Supabase.
 
 ---
 

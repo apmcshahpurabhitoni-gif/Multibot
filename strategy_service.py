@@ -11,7 +11,7 @@ from signal_gate import SignalGate
 from signal_lifecycle import new_signal_id,signal_key
 from strategy_engine import StrategyEngine
 from strategies.base import Signal
-from telegram import TelegramConfig,TelegramMessage,render_signal_message
+from telegram import TelegramConfig,TelegramMessage,render_signal_message,signal_rejection_message
 from trading import AccountState,PaperTrade,TradePlan,can_open_trade,quantity_for_risk,register_trade
 logger=logging.getLogger("multibot2.strategy_service")
 
@@ -74,6 +74,23 @@ class StrategyService:
                 # Dashboard history must remain available even if delivery auditing
                 # is temporarily unavailable.
                 logger.warning("Stale delivery audit skipped for signal %s: %s",sid,exc)
+            # A dropped stale signal is a delivery decision, not a silent one:
+            # tell whichever channels subscribed to warnings why it never arrived.
+            try:
+                self.notifier.deliver(
+                    signal_id=sid,
+                    message=signal_rejection_message(
+                        strategy=strategy.manifest.id,symbol=symbol,reason="STALE_SIGNAL"
+                    ),
+                    kind="STALE",
+                    metadata={"signal_key":key,"symbol":symbol},
+                    # The warning is not this signal's delivery: the durable
+                    # NOT_SENT_STALE row above is what the dashboard reports, and
+                    # a failed warning attempt must not overwrite it.
+                    audit=False,
+                )
+            except Exception as exc:
+                logger.warning("Stale warning skipped for signal %s: %s",sid,exc)
             return self._result(symbol,signal,account_name,"STALE_SIGNAL",signal_id=sid)
         with self._lock:
             count=self.database.signal_count(key)

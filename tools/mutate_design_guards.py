@@ -16,8 +16,16 @@ SRC = Path(__file__).resolve().parents[1]
 APP = "app.js"
 AO = "appearance-overrides.css"
 ST = "styles.css"
+HTML = "dashboard.html"
+CHANNELS = "channels.py"
+NOTIFIER = "notification_service.py"
+MAIN = "main.py"
 ASSETS_GUARD = "test_asset_category_stacks_on_a_phone_instead_of_paying_for_a_rail"
 CAUSE3_GUARD = "test_asset_category_items_holds_four_columns_above_the_breakpoint"
+
+# A bare guard name lives in the visual audit module; "file.py::name" points at
+# any other module, so a guard added somewhere else is still mutation-tested.
+DEFAULT_GUARD_FILE = "tests/test_visual_consistency_audit.py"
 
 MUTATIONS = [
     (
@@ -135,6 +143,42 @@ MUTATIONS = [
         ),
         CAUSE3_GUARD,
     ),
+    (
+        "the notifications card posts through the trading settings hook",
+        HTML,
+        (
+            "data-notifications-save>Save</button>",
+            "data-save-settings>Save</button>",
+        ),
+        "tests/test_notification_channels.py::test_the_notifications_card_does_not_borrow_the_trading_save_hook",
+    ),
+    (
+        "a saved webhook secret is returned to the browser again",
+        CHANNELS,
+        (
+            '        public["secret"] = ""',
+            '        public["secret"] = channel["secret"]',
+        ),
+        "tests/test_notification_channels.py::test_a_read_never_returns_a_webhook_target_or_secret",
+    ),
+    (
+        "every channel receives every event again, ignoring its subscriptions",
+        NOTIFIER,
+        (
+            'return [c for c in configured if c["enabled"] and kind in c["events"]]',
+            'return [c for c in configured if c["enabled"]]',
+        ),
+        "tests/test_notification_channels.py::test_a_channel_only_receives_the_events_it_subscribed_to",
+    ),
+    (
+        "summaries go out again even when no channel subscribes to them",
+        MAIN,
+        (
+            'if SERVICE is None or not _summary_subscribers(): return []',
+            'if SERVICE is None: return []',
+        ),
+        "tests/test_notification_channels.py::test_summaries_follow_the_live_subscriptions",
+    ),
 ]
 
 
@@ -161,7 +205,15 @@ def main():
         # The whole project, not a partial copy: a partial tree changes what
         # the suite can even import, and a green control on the wrong tree makes
         # every failure below meaningless. That has happened twice already.
-        shutil.copytree(SRC, root, ignore=shutil.ignore_patterns("__pycache__", ".git"))
+        #
+        # The runtime database and its WAL sidecars are excluded because the
+        # preview holds them open and rewrites them while the copy runs: a
+        # sidecar can disappear between listing and reading and abort the whole
+        # harness. None of the design guards read the database.
+        shutil.copytree(SRC, root, ignore=shutil.ignore_patterns(
+            "__pycache__", ".git", "*.pyc", "*.db", "*.db-shm", "*.db-wal",
+            "*.db-journal", ".pytest_cache",
+        ))
         return root
 
     with tempfile.TemporaryDirectory(prefix="mut-") as scratch:
@@ -184,7 +236,7 @@ def main():
             target.write_text(text.replace(old, new, 1), encoding="utf-8")
             result = run(
                 [sys.executable, "-m", "pytest", "-q",
-                 f"tests/test_visual_consistency_audit.py::{guard}"],
+                 guard if "::" in guard else f"{DEFAULT_GUARD_FILE}::{guard}"],
                 work,
             )
             caught = result.returncode != 0

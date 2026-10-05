@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ["app.js", "appearance.js", "dashboard-live-wiring.js"]
+ASSETS = ["app.js", "appearance.js", "dashboard-live-wiring.js", "notifications.js"]
 
 NODE = shutil.which("node")
 
