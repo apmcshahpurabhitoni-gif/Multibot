@@ -1549,10 +1549,18 @@ def test_save_is_the_rightmost_control_in_every_settings_card():
     found = re.findall(
         r'<div class="settings-actions">(.*?)</div>', HTML, re.S
     )
-    assert len(found) == 3, f"expected one action row per card, found {len(found)}"
+    # Four cards now write a saveable document: assets, accounts, routing and
+    # notification channels. The channels card owns its own endpoint, so its
+    # controls are data-notifications-*, but the row order is the same contract.
+    assert len(found) == 4, f"expected one action row per card, found {len(found)}"
+    roles = {
+        "data-settings-status": "status", "data-notifications-status": "status",
+        "data-reset-settings": "reset", "data-notifications-reset": "reset",
+        "data-save-settings": "save", "data-notifications-save": "save",
+    }
     for row in found:
-        order = re.findall(r"(data-settings-status|data-reset-settings|data-save-settings)", row)
-        assert order == ["data-settings-status", "data-reset-settings", "data-save-settings"], (
+        order = [roles[token] for token in re.findall("|".join(roles), row)]
+        assert order == ["status", "reset", "save"], (
             f"the action row renders {order}; the status reads first and Save "
             "must be the last control, at the right edge"
         )

@@ -11,6 +11,7 @@ from db import DatabaseManager
 from news import NewsService
 from reminders import ReminderService
 import bot_settings
+import channels
 from strategy_service import StrategyService
 from strategies import discover_strategies
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
@@ -104,6 +105,7 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
             reasons={reason:sum(r.reason==reason for r in results) for reason in sorted({r.reason for r in results})},
             elapsed_ms=round((time.monotonic()-started)*1000),
         )
+    _notify_scan(run_id,strategy_id,payload,results)
     return results
 def run_all_cycles(*,now_at=None,send=True,period="30d",force=False):
     ensure_runtime(); out=[]
@@ -196,6 +198,101 @@ def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+def _notify_scan(run_id,strategy_id,payload,results):
+    """Tell subscribed channels how one strategy's scan ended.
+
+    Scan events are opt-in per channel (channels.py): the scanner runs every few
+    minutes, so only a channel that explicitly asked for SCAN or ERROR gets this
+    traffic. `audit=False` because a scan run has no signal_events row, and
+    signal_deliveries.signal_id is a foreign key into that table in Supabase.
+    """
+    if SERVICE is None: return
+    try:
+        if payload.get("errors"):
+            reasons=sorted({r.reason for r in results if r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED"})
+            message=TelegramMessage("MSG-ERROR-V1",msg_error(f"SCAN {strategy_id}",", ".join(reasons) or "scan reported errors"))
+            kind="ERROR"
+        else:
+            message=TelegramMessage("MSG-SCAN-COMPLETE-V1",msg_scan_result(payload.get("sent",0),payload.get("checked",0)))
+            kind="SCAN"
+        SERVICE.notifier.deliver(signal_id=f"scan:{run_id}",message=message,kind=kind,metadata={"strategy":strategy_id,**payload},audit=False)
+    except Exception:
+        logger.exception("Scan notification failed")
+
+def _summary_state_path():
+    return os.getenv("SUMMARY_STATE_PATH") or os.path.join(os.path.dirname(os.path.abspath(__file__)),"notification_summary_state.json")
+
+def _load_summary_state():
+    try:
+        with open(_summary_state_path(),"r",encoding="utf-8") as handle:
+            raw=json.load(handle)
+        return raw if isinstance(raw,dict) else {}
+    except (OSError,json.JSONDecodeError):
+        return {}
+
+def _save_summary_state(state):
+    path=_summary_state_path()
+    try:
+        tmp=path+".tmp"
+        with open(tmp,"w",encoding="utf-8") as handle: json.dump(state,handle,indent=2)
+        os.replace(tmp,path)
+    except OSError as exc:
+        logger.warning("Summary state could not be persisted: %s",exc)
+
+def due_summaries(current,state,*,daily_hour=None,weekly_day=None):
+    """Which periodic summaries are due at `current`, given what already went out.
+
+    Pure on purpose: the daily/weekly boundary is the kind of logic that silently
+    sends twice (or never) if it is only reachable through a running thread.
+    `weekly_day` uses Python's Monday=0 convention; the default is Sunday.
+    """
+    if daily_hour is None: daily_hour=int(os.getenv("SUMMARY_DAILY_HOUR","18"))
+    if weekly_day is None: weekly_day=int(os.getenv("SUMMARY_WEEKLY_DAY","6"))
+    local=pd.Timestamp(current).tz_convert(IST_TIMEZONE)
+    if local.hour < daily_hour: return []
+    day=local.date().isoformat()
+    due=[]
+    if state.get("daily") != day: due.append("daily")
+    if local.weekday()==weekly_day and state.get("weekly") != day: due.append("weekly")
+    return due
+
+def _summary_subscribers():
+    try:
+        return [c for c in channels.load() if c["enabled"] and "SUMMARY" in c["events"]]
+    except Exception:
+        logger.exception("Notification channel read failed")
+        return []
+
+def run_summaries():
+    """Send whatever daily/weekly summary is due, and remember what went out.
+
+    Checked against the subscriptions rather than a flag captured at boot, so a
+    channel added from the Tools screen this afternoon gets today's summary
+    instead of waiting for a restart. With no subscriber this is one small file
+    read a minute and nothing else.
+    """
+    if SERVICE is None or not _summary_subscribers(): return []
+    current=now(); state=_load_summary_state(); sent=[]
+    for which in due_summaries(current,state):
+        try:
+            if which=="daily":
+                message=TelegramMessage("MSG-SUMMARY-V1",msg_summary(DB.load_trades("OPEN"),DB.load_trades("CLOSED")))
+            else:
+                message=TelegramMessage("MSG-WEEKLY-V1",msg_weekly(DB.load_trades("CLOSED")))
+            delivered=SERVICE.notifier.deliver(signal_id=f"summary:{which}",message=message,kind="SUMMARY",metadata={"summary":which,"at":current.isoformat()},audit=False)
+        except Exception:
+            logger.exception("Summary notification failed | summary=%s",which); continue
+        if delivered:
+            state[which]=current.tz_convert(IST_TIMEZONE).date().isoformat(); sent.append(which)
+    if sent: _save_summary_state(state)
+    return sent
+
+def summary_loop():
+    while not STOP.is_set():
+        try: run_summaries()
+        except Exception: logger.exception("Summary cycle failed")
+        STOP.wait(60)
+
 def _json_response(start,payload,status="200 OK"): start(status,[("Content-Type","application/json; charset=utf-8"),("Cache-Control","no-store")]); return [json.dumps(payload,default=str).encode()]
 def _settings_response(env,start):
     """GET/POST /api/settings - read or replace accounts, assets and routing.
@@ -238,6 +335,41 @@ def _settings_response(env,start):
     # the dashboard all hold their own account maps built once at startup.
     init_state(); refresh_runtime_accounts()
     return _json_response(start,{"ok":True,"settings":bot_settings.settings_state(),"message":message})
+def _notifications_response(env,start):
+    """GET/POST /api/notifications - read or replace the delivery channels.
+
+    Webhook targets are credentials (a Discord/Slack webhook URL *is* the token),
+    so a read never returns one: the dashboard gets `has_target`/`has_secret`
+    plus a blank, and posting a blank back keeps whatever is stored. Telegram
+    keeps working with no channel saved at all.
+    """
+    method=env.get("REQUEST_METHOD","GET").upper()
+    if method=="GET":
+        return _json_response(start,{"ok":True,**channels.state()})
+    if method!="POST":
+        start("405 Method Not Allowed",[("Content-Type","application/json; charset=utf-8"),("Cache-Control","no-store"),("Allow","GET, POST")])
+        return [b'{"ok":false,"error":"Use POST to change notification channels."}']
+    try:
+        length=int(env.get("CONTENT_LENGTH") or 0)
+    except ValueError:
+        length=0
+    raw=env["wsgi.input"].read(length) if length>0 else b""
+    try:
+        payload=json.loads(raw or b"{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json_response(start,{"ok":False,"error":"Malformed JSON body."},"400 Bad Request")
+    if not isinstance(payload,dict):
+        return _json_response(start,{"ok":False,"error":"Channels must be an object."},"400 Bad Request")
+    try:
+        if payload.get("action")=="reset":
+            channels.reset(); message="Notification channels restored to the default."
+        else:
+            channels.save(payload.get("channels",payload)); message="Notification channels saved."
+    except ValueError as exc:
+        logger.info("Notification channel change rejected | error=%s",exc)
+        return _json_response(start,{"ok":False,"error":str(exc),**channels.state()},"400 Bad Request")
+    logger.info("Notification channels changed | %s",message)
+    return _json_response(start,{"ok":True,"message":message,**channels.state()})
 def _sweep_diagnostic_payload(*, period="30d"):
     """Run the real Sweep V2 data -> prepare -> signal path without dispatching or sending."""
     ensure_runtime()
@@ -276,7 +408,7 @@ def _sweep_diagnostic_payload(*, period="30d"):
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
 def web_server():
-    root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css"),"/foundation.css":("foundation.css","text/css")}
+    root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css"),"/foundation.css":("foundation.css","text/css"),"/notifications.js":("notifications.js","application/javascript"),"/manifest.webmanifest":("manifest.webmanifest","application/manifest+json"),"/sw.js":("sw.js","application/javascript"),"/app-icon.svg":("app-icon.svg","image/svg+xml")}
     def app(env,start):
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
         if path=="/ping":
@@ -319,6 +451,12 @@ def web_server():
                 return _settings_response(env,start)
             except Exception as exc:
                 logger.exception("Settings request failed")
+                return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
+        if path=="/api/notifications":
+            try:
+                return _notifications_response(env,start)
+            except Exception as exc:
+                logger.exception("Notification channel request failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path in ("/api/calendar","/api/news"):
             try:return _json_response(start,_calendar_payload(query))
@@ -419,6 +557,11 @@ def main():
     threading.Thread(target=web_server,daemon=True,name="dashboard").start()
     threading.Thread(target=scanner_loop,daemon=True,name="scanner").start()
     threading.Thread(target=monitor_loop,daemon=True,name="monitor").start()
+    # Always running: the daily/weekly watermark is checked against the live
+    # subscriptions, so adding a channel in the Tools screen is enough to start
+    # receiving summaries without a restart.
+    threading.Thread(target=summary_loop,daemon=True,name="summaries").start()
+    logger.info("Summary scheduler started | daily_hour=%s weekly_day=%s",os.getenv("SUMMARY_DAILY_HOUR","18"),os.getenv("SUMMARY_WEEKLY_DAY","6"))
     if settings.telegram_bot_token and settings.telegram_chat_id:
         if _telegram_command_polling_enabled():
             threading.Thread(target=telegram_commands,daemon=True,name="telegram").start()

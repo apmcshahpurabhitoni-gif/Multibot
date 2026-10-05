@@ -847,7 +847,10 @@ signal_gate.py
 signal_lifecycle.py
     Pipeline status transitions (RECORDED -> SENT -> EXPIRED).
 notification_service.py
-    Telegram/webhook delivery with send accounting.
+    Delivery fan-out, send accounting and per-channel retry.
+channels.py
+    Operator-editable delivery channels (Telegram, Discord, Slack, generic
+    webhook) with per-channel event subscriptions and redacted reads.
 
 # --- market data -----------------------------------------------------------
 market_data.py

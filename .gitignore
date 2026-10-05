@@ -18,6 +18,14 @@ venv/
 # accounts, universe and routing everyone else has.
 bot_settings.json
 bot_settings.json.tmp
+
+# Notification channels saved from the Tools screen (webhook targets are
+# credentials) and the daily/weekly summary watermark. Machine-local for the
+# same reason as bot_settings.json.
+notification_channels.json
+notification_channels.json.tmp
+notification_summary_state.json
+notification_summary_state.json.tmp
 # Playwright CLI output (may contain credentials)
 .playwright/
 .playwright-cli/
