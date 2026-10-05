@@ -1864,3 +1864,230 @@ def test_asset_category_rail_sizes_to_its_own_label():
             "html #page-tools .tool-universe .asset-category-label",
             prop,
         ), f"the category label is still pinned to {prop}:{stale}"
+
+
+# ---------------------------------------------------------------------------
+# Sprint 0 of UI_UX_AUDIT_REPORT.md -- C1, M7 and M6. Markup and copy only, so
+# the 60-rendering matrix is untouched: no stylesheet changes in this section.
+# Each guard pins the fix *and* the absence of the superseded markup, which is
+# the defect restated. `tests/test_dashboard_ui.py` already asserted that
+# `aria-hidden="true" tabindex="-1"` is absent -- in the wrong order, so it
+# never fired against the helper, which emitted them the other way round.
+# ---------------------------------------------------------------------------
+
+EXPAND_BUTTON_MARKUP = re.compile(
+    r"function expandButton\(key,label\)\{.*?return `(<button class=\"expand-button collapse-control.*?)`;\}",
+    re.S,
+)
+NAV_GLYPHS = "⌂◆◷◉⚙"
+HIDDEN_SPAN_OPEN = '<span aria-hidden="true">'
+
+
+def _expand_button_markup():
+    match = EXPAND_BUTTON_MARKUP.search(APP)
+    assert match, (
+        "the expandButton() helper is gone -- every card's expand control is "
+        "emitted from it, so it cannot be allowed to disappear silently"
+    )
+    return match.group(1)
+
+
+def test_expand_controls_are_reachable_from_the_keyboard():
+    """C1. 26 of 26 expand controls were pointer-only, on every page.
+
+    Measured: 26 of 26 `button.expand-button` carried `aria-hidden="true"`
+    and `tabindex="-1"` (10 of 10 on Tools alone). They were real `<button>`
+    elements with correct `aria-expanded` and `aria-label`, so pointer users
+    were fine -- but a keyboard user could not Tab to a single signal card,
+    calendar event or detail row, and there is no Escape hatch for a control
+    that is disabled rather than absent. One helper emitted all three
+    attributes, so every page inherited it.
+
+    Verified after the fix by real key presses at 1440x900: 16 consecutive Tab
+    stops landed on `BUTTON.expand-button` (labels "Expand event" /
+    "Collapse event"), Enter expanded the card and the focus stayed on the
+    control that had been pressed.
+    """
+    markup = _expand_button_markup()
+
+    # The replacement: still a real button, still self-describing.
+    assert '<button class="expand-button collapse-control' in markup, (
+        "the expand control must stay a real <button> carrying the shared "
+        "collapse-control contract, not a styled <span>"
+    )
+    assert 'type="button"' in markup, "the control must not submit anything"
+    assert 'aria-expanded="${open}"' in markup, (
+        "the control must still report its own state"
+    )
+    assert 'aria-label="${open?"Collapse":"Expand"}' in markup, (
+        "the control must still be named, and must still flip to Collapse"
+    )
+
+    # The defect, restated. Either attribute alone is enough to lock a control
+    # out, so both are pinned separately.
+    assert "tabindex" not in markup, (
+        "the expand control carries a tabindex again -- tabindex=-1 takes it "
+        "out of the tab order on every page in the app"
+    )
+    assert "aria-hidden" not in markup, (
+        "the expand control is aria-hidden again, so no screen reader "
+        "announces it and the card cannot be opened without a pointer"
+    )
+
+    # Superseded markup, gone from the file rather than just from the helper.
+    assert 'tabindex="-1"' not in APP, (
+        "app.js still ships a tabindex=-1 control; every occurrence has to be "
+        "accounted for, not only the one in expandButton()"
+    )
+    assert 'aria-hidden="true"></button>' not in APP, (
+        "an expand control is hidden from assistive technology again"
+    )
+
+    # One emission site, or the guard only covers the cards that happen to
+    # share the helper.
+    assert APP.count("expand-button collapse-control") == 1, (
+        f"{APP.count('expand-button collapse-control')} sites emit the expand "
+        "control; each one needs the same reachability"
+    )
+
+    # The row is still operable, and activation survives its own re-render:
+    # every one of these controls renders itself again on toggle, so without
+    # the restore the keyboard user is dropped back to <body> every time.
+    assert 'role="button" tabindex="0"' in APP, (
+        "the card row lost its own keyboard affordance"
+    )
+    assert ".expand-button[data-expand],.card-main[data-expand]" in APP, (
+        "the activation handler no longer looks the control back up after the "
+        "re-render, so focus falls to <body> on every expand"
+    )
+    assert "if(restored)restored.focus();" in APP, (
+        "the restored control is found but never focused -- that is the "
+        "difference between a reachable control and a usable one"
+    )
+
+
+def test_nav_glyphs_are_hidden_from_assistive_technology():
+    """M7. 0 of 10 nav glyph spans carried aria-hidden.
+
+    The glyphs are bare Unicode -- `⌂` Home, `◆` Signals, `◷` History, `◉`
+    Calendar, `⚙` Tools -- and a screen reader announced "black diamond",
+    "white bullet", "gear" before every nav label, on every page.
+
+    Measured after the fix at 1440x900: 10 glyph spans, 10 aria-hidden, 5
+    label spans left readable. Desktop nav box positions are byte-identical
+    before and after (band 188x234 at 18,96; labels still at x 59/63/61/57/61),
+    and mobile nav moved by nothing at all -- it already wrapped its glyph in a
+    span, so only the attribute was added.
+    """
+    navs = re.findall(r'<nav class="(mobile-nav|desktop-nav)"[^>]*>(.*?)</nav>', HTML, re.S)
+    assert [name for name, _ in navs] == ["mobile-nav", "desktop-nav"], (
+        f"found navs {[name for name, _ in navs]}; the glyph contract covers "
+        "both rails or one of them is shipping unhidden glyphs"
+    )
+
+    total_buttons = 0
+    hidden_spans = 0
+    for name, block in navs:
+        buttons = re.findall(
+            r'<button[^>]*data-page="([a-z]+)"[^>]*>(.*?)</button>', block, re.S
+        )
+        assert len(buttons) == 5, (
+            f"{name} holds {len(buttons)} page buttons, not five"
+        )
+        total_buttons += len(buttons)
+        for page, body in buttons:
+            for index, char in enumerate(body):
+                if char not in NAV_GLYPHS:
+                    continue
+                opening = body[:index]
+                assert opening.endswith(HIDDEN_SPAN_OPEN), (
+                    f"{name} / {page}: `{char}` is announced as text -- the "
+                    "decorative glyph has to sit inside an aria-hidden span"
+                )
+                hidden_spans += 1
+            # The label is the button's name. Hiding it too would leave a
+            # navigation control with no accessible name at all -- the mobile
+            # rail carries it as bare text, the desktop rail in a span, so
+            # both shapes have to survive being stripped of their glyphs.
+            readable = re.sub(r"<[^>]+>", "", re.sub(r'<span aria-hidden="true">.*?</span>', "", body))
+            assert readable.strip(), (
+                f"{name} / {page}: every glyph is hidden and no readable label "
+                "is left, so the button has no accessible name"
+            )
+
+    assert total_buttons == 10, (
+        f"{total_buttons} nav buttons carry glyphs, not the ten (5 pages x "
+        "desktop + mobile) the audit measured"
+    )
+    assert hidden_spans == 10, (
+        f"{hidden_spans} nav glyphs are aria-hidden, not ten"
+    )
+
+
+def test_overview_empty_state_names_the_stale_signals_it_hides():
+    """M6. Home claimed to hold no records while twelve sat on the next page.
+
+    `GET /api/dashboard` returned counts = { signals: 500, directional_signals:
+    12, fresh_directional: 0, stale_directional: 12 } and Home rendered "No
+    signal records -- The latest completed scan found no approved directional
+    signal." under the heading "Active Signals", beside a hero pill reading
+    "0 ACTIVE SIGNALS". The counts were never wrong: what is empty is the
+    freshness gate. So the copy was the defect, and it was a factual one.
+
+    Measured after the fix: "No fresh signals -- 16 older directional signals
+    in the ledger, all past the 1-hour freshness gate. Open Signals to review
+    them." at both 1440x900 and 390x844, with the Signals page reading
+    "16 signals" beside it.
+    """
+    helper = re.search(
+        r"function overviewSignalEmpty\(data\)\{(.*?)\nfunction renderOverview", APP, re.S
+    )
+    assert helper, (
+        "the overview empty state is back to a hardcoded sentence, so Home "
+        "claims the ledger is empty whatever the snapshot says"
+    )
+    body = helper.group(1)
+
+    assert "No fresh signals" in body, (
+        "the heading must name what is actually empty -- the freshness gate, "
+        "not the ledger"
+    )
+    assert "counts.stale_directional" in body, (
+        "the count has to come from the snapshot's own stale tally, not from a "
+        "hardcoded number"
+    )
+    assert "older directional signal" in body and "freshness gate" in body, (
+        "the detail must name the stale set and why it is not shown"
+    )
+    assert "${number(older,0)}" in body, (
+        "the stale count must be interpolated into the sentence; a literal "
+        "would be wrong on the next snapshot"
+    )
+
+    # The fallback survives: with no directional signals at all, "No signal
+    # records" is the honest sentence and must still be reachable.
+    assert 'empty("No signal records"' in body, (
+        "the genuinely-empty wording was dropped; with zero directional "
+        "signals it is the only correct thing to say"
+    )
+    assert APP.count('empty("No signal records"') == 1, (
+        f"{APP.count('empty(' + chr(34) + 'No signal records' + chr(34))} call "
+        "sites still claim an empty ledger -- each one is a Home page that "
+        "contradicts the Signals page beside it"
+    )
+
+    # Routed through the helper, not bypassed at the call site.
+    assert APP.count("overviewSignalEmpty") == 2, (
+        f"overviewSignalEmpty is referenced {APP.count('overviewSignalEmpty')} "
+        "times; it must be defined once and rendered once, or the fix is dead "
+        "code and Home keeps the old sentence"
+    )
+    assert ":overviewSignalEmpty(data);}" in APP, (
+        "renderOverview still builds the empty tile itself"
+    )
+
+    # The gate itself is unchanged -- the count was never the bug.
+    assert 'freshness(signal).label==="FRESH"' in APP, (
+        "a signal stopped being counted as active on freshness; the audit "
+        "found the copy wrong, not the filter"
+    )
