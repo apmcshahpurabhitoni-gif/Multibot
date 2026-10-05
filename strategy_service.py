@@ -74,23 +74,10 @@ class StrategyService:
                 # Dashboard history must remain available even if delivery auditing
                 # is temporarily unavailable.
                 logger.warning("Stale delivery audit skipped for signal %s: %s",sid,exc)
-            # A dropped stale signal is a delivery decision, not a silent one:
-            # tell whichever channels subscribed to warnings why it never arrived.
-            try:
-                self.notifier.deliver(
-                    signal_id=sid,
-                    message=signal_rejection_message(
-                        strategy=strategy.manifest.id,symbol=symbol,reason="STALE_SIGNAL"
-                    ),
-                    kind="STALE",
-                    metadata={"signal_key":key,"symbol":symbol},
-                    # The warning is not this signal's delivery: the durable
-                    # NOT_SENT_STALE row above is what the dashboard reports, and
-                    # a failed warning attempt must not overwrite it.
-                    audit=False,
-                )
-            except Exception as exc:
-                logger.warning("Stale warning skipped for signal %s: %s",sid,exc)
+            # Stale signals are no longer pushed to Telegram as individual warnings.
+            # The NOT_SENT_STALE delivery row above is the durable audit record and
+            # is what the dashboard reports; pushing one bubble per stale signal
+            # (25 assets x frequent sweeps) was the dominant source of Telegram noise.
             return self._result(symbol,signal,account_name,"STALE_SIGNAL",signal_id=sid)
         with self._lock:
             count=self.database.signal_count(key)
