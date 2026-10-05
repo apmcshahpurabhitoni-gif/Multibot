@@ -14,6 +14,7 @@ from pathlib import Path
 SRC = Path(__file__).resolve().parents[1]
 
 APP = "app.js"
+HTML = "dashboard.html"
 AO = "appearance-overrides.css"
 ST = "styles.css"
 
@@ -88,6 +89,51 @@ MUTATIONS = [
         ),
         "test_asset_category_rail_sizes_to_its_own_label",
     ),
+    (
+        "expand controls hidden from the keyboard again",
+        APP,
+        (
+            'aria-label="${open?"Collapse":"Expand"} ${escapeHtml(label)}"></button>',
+            'aria-label="${open?"Collapse":"Expand"} ${escapeHtml(label)}" tabindex="-1" aria-hidden="true"></button>',
+        ),
+        "test_expand_controls_are_reachable_from_the_keyboard",
+    ),
+    (
+        "expand activation drops focus instead of restoring it",
+        APP,
+        (
+            'const restored=[...document.querySelectorAll(".expand-button[data-expand],.card-main[data-expand]")].find(node=>node.dataset.expand===key&&node.classList.contains("expand-button")===wasControl);if(restored)restored.focus();',
+            "",
+        ),
+        "test_expand_controls_are_reachable_from_the_keyboard",
+    ),
+    (
+        "nav glyph announced again on the mobile rail",
+        HTML,
+        (
+            '<button class="nav-button active" data-page="overview" type="button"><span aria-hidden="true">\u2302</span>Home</button>',
+            '<button class="nav-button active" data-page="overview" type="button"><span>\u2302</span>Home</button>',
+        ),
+        "test_nav_glyphs_are_hidden_from_assistive_technology",
+    ),
+    (
+        "nav label hidden too, leaving the button unnamed",
+        HTML,
+        (
+            '<span aria-hidden="true">\u2699</span> <span>Tools</span>',
+            '<span aria-hidden="true">\u2699</span><span aria-hidden="true">Tools</span>',
+        ),
+        "test_nav_glyphs_are_hidden_from_assistive_technology",
+    ),
+    (
+        "Home claims the ledger is empty again",
+        APP,
+        (
+            ':overviewSignalEmpty(data);}',
+            ':empty("No signal records","\u25c7",String(data.scan?.status).toUpperCase()==="COMPLETE"?"The latest completed scan found no approved directional signal.":"No completed scan has been recorded yet.");}',
+        ),
+        "test_overview_empty_state_names_the_stale_signals_it_hides",
+    ),
 ]
 
 
@@ -114,7 +160,20 @@ def main():
         # The whole project, not a partial copy: a partial tree changes what
         # the suite can even import, and a green control on the wrong tree makes
         # every failure below meaningless. That has happened twice already.
-        shutil.copytree(SRC, root, ignore=shutil.ignore_patterns("__pycache__", ".git"))
+        #
+        # The exceptions are SQLite's transient sidecars. The preview process
+        # holds multibot2_state.db open and creates/removes -shm and -wal
+        # underneath the copy, which aborts the whole run with shutil.Error
+        # mid-sweep. Nothing in the suite reads them, and they are runtime
+        # state rather than source, so the guard harness has no business
+        # copying them.
+        shutil.copytree(
+            SRC,
+            root,
+            ignore=shutil.ignore_patterns(
+                "__pycache__", ".git", "*.db-shm", "*.db-wal", "*.db-journal"
+            ),
+        )
         return root
 
     with tempfile.TemporaryDirectory(prefix="mut-") as scratch:

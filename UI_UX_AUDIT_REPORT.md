@@ -58,23 +58,49 @@ expandable in the product unreachable by keyboard.
 
 ### C1 — Every expandable control is hidden from keyboard and screen readers
 
-**Measured.** `26 of 26` `button.expand-button` carry `aria-hidden="true"` and
-`tabindex="-1"` (counted across all pages at 1440×900; `10 of 10` on Tools alone).
-Sampled box: `aria-hidden=true tabindex=-1` on every instance.
+**Measured.** Every `button.expand-button` carries `aria-hidden="true"` and
+`tabindex="-1"`. Sampled box: `aria-hidden=true tabindex=-1` on every instance.
+Re-counted at 1440×900 on a live snapshot: **24 of 24** — 8 on Signals, 16 on
+Calendar, 0 on Overview, History and Tools. The total moves with the ledgers, so
+the ratio is the number that matters, and the ratio was 100%.
+
+**Correction to the original count.** This line previously read "26 of 26 …
+`10 of 10` on Tools alone". The Tools half was wrong: `renderTools()` never
+calls `expandButton()`, so Tools carries **zero** `button.expand-button`. Its
+collapsing cards use `button.collapse-control` in `dashboard.html` — ordinary
+buttons with `aria-expanded` and `aria-label`, reachable all along. The original
+"26" is not reproducible on any snapshot; the ratio is. Nobody should go looking
+for ten missing controls on Tools.
 
 **Why it matters.** These are real `<button>` elements — pointer-clickable, with
 correct `aria-expanded` and `aria-label`. But a keyboard user cannot Tab to them,
 and a screen reader will not announce them. A keyboard user therefore **cannot
-expand any signal card, trade card, calendar event, asset card or settings group
-on any page.** There is no recovery path: unlike the modal (C2), there is no
-Escape escape-hatch.
+open a single signal card or calendar event, on any page** — those are the only
+two renderers that call `expandButton()`. There is no recovery path: unlike the
+modal (C2), there is no Escape escape-hatch.
+
+**Correction to the original impact.** This section originally claimed signal
+cards, trade cards, calendar events, asset cards *and* settings groups were all
+unreachable. Only the first and third were. Trade rows use `.trade-detail-button`
+and asset / settings / Tools cards use `.collapse-control` or `.rule-toggle` —
+all real, focusable buttons that were never affected. The severity rating is
+unchanged; the blast radius was overstated.
 
 **Root cause.** One helper — `expandButton()` at `app.js:33` — emits all three
-attributes, so every page inherits it.
+attributes, so every page that renders one inherits it.
 
 **Fix.** Drop `tabindex="-1"` and `aria-hidden="true"` from the helper. Keep
 `aria-expanded` / `aria-label`, which are already correct. One-line change, one
 product-wide effect. Highest severity-to-effort ratio in the report.
+
+**Shipped, with one addition the fix on its own would have missed.** Every one
+of these controls re-renders itself on toggle, so removing the tab stop and then
+pressing Enter dropped focus to `<body>` — reachable, but not usable, and the
+card would have to be hunted down again from the top of the page. The delegated
+activation handler now looks the same control up after the re-render and focuses
+it. Verified with real key presses at 1440×900: 16 consecutive Tab stops land on
+`BUTTON.expand-button` (labels `Expand event` / `Collapse event`), Enter expands
+the card, its details render, and focus stays on the control that was pressed.
 
 ---
 
@@ -314,19 +340,62 @@ is wrong, and so is any plan to "fix the count". The count is right.
 ledger · View signals →". This is a copy fix, not a data fix, and it resolves the
 perceived contradiction the earlier report saw.
 
+**Shipped, and measured.** `overviewSignalEmpty()` reads `counts.stale_directional`
+out of the snapshot, so the sentence is true on the next poll rather than on the
+day it was written: "No fresh signals — 18 older directional signals in the
+ledger, all past the 1-hour freshness gate. Open Signals to review them." The
+genuinely-empty case still renders "No signal records", because with zero
+directional signals that is the honest sentence — the fallback is kept, not
+replaced.
+
+**Measured cost, stated because it is a change on screen.** At 1440×900 the
+longer detail wraps onto a second line: the empty tile goes 105→120px, the
+Active Signals section 199→214px, and `#main-content` 1625→1640px. At 390×844
+nothing moves at all — `#main-content` stays 370×1507, because there the new
+sentence already fitted in the line the old one used. One extra line in one tile
+on one page, paid for in words that are true.
+
 ---
 
 ### M7 — Decorative glyphs are exposed to assistive technology
 
-**Measured.** **0 of 10** nav glyph spans carry `aria-hidden`. The glyphs are bare
-Unicode characters — `◆` Signals, `◷` History, `◉` Calendar, `⚙` Tools — in a
-plain `<span>`, across 10 nav buttons (5 pages × `.desktop-nav` + `.mobile-nav`).
+**Measured.** **10 of 10** nav glyphs are exposed. The glyphs are bare Unicode
+characters — `⌂` Home, `◆` Signals, `◷` History, `◉` Calendar, `⚙` Tools —
+across 10 nav buttons (5 pages × `.desktop-nav` + `.mobile-nav`), and **none**
+carries `aria-hidden`. Only half of them are in a `<span>` at all: the mobile
+rail wraps its glyph (`<span>⌂</span>Home`), the desktop rail leaves it as a bare
+text node (`⌂ <span>Home</span>`). An earlier draft of this line said "0 of 10
+nav glyph spans"; the span count is 5, and the 10 is the glyph count.
 
 **Why it matters.** A screen reader announces "black diamond", "white bullet",
 "gear" *before* the label, on every navigation control, on every page.
 
-**Fix.** Add `aria-hidden="true"` to each glyph span. Markup only, no CSS, no
-layout risk. Cheapest accessibility win in the report alongside C1.
+**Fix (shipped).** Two different edits, because a bare text node cannot be hidden. Add
+`aria-hidden="true"` to the 5 mobile spans, and wrap the 5 desktop glyphs in
+`<span aria-hidden="true">`. Markup only, no CSS.
+
+**Verified after the fix**, as A/B measurements against `main` at 1440×900 and
+390×844, plus Chromium's own accessibility tree:
+
+| | before | after |
+|---|---|---|
+| accName, desktop rail | `"⌂ Home"` … `"⚙ Tools"` | `"Home"` … `"Tools"` |
+| accName, mobile rail | `"⌂Home"` … `"⚙Tools"` | `"Home"` … `"Tools"` |
+| `.desktop-nav` band @1440 | `18,96,188×234` | unchanged |
+| `.mobile-nav` band @390 | `8,777,374×60` | unchanged |
+| 5 desktop label spans @1440 | x `59/63/61/57/61` | unchanged |
+| 5 desktop button boxes @1440 | `27,105/149/193/237/281,170×40` | unchanged |
+| 5 mobile button boxes @390 | `14/87/160/234/307,783,69×46` | unchanged |
+| `#main-content` @390 | `10,66,370×1507` | unchanged |
+| `#main-content` @1440 | `94,70,1252×1625` | `94,70,1252×1640` — see M6 |
+| horizontal overflow | none at either width | none |
+
+Chromium now reports each glyph as `generic [aria-hidden]` inside a button whose
+name is the label alone: `- button "Home"` → `generic [aria-hidden]: ⌂` and
+`text: Home`. Every button keeps its accessible name, and no new node enters the
+tree. The wrapping of the desktop glyph is the only structural edit, and it
+changed no box — the glyph was already an anonymous flex item at x 40, and it
+still is. Cheapest accessibility win in the report alongside C1.
 
 ---
 
@@ -384,10 +453,17 @@ replacement and the absence of the superseded rule, and must pass
 `docs/DESIGN_SYSTEM/validation.md`).
 
 ### Sprint 0 — same day, markup + one attribute
-1. **C1** — drop `aria-hidden` / `tabindex` from `expandButton()` (`app.js:33`).
-   Highest severity-to-effort ratio in the report.
-2. **M7** — add `aria-hidden="true"` to the 10 nav glyph spans.
-3. **M6** — reword the Home empty state to name the 12 stale signals.
+1. **C1** — drop `aria-hidden` / `tabindex` from `expandButton()` (`app.js:33`),
+   and restore focus to the control after its own re-render. Highest
+   severity-to-effort ratio in the report.
+2. **M7** — `aria-hidden="true"` on the 5 mobile glyph spans; wrap the 5 desktop
+   glyphs in a hidden span.
+3. **M6** — reword the Home empty state to name the stale set.
+
+> Sprint 0 is implemented and verified. Its three guards are in
+> `tests/test_visual_consistency_audit.py` and all five of its mutations are
+> caught by `tools/mutate_design_guards.py`. C1 and M7 have been corrected above
+> where the original counts did not reproduce.
 
 ### Sprint 1 — 1–2 days
 4. **C2** — ~12-line focus trap + focus restore in the release modal.
