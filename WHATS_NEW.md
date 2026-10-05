@@ -14,3 +14,6 @@ Generated from release_notes.py.
 - 📱 Backtest trades and generated signals are bounded, touch-scrollable panels that no longer stretch the mobile page or sit behind navigation.
 - 🗂️ Signals and History date groups use consistent spacing and borders so headings and dates are never hidden or clipped.
 - 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.
+
+## v3.4.0 — next
+- 🔇 Stale-signal warnings no longer push one Telegram bubble per signal; the NOT_SENT_STALE audit row is now the only record, cutting the dominant source of Telegram noise for sweep_v2.
