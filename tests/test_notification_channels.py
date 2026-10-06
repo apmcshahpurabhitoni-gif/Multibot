@@ -124,9 +124,47 @@ def test_a_read_never_returns_a_webhook_target_or_secret():
     assert "s3cr3t" not in dumped
 
 
-def test_a_telegram_chat_id_is_not_a_secret_and_stays_visible():
+def test_a_telegram_chat_id_is_a_secret_and_is_redacted():
+    """A chat id routes messages exactly like a webhook URL, so it is redacted.
+
+    The dashboard is unauthenticated: printing the operator's Telegram chat id
+    let anyone with the URL message the bot. The browser now gets only
+    has_target, and a blank field on save keeps the stored address.
+    """
     channels.save({"channels": [webhook(kind="telegram", target="-1001234567890")]})
-    assert channels.state()["channels"][0]["target"] == "-1001234567890"
+
+    view = channels.state()
+    channel = view["channels"][0]
+    assert channel["target"] == ""
+    assert channel["has_target"] is True
+    dumped = json.dumps(view)
+    assert "-1001234567890" not in dumped
+
+
+def test_a_redacted_telegram_round_trip_keeps_the_stored_chat_id():
+    channels.save({"channels": [webhook(kind="telegram", target="-1001234567890")]})
+
+    view = channels.state()["channels"]
+    view[0]["label"] = "Ops alerts"
+    channels.save({"channels": view})
+
+    saved = channels.load()[0]
+    assert saved["target"] == "-1001234567890"
+    assert saved["label"] == "Ops alerts"
+
+
+def test_environment_defaults_are_marked_default_until_saved(channel_file, monkeypatch):
+    """The env-sourced Telegram channel is shown as locked, not removable."""
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "12345")
+
+    view = channels.state()["channels"][0]
+    assert view["default"] is True
+    assert view["has_target"] is True
+    assert view["target"] == ""
+
+    channels.save({"channels": [channels.load()[0]]})
+    saved = channels.state()["channels"][0]
+    assert "default" not in saved
 
 
 def test_a_redacted_round_trip_keeps_the_stored_address():

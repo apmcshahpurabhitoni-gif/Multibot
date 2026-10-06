@@ -61,8 +61,7 @@
 
   function addChannel() {
     const type = "webhook";
-    model.channels.push({
-      id: nextId(type), type, label: TYPE_LABELS[type], target: "", secret: "",
+    model.channels.push({      id: nextId(type), type, label: TYPE_LABELS[type], target: "", secret: "",
       enabled: true, events: model.options.events.slice(), has_target: false, has_secret: false,
     });
     markDirty();
@@ -118,39 +117,41 @@
 
   function channelRow(channel, index) {
     const webhook = channel.type !== "telegram";
-    // Every control carries an explicit accessible name: wrapping it in a
-    // <label> is enough for a screen reader but the appearance sweep requires a
-    // non-empty name on the control itself, and the existing settings rows in
-    // app.js set aria-label for the same reason.
     const base = escapeHtml(channel.label || channel.id);
+    const typeLabel = escapeHtml(TYPE_LABELS[channel.type] || channel.type);
     const targetPlaceholder = channel.has_target && !channel.target
       ? "•••• stored · type to replace"
-      : (webhook ? "https://…" : "-1001234567890");
-    const secretField = webhook
-      ? `<label class="settings-field"><span class="settings-field-label">Auth secret</span><input class="settings-input" type="password" value="" placeholder="${channel.has_secret ? "•••• stored · type to replace" : "optional bearer token"}" aria-label="${base} auth secret" autocomplete="new-password" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="secret"></label>`
-      : "";
-    // A subscription is a toggle, so it is the app's existing toggle idiom --
-    // `chip-option settings-toggle` with aria-pressed, exactly like Compact and
-    // Reduce motion. A native checkbox is a 13px target and fails the 24px rule
-    // the appearance sweep enforces.
+      : (webhook ? "https://…" : "Telegram chat id");
+    // The environment default is one fact -- where chat is delivered -- so it
+    // edits only the address; its label and transport belong to the env config
+    // and it cannot be removed here, only replaced by saving your own channels.
+    const fields = channel.default
+      ? `<label class="settings-field"><span class="settings-field-label">Chat id</span><input class="settings-input" type="text" value="" placeholder="${channel.has_target ? "•••• stored · type to replace" : "not configured"}" aria-label="${base} chat id" autocomplete="off" spellcheck="false" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="target"></label>`
+      : `<label class="settings-field"><span class="settings-field-label">Label</span><input class="settings-input" type="text" value="${escapeHtml(channel.label || "")}" aria-label="${base} label" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="label"></label>
+        <label class="settings-field"><span class="settings-field-label">Type</span><select class="settings-input" aria-label="${base} type" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="type">${options(model.options.types || [], channel.type, (t) => TYPE_LABELS[t] || t)}</select></label>
+        <label class="settings-field"><span class="settings-field-label">${channel.type === "telegram" ? "Chat id" : "Webhook URL"}</span><input class="settings-input" type="text" value="${escapeHtml(channel.target || "")}" aria-label="${base} ${channel.type === "telegram" ? "chat id" : "webhook URL"}" placeholder="${escapeHtml(targetPlaceholder)}" autocomplete="off" spellcheck="false" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="target"></label>${secretField(channel, webhook, base)}`;
     const events = (model.options.events || []).map((event) => {
       const on = channel.events.includes(event);
       return `<button class="chip-option settings-toggle" type="button" aria-pressed="${on}" data-notify-id="${escapeHtml(channel.id)}" data-notify-event="${escapeHtml(event)}">${escapeHtml(EVENT_LABELS[event] || event)}</button>`;
     }).join("");
-    return `<div class="settings-row settings-account">
+    return `<div class="settings-row settings-account${channel.default ? " is-default" : ""}">
       <div class="settings-account-head">
-        <span class="settings-label" title="${escapeHtml(channel.id)}">${escapeHtml(channel.label || channel.id)}</span>
-        <button class="secondary-button" type="button" data-notify-remove="${index}" aria-label="Remove ${escapeHtml(channel.label || channel.id)}">Remove</button>
+        <span class="settings-label" title="${escapeHtml(channel.id)}">${base}<span class="settings-type-chip">${typeLabel}</span></span>
+        <span class="settings-inline">
+          <button class="chip-option settings-toggle" type="button" aria-pressed="${channel.enabled ? "true" : "false"}" data-notify-id="${escapeHtml(channel.id)}" data-notify-toggle="enabled">Enabled</button>
+          ${channel.default
+            ? `<span class="settings-default-chip" title="Comes from the environment. Saving your own channels replaces it; Telegram keeps delivering from the environment while the token and chat id are configured.">Default</span>`
+            : `<button class="secondary-button" type="button" data-notify-remove="${index}" aria-label="Remove ${base}">Remove</button>`}
+        </span>
       </div>
-      <div class="settings-account-fields">
-        <label class="settings-field"><span class="settings-field-label">Label</span><input class="settings-input" type="text" value="${escapeHtml(channel.label || "")}" aria-label="${base} label" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="label"></label>
-        <label class="settings-field"><span class="settings-field-label">Type</span><select class="settings-input" aria-label="${base} type" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="type">${options(model.options.types || [], channel.type, (t) => TYPE_LABELS[t] || t)}</select></label>
-        <label class="settings-field"><span class="settings-field-label">${channel.type === "telegram" ? "Chat id" : "Webhook URL"}</span><input class="settings-input" type="text" value="${escapeHtml(channel.target || "")}" aria-label="${base} ${channel.type === "telegram" ? "chat id" : "webhook URL"}" placeholder="${escapeHtml(targetPlaceholder)}" autocomplete="off" spellcheck="false" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="target"></label>
-        ${secretField}
-      </div>
+      <div class="settings-account-fields">${fields}</div>
       <div class="settings-inline settings-notify-events">${events}</div>
-      <div class="settings-inline"><button class="chip-option settings-toggle" type="button" aria-pressed="${channel.enabled ? "true" : "false"}" data-notify-id="${escapeHtml(channel.id)}" data-notify-toggle="enabled">Enabled</button></div>
     </div>`;
+  }
+
+  function secretField(channel, webhook, base) {
+    if (!webhook) return "";
+    return `<label class="settings-field"><span class="settings-field-label">Auth secret</span><input class="settings-input" type="password" value="" placeholder="${channel.has_secret ? "•••• stored · type to replace" : "optional bearer token"}" aria-label="${base} auth secret" autocomplete="new-password" data-notify-id="${escapeHtml(channel.id)}" data-notify-field="secret"></label>`;
   }
 
   function render() {
