@@ -18,7 +18,7 @@
   };
   const validAccent=value=>ACCENTS.includes(value)?value:"emerald";
 
-  const sync=()=>{
+  const sync=(activeAccent)=>{
     const style=validStyle(root.dataset.style||storage.getItem(STYLE_STORAGE_KEY));
     const theme=root.dataset.themePref||root.dataset.theme||storage.getItem(THEME_STORAGE_KEY)||"light";
     root.dataset.style=style;
@@ -34,7 +34,7 @@
       button.setAttribute("aria-pressed",String(active));
     });
     document.querySelectorAll("[data-accent-choice]").forEach(button=>{
-      const active=button.dataset.accentChoice===(root.dataset.accent||storage.getItem(ACCENT_STORAGE_KEY)||"emerald");
+      const active=button.dataset.accentChoice===activeAccent;
       button.classList.toggle("active",active);
       button.setAttribute("aria-pressed",String(active));
     });
@@ -44,7 +44,7 @@
     const value=validAccent(accent);
     root.dataset.accent=value;
     storage.setItem(ACCENT_STORAGE_KEY,value);
-    sync();
+    sync(value);
   };
 
   const applyStyle=style=>{
@@ -52,7 +52,8 @@
     root.dataset.style=value;
     syncStyleClasses(value);
     storage.setItem(STYLE_STORAGE_KEY,value);
-    sync();
+    const currentAccent=root.dataset.accent||storage.getItem(ACCENT_STORAGE_KEY)||"emerald";
+    sync(validAccent(currentAccent));
   };
 
   const bind=()=>{
@@ -61,30 +62,33 @@
     const savedAccent=storage.getItem(ACCENT_STORAGE_KEY);
     if(savedAccent)root.dataset.accent=validAccent(savedAccent);
 
-    // appearance.js is the single active owner for interface-style clicks.
-    // Stop the legacy app.js style listener before it can run a second write.
+    sync(validAccent(savedAccent||root.dataset.accent||"emerald"));
+
+    // appearance.js is the single owner of style and accent state. The documented
+    // contract (THEME_SYSTEM.md §5) requires capture-phase handlers that call
+    // preventDefault() and stopImmediatePropagation() so app.js's legacy chip
+    // listener can never perform a second, conflicting write (it used to coerce
+    // material3 back to modern). Bound guards make re-execution safe.
     if(!root.dataset.appearanceBound){
       root.dataset.appearanceBound="true";
-      document.addEventListener("click",event=>{
-        const button=event.target.closest("[data-style-choice]");
-        if(!button)return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        applyStyle(button.dataset.styleChoice);
-      },true);
+      document.querySelectorAll("[data-style-choice]").forEach(button=>{
+        button.addEventListener("click",event=>{
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          applyStyle(button.dataset.styleChoice);
+        },true);
+      });
     }
     if(!root.dataset.accentBound){
       root.dataset.accentBound="true";
-      document.addEventListener("click",event=>{
-        const button=event.target.closest("[data-accent-choice]");
-        if(!button)return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        applyAccent(button.dataset.accentChoice);
-      },true);
+      document.querySelectorAll("[data-accent-choice]").forEach(button=>{
+        button.addEventListener("click",event=>{
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          applyAccent(button.dataset.accentChoice);
+        },true);
+      });
     }
-
-    sync();
   };
 
   window.applyStyle=applyStyle;

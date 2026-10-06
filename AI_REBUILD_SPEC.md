@@ -35,7 +35,7 @@ https://multibot2-t74l.onrender.com/dashboard
 
 # 2. Locked universe
 
-Exactly 19 assets:
+Exactly 25 assets:
 
 ```text
 RELIANCE
@@ -57,6 +57,12 @@ KOTAKBANK
 ^NSEBANK
 GC=F
 BTC-USD
+EURUSD=X
+GBPUSD=X
+AUDUSD=X
+USDJPY=X
+NZDUSD=X
+EURJPY=X
 ```
 
 Yahoo mappings:
@@ -67,6 +73,7 @@ NSE stock SYMBOL → SYMBOL.NS
 ^NSEBANK → ^NSEBANK
 GC=F → GC=F
 BTC-USD → BTC-USD
+Forex PAIR=X (EURUSD=X, GBPUSD=X, AUDUSD=X, USDJPY=X, NZDUSD=X, EURJPY=X) → same symbol
 ```
 
 Do not expand the live universe without an explicit project decision.
@@ -398,7 +405,7 @@ Version:
 Universe:
 
 ```text
-all 19 live assets
+all 25 live assets
 ```
 
 Core rule:
@@ -789,7 +796,7 @@ Tests must cover at least:
 
 ```text
 configuration
-19-asset universe
+25-asset universe
 strategy registry
 strategy contract
 Adaptive Trend
@@ -822,6 +829,9 @@ main.py
     Runtime orchestration, HTTP endpoints, Telegram command loop.
 startup.py
     Startup sequencing and keepalive bootstrap.
+report_builder.py
+    Developer tooling: dependency-graph dump and CSS/JS cascade report
+    (`python3 report_builder.py`); not imported by the runtime.
 
 # --- locked configuration --------------------------------------------------
 config.py
@@ -937,7 +947,7 @@ tools/check_release_docs.py
     CI: Python 3.12, editable install, compileall, import discovery, pytest.
 ```
 
-24 root modules, 3 registered strategies, 7 dashboard assets. This list is
+25 root modules, 3 registered strategies, 7 dashboard assets. This list is
 enforced by tests/test_rebuild_spec_inventory.py.
 
 ---

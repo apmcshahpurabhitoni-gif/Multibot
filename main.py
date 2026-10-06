@@ -1,6 +1,6 @@
 """MULTIBOT2 runtime: registry-driven strategies, one shared trade lifecycle."""
 from __future__ import annotations
-import json, logging, os, threading, time, warnings
+import hmac, json, logging, os, threading, time, warnings
 from urllib import parse, request
 from wsgiref.simple_server import make_server
 import pandas as pd
@@ -198,6 +198,28 @@ def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+# Scan-level error alerts are edge-triggered and bounded: an asset outage that
+# fails every sweep must not post one bubble per sweep. The first scan with
+# errors alerts; repeats with the same failing assets stay silent (every sweep
+# still logs its full technical detail and records a scan_runs row); a changed
+# failure set alerts immediately; an identical failure set re-alerts at most
+# once per SCAN_ERROR_REPEAT_SECONDS. A clean scan clears the state.
+SCAN_ERROR_REPEAT_SECONDS = 3600
+_SCAN_ERROR_ALERTS: dict[str, dict] = {}
+
+def _scan_error_alert_should_send(strategy_id, fingerprint, *, clock=None):
+    current = (clock or time.monotonic)()
+    entry = _SCAN_ERROR_ALERTS.get(strategy_id)
+    if (entry is None or entry["fingerprint"] != fingerprint
+            or current - entry["at"] >= SCAN_ERROR_REPEAT_SECONDS):
+        _SCAN_ERROR_ALERTS[strategy_id] = {"at": current, "fingerprint": fingerprint, "suppressed": 0}
+        return True
+    entry["suppressed"] += 1
+    return False
+
+def _scan_error_alert_clear(strategy_id):
+    _SCAN_ERROR_ALERTS.pop(strategy_id, None)
+
 def _notify_scan(run_id,strategy_id,payload,results):
     """Tell subscribed channels how one strategy's scan ended.
 
@@ -207,14 +229,26 @@ def _notify_scan(run_id,strategy_id,payload,results):
     for SCAN, which is what posted a "Scan complete" bubble every sweep.
     `audit=False` because a scan run has no signal_events row, and
     signal_deliveries.signal_id is a foreign key into that table in Supabase.
+
+    Repeated ERROR notifications are deduplicated/bounded by
+    `_scan_error_alert_should_send` (see above): strict validation and the
+    per-sweep technical logs are unchanged; only the chat spam is bounded.
     """
     if SERVICE is None: return
     try:
         if payload.get("errors"):
-            reasons=sorted({r.reason for r in results if r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED"})
+            error_results=[r for r in results if r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED"]
+            categories=sorted({r.reason.split(":")[0].strip() for r in error_results})
+            symbols=sorted({r.symbol for r in error_results})
+            fingerprint="|".join(categories+["@"]+symbols)
+            if not _scan_error_alert_should_send(strategy_id,fingerprint):
+                logger.info("Scan error alert suppressed | strategy=%s | errors=%s | identical failure set already reported",strategy_id,payload.get("errors"))
+                return
+            reasons=sorted({r.reason for r in error_results})
             message=TelegramMessage("MSG-ERROR-V1",msg_error(f"SCAN {strategy_id}",", ".join(reasons) or "scan reported errors"))
             kind="ERROR"
         else:
+            _scan_error_alert_clear(strategy_id)
             message=TelegramMessage("MSG-SCAN-COMPLETE-V1",msg_scan_result(payload.get("sent",0),payload.get("checked",0)))
             kind="SCAN"
         SERVICE.notifier.deliver(signal_id=f"scan:{run_id}",message=message,kind=kind,metadata={"strategy":strategy_id,**payload},audit=False)
@@ -409,7 +443,55 @@ def _sweep_diagnostic_payload(*, period="30d"):
             "period": period, "totals": totals, "assets": rows}
 def _calendar_payload(query):
     target=query.get("date",[None])[0]; impacts={x.strip().title() for x in query.get("impact",["All"])[0].split(",") if x.strip()} or {"All"}; return NEWS.get(target_date=target,impacts={"All"} if "All" in impacts else impacts,force=query.get("refresh")==["1"])
-def web_server():
+def _hostname(value, *, authority=False):
+    """Lowercased hostname from an Origin/Referer URL or a Host-style authority."""
+    text=str(value or "").strip().lower()
+    if not text: return ""
+    try:
+        return parse.urlsplit(("//"+text) if authority else text).hostname or ""
+    except ValueError:
+        return ""
+def _same_origin_request(env):
+    """Cross-origin reads and writes to configuration endpoints are rejected.
+
+    Browsers attach Origin (sometimes Referer) to cross-site calls, so a
+    hostile page can never read or forge a settings/notifications request from
+    the operator's browser. A request with neither header (curl, server-to-
+    server) passes this layer — state-changing clients still need the admin
+    token when one is configured. Hostnames are compared without ports so a
+    proxy does not break the dashboard."""
+    forwarded=env.get("HTTP_X_FORWARDED_HOST") or ""
+    if "," in forwarded: forwarded=forwarded.split(",")[0]
+    host=_hostname(forwarded,authority=True) or _hostname(env.get("HTTP_HOST",""),authority=True)
+    origin=env.get("HTTP_ORIGIN")
+    if origin:
+        return bool(host) and _hostname(origin)==host
+    referer=env.get("HTTP_REFERER")
+    if referer:
+        referrer_host=_hostname(referer)
+        if referrer_host: return bool(host) and referrer_host==host
+    return True
+def _admin_write_allowed(env):
+    """Optional write gate for public deployments: when DASHBOARD_API_TOKEN is
+    set, every POST to /api/settings or /api/notifications must present it as
+    `X-Admin-Token` or `Authorization: Bearer`. Unset (the local-first
+    default), same-origin enforcement is the only gate — unchanged behavior."""
+    expected=os.getenv("DASHBOARD_API_TOKEN","").strip()
+    if not expected: return True
+    supplied=str(env.get("HTTP_X_ADMIN_TOKEN","") or "").strip()
+    if not supplied:
+        authorization=str(env.get("HTTP_AUTHORIZATION","") or "")
+        if authorization[:7].lower()=="bearer ": supplied=authorization[7:].strip()
+    return bool(supplied) and hmac.compare_digest(supplied,expected)
+def _config_endpoint_guard(env,start):
+    """403 on cross-origin, 401 on an unauthenticated write; None to proceed."""
+    if not _same_origin_request(env):
+        logger.info("Config request rejected | reason=CROSS_ORIGIN origin=%s host=%s",env.get("HTTP_ORIGIN") or env.get("HTTP_REFERER"),env.get("HTTP_HOST"))
+        return _json_response(start,{"ok":False,"error":"Cross-origin requests to configuration endpoints are not allowed.","code":"CROSS_ORIGIN"},"403 Forbidden")
+    if env.get("REQUEST_METHOD","GET").upper()!="GET" and not _admin_write_allowed(env):
+        return _json_response(start,{"ok":False,"error":"An admin token is required to change this configuration. Send it as X-Admin-Token or Authorization: Bearer.","code":"ADMIN_TOKEN_REQUIRED"},"401 Unauthorized")
+    return None
+def build_app():
     root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css"),"/foundation.css":("foundation.css","text/css"),"/notifications.js":("notifications.js","application/javascript"),"/manifest.webmanifest":("manifest.webmanifest","application/manifest+json"),"/sw.js":("sw.js","application/javascript"),"/app-icon.svg":("app-icon.svg","image/svg+xml")}
     def app(env,start):
         path=env.get("PATH_INFO","/"); query=parse.parse_qs(env.get("QUERY_STRING",""))
@@ -449,12 +531,16 @@ def web_server():
                 logger.exception("Sweep diagnostics failed")
                 return _json_response(start,{"ok":False,"error_type":type(exc).__name__,"error":str(exc)},"500 Internal Server Error")
         if path=="/api/settings":
+            guard=_config_endpoint_guard(env,start)
+            if guard is not None: return guard
             try:
                 return _settings_response(env,start)
             except Exception as exc:
                 logger.exception("Settings request failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path=="/api/notifications":
+            guard=_config_endpoint_guard(env,start)
+            if guard is not None: return guard
             try:
                 return _notifications_response(env,start)
             except Exception as exc:
@@ -490,7 +576,9 @@ def web_server():
             except OSError: start("404 Not Found",[("Content-Type","text/plain")]); return [b"Not found"]
             start("200 OK",[("Content-Type",typ),("Cache-Control","no-store")]); return [body]
         start("404 Not Found",[("Content-Type","text/plain")]); return [b"Not found"]
-    make_server("0.0.0.0",int(os.getenv("PORT","10000")),app).serve_forever()
+    return app
+def web_server():
+    make_server("0.0.0.0",int(os.getenv("PORT","10000")),build_app()).serve_forever()
 def _send_chat(chat_id,message):
     config=TelegramConfig.from_env(); target=TelegramConfig(config.bot_token,str(chat_id)); send_message(message if isinstance(message,TelegramMessage) else TelegramMessage("MSG-COMMAND-V1",message),target)
 def _handle_command(chat_id,cmd):

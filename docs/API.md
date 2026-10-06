@@ -23,8 +23,16 @@ This document is the seam. A new front end may be written against this file alon
 | JSON cache header | `Cache-Control: no-store` |
 | Static cache header | `Cache-Control: no-store` |
 | Serialization | `json.dumps(payload, default=str)` — **non-serializable values are stringified, never dropped** |
-| Auth | **None.** The server is unauthenticated. Do not expose publicly without adding auth. |
-| CORS | None. Same-origin only. |
+| Auth | **Configuration writes are guarded.** `/api/settings` and
+`/api/notifications` reject cross-origin requests with **403**
+`{"code":"CROSS_ORIGIN"}` (Origin/Referer vs Host, `X-Forwarded-Host`
+honoured). When `DASHBOARD_API_TOKEN` is set, every POST to those two
+endpoints must present the token as `X-Admin-Token` or
+`Authorization: Bearer` (**401** `{"code":"ADMIN_TOKEN_REQUIRED"}`);
+the dashboard prompts once and remembers it. Reads stay open with secrets
+redacted — gate reads with reverse-proxy auth before exposing publicly.
+There is no user login; all other endpoints are unauthenticated. |
+| CORS | None. Same-origin only; the configuration endpoints enforce it server-side. |
 
 Because of `default=str`, a `pandas.Timestamp`, `Decimal` or `numpy.float64`
 that leaks into a payload arrives as its `str()` form. Consumers must parse
@@ -54,10 +62,10 @@ defensively rather than assume a type.
 | GET | `/api/calendar` | `date`, `impact`, `refresh` | 200 JSON | **400** JSON |
 | GET | `/api/news` | identical — **alias of `/api/calendar`** | 200 JSON | **400** JSON |
 | GET | `/api/backtest` | `strategy`, `symbol`, `period` | 200 JSON | **400** JSON |
-| GET | `/api/settings` | — | 200 JSON | — |
-| POST | `/api/settings` | body (see §11a) | 200 JSON | **400** JSON / **405** JSON |
-| GET | `/api/notifications` | — | 200 JSON | — |
-| POST | `/api/notifications` | body (see §11b) | 200 JSON | **400** JSON / **405** JSON |
+| GET | `/api/settings` | — | 200 JSON | **403** JSON (cross-origin) |
+| POST | `/api/settings` | body (see §11a) | 200 JSON | **400** / **401** / **403** / **405** JSON |
+| GET | `/api/notifications` | — | 200 JSON | **403** JSON (cross-origin) |
+| POST | `/api/notifications` | body (see §11b) | 200 JSON | **400** / **401** / **403** / **405** JSON |
 | GET | `/architecture` | — | 200 `text/html` | 404 |
 
 ### Static assets (`main.py::web_server`, the `files` dict)
@@ -139,7 +147,8 @@ Liveness plus operational facts. Cheap; safe to poll.
   "version": "3.3.0",              // release_notes.APP_VERSION
   "timestamp": "2026-10-01T09:30:00+05:30",
   "runtime": true,                 // false once startup sequence failed
-  "database": "SUPABASE+SQLITE",   // or "SQLITE_FALLBACK"
+  "database": "SUPABASE+SQLITE",   // SQLite primary + Supabase mirror;
+                                  // "SQLITE_FALLBACK" = no mirror configured
   "scheduler": true,               // false when STOP event is set
   "strategies": 3,                 // count from the live registry
   "provider": "yahoo",             // config.MARKET_DATA_PROVIDER
@@ -483,11 +492,14 @@ dispatching or sending**.
 
 ---
 
-## 11a. `/api/settings` — accounts, assets and routing
-
-These values decide which account takes a real trade and on how much capital,
-so they are written on the server. An unsaved edit is never applied, and a
+## 11a. `/api/settings` — accounts, assets and routingThese values decide which account takes a real trade and on how much
+capital, so they are written on the server. An unsaved edit is never applied, and a
 refused one leaves the running configuration exactly as it was.
+
+**Protection** (shared with `/api/notifications`, see the Auth row in §1):
+cross-origin requests are rejected with **403** `{"code":"CROSS_ORIGIN"}`;
+when `DASHBOARD_API_TOKEN` is configured, writes additionally require the
+token and answer **401** `{"code":"ADMIN_TOKEN_REQUIRED"}` without it.
 
 `GET` returns the live document plus the compiled-in defaults:
 
@@ -551,6 +563,9 @@ resolution.
 ---
 
 ## 11b. `/api/notifications` — delivery channels
+
+Same cross-origin (**403**) and optional `DASHBOARD_API_TOKEN` (**401**)
+protection as `/api/settings` (§11a) applies to writes here.
 
 Telegram used to be the only transport, inlined in `notification_service.py`.
 It is now one of four channel types in `channels.py`, each with a target and an

@@ -8,8 +8,8 @@ You have the contracts. This is the order to use them in.
 
 **A new dashboard front end. Nothing else.**
 
-The bot is finished: 24 Python modules, 3 strategies, 8 Supabase tables, 6 HTTP
-endpoints, 192 passing tests. **Do not rewrite it.** If a task requires changing a
+The bot is finished: 25 Python modules, 3 strategies, 8 Supabase tables, 6 HTTP
+endpoints, 442 passing tests. **Do not rewrite it.** If a task requires changing a
 `.py` file, stop — the only permitted server change is **adding a static-asset
 route** for a new UI file.
 
@@ -39,7 +39,7 @@ payload.
 git clone <repo> && cd multibot2
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[test]"
-python3 -m pytest                      # must be 192 passed — this is your baseline
+python3 -m pytest                      # must be 442 passed — this is your baseline
 python3 main.py                        # serves on $PORT, default 10000
 ```
 
@@ -71,7 +71,7 @@ Telegram message the user already received.
 
 ### Phase 0 — Freeze
 - [ ] Read files 1–4 in full.
-- [ ] `python3 -m pytest` → **192 passed**.
+- [ ] `python3 -m pytest` → **442 passed**.
 - [ ] Screenshot **all 30 combinations × 2 viewports** (1440×900, 390×844).
       This is your visual regression target.
 - [ ] Save `fixture-before.json`.

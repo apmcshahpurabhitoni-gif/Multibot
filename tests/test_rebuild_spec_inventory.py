@@ -1,7 +1,7 @@
 """Completeness guard for the AI reconstruction contract.
 
 ``AI_REBUILD_SPEC.md`` is the document a rebuild is driven from. It had drifted:
-section 25 listed 17 of 24 root modules, and omitted ``strategies/engulfing_66_sma/``
+section 25 listed 17 of the root modules, and omitted ``strategies/engulfing_66_sma/``
 entirely, so a rebuild faithfully following it would have shipped an incomplete bot.
 
 These tests pin the spec to the repository and to the live registry so the gap
@@ -33,7 +33,7 @@ def test_spec_exists_and_targets_the_current_release():
 
 
 def test_spec_names_every_root_module():
-    """Section 25 must account for all 24 root modules."""
+    """Section 25 must account for all root modules."""
     text = _spec_text()
     missing = sorted(
         path.stem for path in ROOT.glob("*.py") if path.stem not in text

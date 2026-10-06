@@ -28,7 +28,7 @@ budget. Reset-to-defaults always returns to the values in `config.py`.
 | 6 | **1.0× leverage — never higher** | `LEVERAGE = 1.0` | `config.py:243` |
 | 7 | **Freshness is exactly 1 hour** | `SIGNAL_FRESHNESS_HOURS = 1` | `config.py:16` |
 | 8 | **Max 2 sends per signal identity** | `send_count` caps at 2 | `db.py::record_signal_send` |
-| 9 | **Supabase authoritative, SQLite fallback** | Never SQLite-only | `db.py`, `schema.sql` |
+| 9 | **SQLite primary at runtime, Supabase durable mirror** | Mirror every write when configured; empty local tables cold-restore from Supabase | `db.py`, `schema.sql` |
 | 10 | **IST everywhere** | `Asia/Kolkata` | `config.py:14` |
 | 11 | **Signals on completed candles only** | `schedule = "completed_candle"` | `strategies/*.py::prepare_candles` |
 
@@ -146,11 +146,20 @@ server's `actionable` flag.
 
 ## 5. Persistence
 
-**Supabase is authoritative; SQLite is the fallback.** Both hold the same
-logical data. Supabase tables: `accounts`, `active_trades`, `closed_trades`,
+**SQLite is the runtime primary store; Supabase is the durable mirror.**
+Every runtime read and write in `db.py` goes to the local SQLite database, so
+the bot runs correctly with no Supabase configuration at all. When
+`SUPABASE_URL`/`SUPABASE_KEY` are set, every write is also upserted to Supabase
+through the REST API — a mirror-write failure raises `DatabaseError` rather
+than letting the stores silently diverge — and an empty local table is
+restored from Supabase on startup (cold restore after a redeploy or a fresh
+volume). Supabase tables: `accounts`, `active_trades`, `closed_trades`,
 `sent_signals`, `signal_events`, `signal_deliveries`, `scan_runs`,
 `market_data_cache`. SQLite uses a simpler shape (`trades`, `signals`,
-`deliveries`) because it is a local cache, not a second source of truth.
+`deliveries`) because it is the local runtime store, not a wire-format
+replica. `/api/health` reports `SUPABASE+SQLITE` when the mirror is configured
+and `SQLITE_FALLBACK` when it is not; `FALLBACK` there is a legacy label
+meaning "no mirror configured" — Supabase is never the primary at runtime.
 
 `schema.sql` is canonical; `supabase/schema.sql` is a mirror. **Parity is
 enforced by `tests/test_schema_parity.py`**, which also asserts that every table
@@ -179,6 +188,12 @@ rebuild must keep the fallback **and** add a test that catches the cause.
 Strategies declare their own data need via `data_request()` and override what
 they receive in `prepare_candles()`. A strategy that emits on an incomplete
 candle violates rule 11.
+
+`prepare_candles()` is the **single** ownership point for completion:
+`StrategyEngine.evaluate` and `Strategy.backtest_signal` both enter through it
+before `generate_signal`, and the base-class default drops a trailing candle
+that is not provably complete for the manifest timeframe — so a strategy that
+does not override it still cannot signal from an incomplete candle.
 
 Transport failures surface as the reason `MARKET_DATA_ERROR` — never as an
 exception that kills a scan. One bad asset must not fail the cycle.
@@ -226,7 +241,7 @@ The count (3) and each name/version are asserted against the live registry by
 | Bind | `0.0.0.0:$PORT`, default `10000` |
 | Health path | `/ping` |
 | Startup order | `startup.py` then `main.py` |
-| Auth | **None.** Unauthenticated. Do not expose publicly as-is. |
+| Auth | No user login. `/api/settings` + `/api/notifications` reject cross-origin requests (403 `CROSS_ORIGIN`); when `DASHBOARD_API_TOKEN` is set, writes require it (401 `ADMIN_TOKEN_REQUIRED`, `X-Admin-Token` or `Bearer`). Reads stay open and redacted — do not expose publicly without a reverse-proxy auth layer. |
 | Keepalive | External cron every 10 min; `/api/health` reports `OK` ≤ 15 min, else `STALE` |
 | Python | `>=3.11`; CI uses 3.12 |
 | Dependencies | `pandas>=2.2,<3`, `yfinance>=0.2.50,<1`, `requests>=2.31,<3`, `beautifulsoup4>=4.12,<5` |

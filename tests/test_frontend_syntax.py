@@ -103,11 +103,17 @@ def test_collapsed_signal_card_names_its_strategy():
     assert summary.group(1).count("${strategy}") == 2, (
         "both the with-levels and without-levels summaries must name the strategy"
     )
-    # The aria-label is the accessible name and overrides the inner text, so a
-    # screen-reader user would not hear the strategy unless it is named here too.
-    assert re.search(r'aria-label="\$\{open\?"Collapse":"Expand"\} details for '
-                     r'\$\{escapeHtml\(label\)\} from \$\{escapeHtml\(strategy\)\}"', body), (
-        "the collapsed card's aria-label must name the strategy as well"
+    # The expand <button> is the ONE canonical control (card-main is only a
+    # pointer affordance), so its accessible name is assembled at the call site
+    # and must name the strategy -- the collapsed sub-line alone is not enough.
+    assert 'expandButton(key,`details for ${label} from ${strategy}`)' in body, (
+        "the signal card's expand button must name the strategy in its label"
+    )
+    expand_line = next(line for line in source.splitlines()
+                       if "function expandButton" in line)
+    assert re.search(r'aria-label="\$\{open\?"Collapse":"Expand"\} '
+                     r'\$\{escapeHtml\(label\)\}"', expand_line), (
+        "expandButton must expose its label as the accessible name"
     )
 
 
