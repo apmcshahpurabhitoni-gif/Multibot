@@ -1,4 +1,4 @@
-MULTIBOT2 v3.3.0
+MULTIBOT2 v3.5.0
 ================
 
 Architecture

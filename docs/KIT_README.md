@@ -4,7 +4,7 @@ Everything an AI agent needs to rebuild the dashboard UI with a new, good-lookin
 interface while **keeping all 30 theme combinations** and **changing zero bot
 behaviour**.
 
-Generated from the live repository. Version **3.3.0**.
+Generated from the live repository. Version **3.5.0**.
 
 ---
 
