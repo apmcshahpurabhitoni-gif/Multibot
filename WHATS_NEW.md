@@ -16,4 +16,4 @@ Generated from release_notes.py.
 - 🔒 Dashboard API reads now validate HTTP status, body and JSON before rendering, preventing stale results after empty or malformed responses.
 
 ## v3.4.0 — next
-- 🔇 Stale-signal warnings no longer push one Telegram bubble per signal; the NOT_SENT_STALE audit row is now the only record, cutting the dominant source of Telegram noise for sweep_v2.
+- 🔇 Stale, duplicate/reminder, account-limit and MARKET_DATA_ERROR signals are now silent by default: one bubble per evaluated signal (25 assets x frequent sweep_v2 sweeps) is gone, and the dashboard + deliveries audit still record every evaluated signal.
