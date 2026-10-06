@@ -14,7 +14,7 @@ The project is a **paper-trading multi-strategy engine**. Preserve the locked ru
 
 ```text
 Project: MULTIBOT2
-Version: 3.3.0
+Version: 3.5.0
 Mode: PAPER ONLY
 Market data: Yahoo Finance ONLY
 Timezone: Asia/Kolkata
@@ -1023,7 +1023,7 @@ If one of those files needs a change for every new strategy, the architecture ha
 # 29. Current release
 
 ```text
-MULTIBOT2 v3.3.0
+MULTIBOT2 v3.5.0
 
 🧩 Automatic strategy discovery
 🧠 Trend Pulse (adaptive_trend)
