@@ -220,15 +220,25 @@ def reset() -> list[dict]:
 
 
 def state() -> dict:
-    """The live channels for the dashboard, with every secret redacted."""
+    """The live channels for the dashboard, with every secret redacted.
+
+    A Telegram chat id routes messages exactly like a webhook URL does -- it is
+    the address messages are delivered to -- so it is redacted the same way:
+    the browser never sees it, a blank field means "keep the stored one", and
+    `_merge_stored` restores it on save. Channels that come from the
+    environment rather than a saved file are additionally marked `default` so
+    the Tools card can show them as locked instead of removable.
+    """
+    stored = os.path.exists(channels_path())
     channels = []
     for channel in load():
         public = dict(channel)
+        public["has_target"] = bool(channel["target"])
+        public["target"] = ""
         public["has_secret"] = bool(channel["secret"])
         public["secret"] = ""
-        if channel["type"] in _WEBHOOK_TYPES:
-            public["has_target"] = bool(channel["target"])
-            public["target"] = ""
+        if not stored:
+            public["default"] = True
         channels.append(public)
     return {
         "channels": channels,
