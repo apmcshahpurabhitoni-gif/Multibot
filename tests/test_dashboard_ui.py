@@ -225,6 +225,16 @@ def test_dashboard_pass2_uses_one_collapse_control_contract():
     assert "rotate(180deg)" not in foundation
     assert "rotate(180deg)" not in styles
     assert "aria-hidden=\"true\" tabindex=\"-1\"" not in app
+    assert "tabindex=\"-1\" aria-hidden" not in app
+    # The expand control is THE interactive element: it must stay focusable and
+    # visible to assistive technology, in either attribute order.
+    expand_line = next(line for line in app.splitlines() if "function expandButton" in line)
+    assert "aria-hidden" not in expand_line
+    assert "tabindex" not in expand_line
+    assert "aria-expanded" in expand_line and "aria-label" in expand_line
+    # One canonical control: the card wrapper is a pointer affordance, not a
+    # second focusable button competing with the real <button>.
+    assert "role=\"button\"" not in app
     assert "class=\"collapse-chev" not in html
     assert "class=\"chev collapse-control\"" not in app
     assert "class=\"chev collapse-control\"" not in live

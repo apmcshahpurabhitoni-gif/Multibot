@@ -155,8 +155,8 @@ Strategies are identified by stable IDs such as `adaptive_trend` and `sweep_v2`,
 | ⏳ Signal freshness | exactly 1 hour |
 | 🔁 Maximum sends / identity | 2 |
 | 🌏 Timezone | Asia/Kolkata |
-| 🗄️ Primary persistence | Supabase |
-| 💾 Fallback | SQLite |
+| 🗄️ Runtime primary | SQLite |
+| ☁️ Durable mirror | Supabase (optional; SQLite-only without it) |
 
 ### Account limits
 
@@ -363,8 +363,8 @@ The bot also provides operational commands such as `/start`, `/check`, `/balance
 MULTIBOT2 uses:
 
 ```text
-Supabase  → authoritative production persistence
-SQLite    → local state/cache/fallback
+SQLite    → runtime primary store (all reads and writes)
+Supabase  → optional durable mirror (write-through + cold restore)
 ```
 
 Signal send history is persisted so duplicate protection can survive process restarts.

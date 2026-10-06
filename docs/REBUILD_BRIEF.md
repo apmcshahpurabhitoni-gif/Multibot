@@ -23,8 +23,8 @@ behavior**.
 > The bot is finished and correct. The UI is the product surface. Rebuild the
 > surface; do not touch the machine underneath it.
 
-This is a **front-end-only** rebuild. The backend is 24 Python modules, 3
-strategies, 8 Supabase tables, 6 HTTP endpoints and 164 passing tests. None of it
+This is a **front-end-only** rebuild. The backend is 25 Python modules, 3
+strategies, 8 Supabase tables, 6 HTTP endpoints and 442 passing tests. None of it
 needs rewriting. If a task requires changing a `.py` file, stop — the only
 permitted server change is **adding a static-asset route** for a new UI file.
 

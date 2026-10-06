@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 import math
 import pandas as pd
-from config import ACCOUNT_SIZE_INR, ACCOUNT_TRADE_LIMITS, LIVE_ASSET_MAP, RISK_PER_TRADE_INR, USD_TO_INR
-from trading import quantity_for_risk
+from config import ACCOUNT_SIZES, LIVE_ASSET_MAP, USD_TO_INR
+from trading import AccountState, quantity_for_risk
 from strategies.base import Signal
 
 @dataclass(frozen=True)
@@ -56,8 +56,8 @@ def score_metrics(metrics_raw):
     label="Exceptional" if rating>=90 else "Strong" if rating>=80 else "Good" if rating>=70 else "Moderate" if rating>=60 else "Weak" if rating>=50 else "Poor"
     return round(max(0,min(100,rating)),2),label,breakdown
 
-def _simulate(frame, strategy, symbol, account_limit):
-    signals=[]; trades=[]; equity=ACCOUNT_SIZE_INR; peak=equity; max_dd=0; exposure_bars=0
+def _simulate(frame, strategy, symbol, account):
+    signals=[]; trades=[]; equity=account.starting_balance; peak=equity; max_dd=0; exposure_bars=0
     current_day=None; day_trades=0; next_eligible=0
     f=frame.sort_index(); asset=LIVE_ASSET_MAP[symbol]; fx_rate=1.0 if asset.currency=="INR" else USD_TO_INR
     for i in range(max(2,50),len(f)):
@@ -66,9 +66,9 @@ def _simulate(frame, strategy, symbol, account_limit):
         if not signal.is_directional or signal.stop_loss is None or signal.take_profit is None: continue
         day=ts.tz_convert("Asia/Kolkata").date() if ts.tzinfo else ts.date()
         if day!=current_day: current_day=day; day_trades=0
-        if day_trades>=account_limit: continue
+        if day_trades>=account.daily_trade_limit: continue
         entry=float(signal.entry or f.close.iloc[i]); sl=float(signal.stop_loss); tp=float(signal.take_profit)
-        try: qty=quantity_for_risk(entry,sl,fx_rate=fx_rate)
+        try: qty=quantity_for_risk(entry,sl,account=account,fx_rate=fx_rate)
         except ValueError: continue
         exit_price=None; exit_i=i
         for j in range(i+1,len(f)):
@@ -88,13 +88,19 @@ def _simulate(frame, strategy, symbol, account_limit):
 def backtest_strategy(strategy, symbol, candles, *, account=None, parameters=None):
     if not isinstance(candles,pd.DataFrame) or not isinstance(candles.index,pd.DatetimeIndex): raise ValueError("Backtest candles must use a timezone-aware DatetimeIndex")
     if candles.index.tz is None: raise ValueError("Backtest timestamps must be timezone-aware")
-    account=account or strategy.manifest.account; limit=int(ACCOUNT_TRADE_LIMITS[account]); signals,trades,equity,max_dd,exposure_bars=_simulate(candles,strategy,symbol,limit)
+    account=account or strategy.manifest.account; key=str(account).lower()
+    # The backtest must size, start and score exactly like the live account it
+    # routes to: its configured capital, its per-trade risk budget and its
+    # daily trade limit — never the global defaults.
+    starting_balance=float(ACCOUNT_SIZES[key])
+    book=AccountState(name=key,starting_balance=starting_balance,balance=starting_balance)
+    signals,trades,equity,max_dd,exposure_bars=_simulate(candles,strategy,symbol,book)
     pnls=pd.Series([t.pnl for t in trades],dtype=float); wins=pnls[pnls>0]; losses=pnls[pnls<0]; pf=float(wins.sum()/abs(losses.sum())) if losses.sum()!=0 else (float("inf") if wins.sum()>0 else 0.0)
-    returns=pnls/ACCOUNT_SIZE_INR if len(pnls) else pd.Series(dtype=float); win_rate=float((pnls>0).mean()*100) if len(pnls) else 0; avg=float(pnls.mean()) if len(pnls) else 0; streak=max_streak=0
+    returns=pnls/starting_balance if len(pnls) else pd.Series(dtype=float); win_rate=float((pnls>0).mean()*100) if len(pnls) else 0; avg=float(pnls.mean()) if len(pnls) else 0; streak=max_streak=0
     for x in pnls: streak=streak+1 if x<0 else 0; max_streak=max(max_streak,streak)
     exposure=min(100,exposure_bars/max(1,len(candles))*100)
-    raw={"return_pct":(equity/ACCOUNT_SIZE_INR-1)*100,"max_drawdown_pct":max_dd,"sharpe":_annualized_sharpe(returns),"sortino":_sortino(returns),"win_rate_pct":win_rate,"profit_factor":pf,"number_of_trades":len(trades),"average_trade":avg,"max_losing_streak":max_streak,"exposure_pct":exposure}
+    raw={"return_pct":(equity/starting_balance-1)*100,"max_drawdown_pct":max_dd,"sharpe":_annualized_sharpe(returns),"sortino":_sortino(returns),"win_rate_pct":win_rate,"profit_factor":pf,"number_of_trades":len(trades),"average_trade":avg,"max_losing_streak":max_streak,"exposure_pct":exposure}
     raw["risk_adjusted_performance"]=min(100.0,max(0,raw["sharpe"])*max(0,raw["sortino"]))
     rating,label,breakdown=score_metrics(raw)
     metrics=BacktestMetrics(raw["return_pct"],raw["max_drawdown_pct"],raw["sharpe"],raw["sortino"],raw["win_rate_pct"],raw["profit_factor"],raw["number_of_trades"],raw["average_trade"],raw["max_losing_streak"],raw["exposure_pct"],raw["risk_adjusted_performance"],rating,label,breakdown)
-    return BacktestResult(strategy.manifest.name,strategy.manifest.version,symbol,ACCOUNT_SIZE_INR,tuple(signals),tuple(trades),metrics,parameters or strategy.validate_config({}))
+    return BacktestResult(strategy.manifest.name,strategy.manifest.version,symbol,starting_balance,tuple(signals),tuple(trades),metrics,parameters or strategy.validate_config({}))

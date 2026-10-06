@@ -188,7 +188,7 @@
     $$("[data-notifications-save],[data-notifications-reset]").forEach((el) => { el.disabled = true; });
     setStatus("Saving to the server…", "loading");
     try {
-      const response = await fetch("/api/notifications", {
+      const response = await adminFetch("/api/notifications", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body), cache: "no-store",
       });

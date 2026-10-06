@@ -161,7 +161,7 @@ Details and the full list: [`docs/LESSONS_LEARNED.md`](docs/LESSONS_LEARNED.md).
 
 Paper trading only · Yahoo Finance only · 25 assets · ₹100,000 account ·
 ₹2,000 risk per trade · **1.0× leverage never higher** · freshness **exactly**
-1 hour · **max 2 sends** per signal identity · Supabase authoritative with SQLite
-fallback · signals on completed candles only.
+1 hour · **max 2 sends** per signal identity · SQLite runtime primary with
+Supabase as the durable mirror · signals on completed candles only.
 
 Full list: [`docs/LOCKED_RULES.md`](docs/LOCKED_RULES.md).

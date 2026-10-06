@@ -829,6 +829,33 @@ html[data-compact="true"] #page-tools .section-heading{padding:6px 12px!importan
 html[data-compact="true"] #page-tools .backtest-section{padding:6px 12px!important}
 html[data-compact="true"]{--section-gap:8px;--grid-gap:6px;--card-pad:10px}
 html[data-style="neo"][data-compact="true"]{--section-gap:10px;--grid-gap:7px}
+/* The same id re-assertion for the other four pages. Measured before this
+   block existed: `.section-block`, `.section-heading` and `.chart-card`
+   (Overview), the date toggles and `.workspace-heading`
+   (Signals/History/Calendar) and `.calendar-date-events` reported
+   byte-identical geometry with Compact on and off, because their id-scoped
+   rules also carry !important in the later layers. Every value here is <=
+   its normal-mode value on every axis, so Compact can only shrink. */
+html[data-compact="true"] #page-overview .section-block{padding:10px!important}
+html[data-compact="true"] #page-overview .section-heading{margin-bottom:6px!important}
+html[data-compact="true"] #page-overview .chart-card,
+html[data-compact="true"] #page-overview .section-block .chart-card{padding:10px!important}
+html[data-compact="true"] #page-signals .workspace-heading,
+html[data-compact="true"] #page-history .workspace-heading{min-height:34px!important;padding:5px 10px!important}
+html[data-compact="true"] #page-signals .signal-date-toggle,
+html[data-compact="true"] #page-history .history-date-toggle,
+html[data-compact="true"] #page-calendar .calendar-date-toggle{padding:6px 7px!important;min-height:34px!important;height:auto!important}
+html[data-compact="true"] #page-signals .signal-date-rows,
+html[data-compact="true"] #page-history .history-date-rows{gap:6px!important;padding:6px 4px 8px!important}
+html[data-compact="true"] #page-calendar .calendar-date-events{gap:6px!important;padding:6px 0 0!important}
+html[data-compact="true"] #page-history .metric-card,
+html[data-compact="true"] #page-calendar .metric-card{padding:6px 9px!important}
+/* Two deeper id nests: the Overview activity empty state and the Signals row
+   cards. Both id rules carry !important (and the Signals one pins a fixed
+   56px height inside a narrow-viewport media query), so the compact values
+   have to repeat enough of the nest to outrank them at every viewport. */
+html[data-compact="true"] #page-overview .overview-activity .empty-state{padding:12px!important}
+html[data-compact="true"] #page-signals .signal-date-rows .card-main{min-height:34px!important;height:auto!important;padding:5px 9px!important}
 @keyframes pulse{50%{opacity:.55;transform:scale(.88)}}
 @keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes expandIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}

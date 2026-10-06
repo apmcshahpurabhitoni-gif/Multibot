@@ -332,6 +332,77 @@ def test_compact_rules_that_target_the_tools_page_carry_its_id():
     )
 
 
+def test_compact_rules_re_assert_id_scope_on_every_page():
+    """Generalise the Tools rule (above) to all five pages.
+
+    An id-scoped rule that also carries `!important` outranks any unscoped
+    compact rule, so Compact silently dies on that element. Measured live
+    before the fix: `.section-block`, `.section-heading` and `.chart-card`
+    (Overview), the date toggles and `.workspace-heading`
+    (Signals/History/Calendar), `.calendar-date-events` and the summary
+    `.metric-card` on History/Calendar all reported byte-identical geometry
+    with Compact on and off. Wherever an id rule and an unscoped compact rule
+    declare the same layout property, an id-scoped compact re-assertion must
+    exist — same contract as the Tools test, every page.
+    """
+    layout = {"padding", "min-height", "margin-bottom", "gap"}
+
+    def _last(selector):
+        parts = re.split(r"[\s>+~]", selector.strip())
+        return parts[-1] if parts else ""
+
+    id_important = {}   # (page, last) -> layout props declared !important
+    compact_unscoped = {}  # last -> layout props an unscoped compact rule sets
+    compact_scoped = set()  # (page, last) pairs re-asserted at id scope
+
+    for _sheet, css in SHEETS.items():
+        for prelude, body, _media in _iter_rules(css):
+            declarations = _declarations(body)
+            important = {
+                prop for prop, value in declarations.items()
+                if prop in layout and str(value).endswith("!important")
+            }
+            if 'data-compact="true"' in prelude:
+                for selector in _selectors(prelude):
+                    scoped = re.match(
+                        r'html\[data-compact="true"\]\s+#(page-\w+)\s+(.+)$',
+                        selector,
+                    )
+                    unscoped = re.match(
+                        r'html\[data-compact="true"\]\s+(.+)$', selector
+                    )
+                    if scoped:
+                        compact_scoped.add((scoped.group(1), _last(scoped.group(2))))
+                    elif unscoped and important:
+                        compact_unscoped.setdefault(_last(unscoped.group(1)), set()).update(
+                            important
+                        )
+                continue
+            for selector in _selectors(prelude):
+                match = re.match(
+                    r"^(?:html(?:\[[^\]]*\])?\s+)?#(page-\w+)\s+(.+)$",
+                    selector,
+                )
+                if match and important:
+                    key = (match.group(1), _last(match.group(2)))
+                    id_important.setdefault(key, set()).update(important)
+
+    offenders = []
+    for (page, tail), props in sorted(id_important.items()):
+        shared = props & compact_unscoped.get(tail, set())
+        if not shared or (page, tail) in compact_scoped:
+            continue
+        offenders.append(
+            f"{page}: `{tail}` wants {sorted(shared)} compact but an id rule "
+            f"declares the same property !important and no id-scoped compact "
+            f"rule repeats the scope"
+        )
+    assert not offenders, (
+        "compact rules that can never win against an id-scoped rule:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
 def test_settings_toggle_is_only_a_chip_variant_not_a_second_component():
     """`.settings-toggle` must not carry its own base component definition.
 

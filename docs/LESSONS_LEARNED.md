@@ -30,7 +30,7 @@ all of them. Mutation-tested: reverting the fix fails 3 tests.
 timestamp raised `DateParseError` and took down the whole `/api/dashboard`
 response.
 **Why it survived.** Postgres enforces `timestamptz`, so the bad value could only
-enter through the **SQLite fallback**, which stores `timestamp` as free-form
+enter through the **SQLite runtime store**, which stores `timestamp` as free-form
 `TEXT`. The comment on the except block said "One malformed historical row must
 never 500 the entire dashboard API" — the comment was describing an intent the
 code did not fully implement.

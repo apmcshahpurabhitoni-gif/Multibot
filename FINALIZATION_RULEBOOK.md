@@ -5,7 +5,7 @@
 1. Paper trading only.
 2. Yahoo Finance only.
 3. Asia/Kolkata timezone.
-4. Exactly 19 live assets.
+4. Exactly 25 live assets.
 5. ₹100,000 account.
 6. ₹2,000 maximum risk per trade.
 7. 1× leverage.
