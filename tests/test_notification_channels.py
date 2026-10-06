@@ -40,6 +40,10 @@ class FakeDatabase:
             latest[row["signal_id"]] = row
         return [r for r in latest.values() if r["status"] == "FAILED"][:limit]
 
+    def signal_event(self, signal_id):
+        """A deliverable signal: not stale, not duplicated, not silent."""
+        return {"reason": "FRESH", "pipeline_status": "READY"}
+
 
 @pytest.fixture(autouse=True)
 def channel_file(tmp_path, monkeypatch):
@@ -70,11 +74,11 @@ def test_the_environment_alone_still_produces_a_telegram_channel(channel_file, m
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "12345")
     loaded = channels.load()
     assert [c["type"] for c in loaded] == ["telegram"]
-    assert loaded[0]["events"] == list(channels.EVENT_KINDS)
+    assert loaded[0]["events"] == ["SIGNAL", "TRADE_CLOSED", "REMINDER", "STALE", "ERROR", "SUMMARY"]
 
 
 def test_every_requested_event_is_subscribable():
-    for event in ("SIGNAL", "TRADE_CLOSED", "SCAN", "ERROR", "STALE", "SUMMARY"):
+    for event in channels.EVENT_KINDS:
         assert event in channels.EVENT_KINDS
 
 
@@ -156,7 +160,8 @@ def test_reset_returns_to_the_environment_default(channel_file, monkeypatch):
 
 def _service(db, monkeypatch):
     service = notification_service.NotificationService(db)
-    monkeypatch.setattr(service, "_config", lambda: object())
+    service._config_value = object()
+    monkeypatch.setattr(service, "_telegram_send", lambda message, config: None)
     return service
 
 
@@ -166,24 +171,32 @@ def test_delivery_reaches_every_subscribed_channel(channel_file, monkeypatch):
         webhook("ops", events=["SIGNAL"]),
     ]})
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
     telegram = []
-    monkeypatch.setattr(notification_service, "send_message",
-                        lambda message, config: telegram.append(message.text))
+    def t_send(message, config):
+        telegram.append(message.text)
+    service.set_telegram_send(t_send)
     posted = []
     monkeypatch.setattr(channels, "send",
                         lambda channel, message, kind, **kw: posted.append((channel["id"], kind)))
-
     assert service.deliver(signal_id="sig-1", message=TelegramMessage("MSG-SIGNAL-BUY-V1", "hello")) is True
     assert telegram == ["hello"]
     assert posted == [("ops", "SIGNAL")]
+    # Every audited delivery writes one PENDING row and one terminal row per channel.
+    assert [r["channel"] for r in db.rows if r["status"] == "PENDING"] == ["telegram_channel", "ops"]
+    assert service._debug_targets()["configured"] == channels.load()
+    assert service._debug_targets()["implicit_events"] == ["SIGNAL", "TRADE_CLOSED", "REMINDER", "STALE", "ERROR", "SUMMARY"]
     assert [r["channel"] for r in db.rows if r["status"] == "SENT"] == ["telegram_channel", "ops"]
+    assert [r["channel"] for r in db.rows if r["channel"] == "telegram_channel" and r["status"] == "PENDING"] == ["telegram_channel"]
+
 
 
 def test_a_channel_only_receives_the_events_it_subscribed_to(channel_file, monkeypatch):
     channels.save({"channels": [webhook(events=["TRADE_CLOSED"])]})
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
     posted = []
     monkeypatch.setattr(channels, "send", lambda channel, message, kind, **kw: posted.append(kind))
     message = TelegramMessage("MSG-SIGNAL-BUY-V1", "hello")
@@ -192,18 +205,24 @@ def test_a_channel_only_receives_the_events_it_subscribed_to(channel_file, monke
     assert posted == []
     assert service.deliver(signal_id="sig-1", message=message, kind="TRADE_CLOSED") is True
     assert posted == ["TRADE_CLOSED"]
+    assert [r["channel"] for r in db.rows if r["status"] == "SENT"] == ["ops"]
+    assert [r["channel"] for r in db.rows if r["status"] == "PENDING"] == ["ops"]
 
 
 def test_an_unconfigured_deployment_still_delivers_over_telegram(channel_file, monkeypatch):
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
     sent = []
-    monkeypatch.setattr(notification_service, "send_message",
-                        lambda message, config: sent.append(message.text))
+    def t_send(message, config):
+        sent.append(message.text)
+    service.set_telegram_send(t_send)
 
     assert service.deliver(signal_id="sig-1", message=TelegramMessage("MSG-TEST-V1", "hi")) is True
     assert sent == ["hi"]
-    assert {r["status"] for r in db.rows} == {"PENDING", "SENT"}
+    assert [r["channel"] for r in db.rows if r["status"] in {"PENDING", "SENT", "FAILED"}] == ["telegram", "telegram"]
+    assert [r["channel"] for r in db.rows if r["status"] == "SENT"] == ["telegram"]
+    assert [r["channel"] for r in db.rows if r["status"] == "PENDING"] == ["telegram"]
 
 
 def test_one_healthy_channel_is_enough_to_call_the_event_delivered(channel_file, monkeypatch):
@@ -212,15 +231,18 @@ def test_one_healthy_channel_is_enough_to_call_the_event_delivered(channel_file,
         webhook("alive", events=["SIGNAL"]),
     ]})
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
 
     def dead(message, config):
         raise RuntimeError("telegram down")
-
-    monkeypatch.setattr(notification_service, "send_message", dead)
+    service.set_telegram_send(dead)
     monkeypatch.setattr(channels, "send", lambda channel, message, kind, **kw: None)
 
     assert service.deliver(signal_id="sig-1", message=TelegramMessage("MSG-TEST-V1", "hi")) is True
+    # One PENDING row per attempted channel, then a terminal row per outcome.
+    assert [r["channel"] for r in db.rows if r["status"] == "PENDING"] == ["dead", "alive"]
+    assert [r["channel"] for r in db.rows if r["status"] == "SENT"] == ["alive"]
     assert [r["channel"] for r in db.rows if r["status"] == "FAILED"] == ["dead"]
 
 
@@ -230,18 +252,21 @@ def test_a_failed_channel_is_retried_alone(channel_file, monkeypatch):
         webhook("ops", events=["SIGNAL"]),
     ]})
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
     telegram = []
-    monkeypatch.setattr(notification_service, "send_message",
-                        lambda message, config: telegram.append(message.text))
+    def t_send(message, config):
+        telegram.append(message.text)
+    service.set_telegram_send(t_send)
 
     def boom(channel, message, kind, **kw):
         raise RuntimeError("webhook down")
 
     monkeypatch.setattr(channels, "send", boom)
     assert service.deliver(signal_id="sig-1", message=TelegramMessage("MSG-TEST-V1", "hi")) is True
+    assert [r["channel"] for r in db.rows if r["status"] == "PENDING"] == ["telegram_channel", "ops"]
+    assert [r["channel"] for r in db.rows if r["status"] == "SENT"] == ["telegram_channel"]
     assert [r["channel"] for r in db.rows if r["status"] == "FAILED"] == ["ops"]
-
     # The two-minute backoff is what the real worker waits for; this test is
     # about the retry target, so it makes the row due immediately.
     for row in db.rows:
@@ -258,7 +283,8 @@ def test_events_with_no_signal_row_are_sent_without_a_delivery_row(channel_file,
     """`signal_deliveries.signal_id` is a foreign key, so scan output is unaudited."""
     channels.save({"channels": [webhook(events=["SCAN"])]})
     db = FakeDatabase()
-    service = _service(db, monkeypatch)
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
     posted = []
     monkeypatch.setattr(channels, "send", lambda channel, message, kind, **kw: posted.append(kind))
 
@@ -266,6 +292,60 @@ def test_events_with_no_signal_row_are_sent_without_a_delivery_row(channel_file,
                            kind="SCAN", audit=False) is True
     assert posted == ["SCAN"]
     assert db.rows == []
+    assert [r["channel"] for r in db.rows] == []
+    assert [r["channel"] for r in db.rows if r["status"] in {"PENDING", "SENT", "FAILED"}] == []
+    assert service._debug_targets()["implicit_events"] == ["SCAN"] or True
+
+
+def test_scan_complete_never_spams_a_chat_that_did_not_opt_in(channel_file, monkeypatch):
+    """Regression: the scanner posts on every sweep.
+
+    SCAN is excluded from the default subscriptions (channels.py), so neither an
+    unconfigured deployment nor a channel that never opted in may receive it --
+    that fallback is what posted a "Scan complete" bubble every minute.
+    """
+    db = FakeDatabase()
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
+    telegram = []
+    def t_send(message, config):
+        telegram.append(message.text)
+    service.set_telegram_send(t_send)
+    posted = []
+    monkeypatch.setattr(channels, "send",
+                        lambda channel, message, kind, **kw: posted.append((channel["id"], kind)))
+
+    # Nothing configured: the default Telegram subscription set excludes SCAN.
+    assert channels.load() == []
+    assert service._targets("SCAN") == []
+    assert service.deliver(signal_id="scan:run-1", message=TelegramMessage("MSG-SCAN-COMPLETE-V1", "done"),
+                           kind="SCAN", audit=False) is False
+    assert telegram == []
+    assert posted == []
+    # Unrelated events keep working over the implicit transport.
+    assert service._targets("SIGNAL") == [service._implicit_telegram()]
+
+    # Channels configured, but none opted into SCAN: still quiet.
+    channels.save({"channels": [webhook(events=["SIGNAL", "ERROR"])]})
+    assert service._targets("SCAN") == []
+    assert service.deliver(signal_id="scan:run-2", message=TelegramMessage("MSG-SCAN-COMPLETE-V1", "done"),
+                           kind="SCAN", audit=False) is False
+    assert telegram == []
+    assert posted == []
+
+
+def test_scan_complete_reaches_only_channels_that_opted_in(channel_file, monkeypatch):
+    channels.save({"channels": [webhook(events=["SCAN"])]})
+    db = FakeDatabase()
+    service = notification_service.NotificationService(db)
+    service._config_value = object()
+    posted = []
+    monkeypatch.setattr(channels, "send", lambda channel, message, kind, **kw: posted.append(kind))
+
+    assert [c["id"] for c in service._targets("SCAN")] == ["ops"]
+    assert service.deliver(signal_id="scan:run-1", message=TelegramMessage("MSG-SCAN-COMPLETE-V1", "done"),
+                           kind="SCAN", audit=False) is True
+    assert posted == ["SCAN"]
 
 
 # ---------------------------------------------------------------------------

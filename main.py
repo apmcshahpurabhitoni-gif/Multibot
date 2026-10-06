@@ -203,7 +203,9 @@ def _notify_scan(run_id,strategy_id,payload,results):
 
     Scan events are opt-in per channel (channels.py): the scanner runs every few
     minutes, so only a channel that explicitly asked for SCAN or ERROR gets this
-    traffic. `audit=False` because a scan run has no signal_events row, and
+    traffic -- the delivery fan-out never falls back to the default Telegram chat
+    for SCAN, which is what posted a "Scan complete" bubble every sweep.
+    `audit=False` because a scan run has no signal_events row, and
     signal_deliveries.signal_id is a foreign key into that table in Supabase.
     """
     if SERVICE is None: return

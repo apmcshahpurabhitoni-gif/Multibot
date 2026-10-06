@@ -29,6 +29,12 @@ logger = logging.getLogger("multibot2.channels")
 #: fire from the existing delivery call sites; the rest are wired in main.py.
 EVENT_KINDS: tuple[str, ...] = ("SIGNAL", "TRADE_CLOSED", "REMINDER", "STALE", "SCAN", "ERROR", "SUMMARY")
 
+#: The events a freshly-bootstrapped bot should send to chat by default.
+#: `SCAN` is deliberately excluded: the scanner posts a "Scan complete" bubble
+#: every sweep, which is noisy on frequent schedules; operators who want it can
+#: add it back in Tools.
+DEFAULT_EVENT_SUBSCRIPTIONS: list[str] = ["SIGNAL", "TRADE_CLOSED", "REMINDER", "STALE", "ERROR", "SUMMARY"]
+
 #: Transports that need nothing but the standard library. `telegram` is sent by
 #: NotificationService (it owns the bot token); the others are plain JSON POSTs.
 CHANNEL_TYPES: tuple[str, ...] = ("telegram", "discord", "slack", "webhook")
@@ -63,7 +69,7 @@ def default_channels() -> list[dict]:
         "label": "Telegram",
         "target": chat_id,
         "enabled": True,
-        "events": list(EVENT_KINDS),
+        "events": list(DEFAULT_EVENT_SUBSCRIPTIONS),
         "secret": "",
     }]
 

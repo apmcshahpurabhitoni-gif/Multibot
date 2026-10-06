@@ -319,6 +319,15 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             out.append({**dict(r),"payload":payload})
         return out
 
+    def signal_event(self,signal_id):
+        """Read the canonical lifecycle row for one signal by its event id.
+
+        Returns the row as a dict, or None when the event is unknown.
+        """
+        with self._connect() as c:
+            row=c.execute("SELECT * FROM signal_events WHERE signal_id=?",(signal_id,)).fetchone()
+        return dict(row) if row else None
+
     def delivery_status(self,signal_id):
         with self._connect() as c: row=c.execute("SELECT status,attempted_at,error,message_type FROM deliveries WHERE signal_id=? ORDER BY id DESC LIMIT 1",(signal_id,)).fetchone()
         return dict(row) if row else None
