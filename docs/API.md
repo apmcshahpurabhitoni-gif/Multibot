@@ -253,7 +253,18 @@ Built by `dashboard.py::build_dashboard_snapshot()`.
     "directional": 4,
     "sent": 1,
     "errors": 0,
-    "strategies": { "<strategy_id>": { /* per-strategy row */ } }
+    "strategies": { "<strategy_id>": { /* per-strategy row */ } },
+    // Open scan-error incidents (durable alert dedup; {} when healthy).
+    // Keys are strategy ids; rows carry no secrets.
+    "error_alerts": {
+      "sweep_v2": {
+        "fingerprint": "MARKET_DATA_ERROR@BTC-USD",
+        "first_sent_at": "2026-10-01T22:37:01+05:30",
+        "last_sent_at": "2026-10-01T23:37:01+05:30",
+        "suppressed": 12,          // repeats silenced since the last send
+        "updated_at": "2026-10-01T23:37:01+05:30"
+      }
+    }
   },
 
   // ── Durable scan history (History → Scan History) ──────────────────────
@@ -483,12 +494,29 @@ dispatching or sending**.
     "symbol": "…", "label": "…", "market": "…", "timeframe": "…",
     "raw_candles": 480, "prepared_candles": 60,
     "direction": null,                 // null when non-directional
-    "reason": "MARKET_DATA_ERROR"      // gate reason when it did not signal
+    "reason": "MARKET_DATA_ERROR",     // gate reason when it did not signal
+    // Present only when the provider sent invalid OHLC rows: they were
+    // quarantined (dropped, never repaired) while building sweep candles.
+    "quarantined": {
+      "symbol": "BTC-USD", "raw_rows": 480, "valid_rows": 479,
+      "dropped_rows": 1, "invalid_cells": 1,
+      "issues": [{"field": "close", "candle": "2026-10-06 19:30:00+05:30",
+                  "raw_value": "nan", "kind": "nan"}],
+      "updated_at": "…"
+    },
+    // Present only on status=ERROR: the full internal capture
+    // (strategy, asset, Yahoo symbol, interval, period, failing field/timestamp,
+    //  raw value, fresh-vs-cache + age, scan timestamp). Never any secret.
+    "diagnostics": { "strategy": "sweep_v2", "symbol": "BTC-USD",
+                     "failing_field": "close", "value_kind": "nan",
+                     "data_source": "fresh", "cache_age_seconds": 0,
+                     "scan_timestamp": "…", "error": "…" }
   }]
 }
 ```
 
 `reason` values include `MARKET_DATA_ERROR` and the `signal_gate` reasons.
+A `status: "ERROR"` row also carries `error_type`, `error` and `diagnostics`.
 
 ---
 

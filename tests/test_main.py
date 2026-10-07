@@ -105,14 +105,19 @@ class _FakeNotifier:
         return True
 
 
-def test_repeated_scan_error_alerts_are_deduplicated(monkeypatch):
+def test_repeated_scan_error_alerts_are_deduplicated(monkeypatch, tmp_path):
     """One asset outage must not post one ERROR bubble per sweep, while a new
-    failure set and a recovered-then-failed cycle still alert."""
+    failure set and a recovered-then-failed cycle still alert.
+
+    Suppression state is the persisted incident in db.scan_error_alerts — not
+    process memory — so the same guarantees hold across a restart (covered in
+    test_sweep_market_data_errors.py)."""
     from types import SimpleNamespace
+    from db import DatabaseManager
 
     notifier = _FakeNotifier()
     monkeypatch.setattr(main, "SERVICE", SimpleNamespace(notifier=notifier))
-    main._SCAN_ERROR_ALERTS.clear()
+    monkeypatch.setattr(main, "DB", DatabaseManager(str(tmp_path / "state.db")))
     payload = {"errors": 1, "checked": 25, "sent": 0}
     first = [SimpleNamespace(symbol="BTC-USD", reason="MARKET_DATA_ERROR: HTTP 429")]
     main._notify_scan("r1", "sweep_v2", payload, first)
@@ -125,30 +130,39 @@ def test_repeated_scan_error_alerts_are_deduplicated(monkeypatch):
     widened = repeat + [SimpleNamespace(symbol="GC=F", reason="MARKET_DATA_ERROR: timeout")]
     main._notify_scan("r3", "sweep_v2", payload, widened)
     assert len(notifier.calls) == 2
-    # A clean scan resets the state...
+    # A clean scan clears the durable incident...
     main._notify_scan("r4", "sweep_v2", {"errors": 0, "checked": 25, "sent": 1}, [])
     assert len(notifier.calls) == 3 and notifier.calls[-1]["kind"] == "SCAN"
+    assert main.DB.load_scan_error_alert("sweep_v2") is None
     # ...so the next failure alerts again.
     main._notify_scan("r5", "sweep_v2", payload, first)
     assert len(notifier.calls) == 4 and notifier.calls[-1]["kind"] == "ERROR"
-    main._SCAN_ERROR_ALERTS.clear()
 
 
 def test_scan_error_alert_is_bounded_by_a_repeat_window():
-    """An all-day outage re-alerts at most once per hour, not per sweep."""
-    main._SCAN_ERROR_ALERTS.clear()
-    tick = {"now": 0.0}
+    """An all-day outage re-alerts at most once per hour, not per sweep.
+
+    The window is judged from the persisted incident with wall-clock time, so a
+    process restart cannot reset it (the old monotonic in-memory state could)."""
+    from datetime import datetime, timedelta, timezone
+
+    base = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
     strategy_id, fingerprint = "adaptive_trend", "MARKET_DATA_ERROR@BTC-USD"
-    assert main._scan_error_alert_should_send(
-        strategy_id, fingerprint, clock=lambda: tick["now"]) is True
+    assert main.scan_error_alert_decision(None, fingerprint, now=base) == "send"
+    entry = {
+        "strategy_id": strategy_id,
+        "fingerprint": fingerprint,
+        "first_sent_at": base.isoformat(),
+        "last_sent_at": base.isoformat(),
+        "suppressed": 0,
+    }
     for _ in range(50):
-        assert main._scan_error_alert_should_send(
-            strategy_id, fingerprint, clock=lambda: tick["now"]) is False
-    assert main._SCAN_ERROR_ALERTS[strategy_id]["suppressed"] == 50
-    tick["now"] = float(main.SCAN_ERROR_REPEAT_SECONDS)
-    assert main._scan_error_alert_should_send(
-        strategy_id, fingerprint, clock=lambda: tick["now"]) is True
-    main._SCAN_ERROR_ALERTS.clear()
+        assert main.scan_error_alert_decision(entry, fingerprint, now=base) == "suppress"
+    after = base + timedelta(seconds=main.SCAN_ERROR_REPEAT_SECONDS)
+    assert main.scan_error_alert_decision(entry, fingerprint, now=after) == "reminder"
+    # The reminder re-arms the window: bounded to one send per repeat window.
+    rearmed = dict(entry, last_sent_at=after.isoformat())
+    assert main.scan_error_alert_decision(rearmed, fingerprint, now=after) == "suppress"
 
 
 def test_origin_check_honours_forwarded_host_behind_a_proxy(monkeypatch):

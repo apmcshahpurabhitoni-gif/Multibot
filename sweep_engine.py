@@ -7,6 +7,8 @@ here.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from threading import Lock
+import logging
 import pandas as pd
 
 from config import (
@@ -18,7 +20,9 @@ from config import (
     SWEEP_MINUTE_GLOBAL,
     SWEEP_MINUTE_NSE,
 )
-from market_data import normalize_candles
+from market_data import MarketDataError, normalize_candles, quarantine_invalid_rows
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -34,8 +38,74 @@ class SweepResult:
     schedule_warning: str | None = None
 
 
-def _ist(frame: pd.DataFrame) -> pd.DataFrame:
-    return normalize_candles(frame)
+def _ist(frame: pd.DataFrame, *, symbol: str | None = None) -> pd.DataFrame:
+    """Quarantine invalid provider rows, then apply strict normalization.
+
+    One malformed candle must never poison unrelated valid candles: invalid
+    rows are identified and dropped *as rows* (never repaired), then the
+    survivors go through the unchanged strict ``normalize_candles``. A sweep
+    window that loses a row then fails the exact-completeness checks below, so
+    an incomplete candle is rejected rather than manufactured. If every row is
+    invalid there is nothing left to trade on and the strict error raises.
+    """
+    clean, issues = quarantine_invalid_rows(frame)
+    if issues:
+        dropped_rows = len({str(issue.timestamp) for issue in issues})
+        report = {
+            "symbol": symbol,
+            "raw_rows": int(len(frame)),
+            "valid_rows": int(len(clean)),
+            "dropped_rows": dropped_rows,
+            "invalid_cells": len(issues),
+            "issues": [issue.as_dict() for issue in issues[:20]],
+            "updated_at": pd.Timestamp.now(tz=IST_TIMEZONE).isoformat(),
+        }
+        if symbol:
+            _record_quarantine(symbol, report)
+        logger.warning(
+            "Invalid OHLC rows quarantined | symbol=%s | dropped_rows=%d/%d | invalid_cells=%d | first=%s",
+            symbol or "?", dropped_rows, len(frame), len(issues), issues[0].describe(),
+        )
+        if clean.empty:
+            error = MarketDataError(
+                "OHLC data contains invalid values "
+                f"(all {len(frame)} rows are invalid; first: {issues[0].describe()})"
+            )
+            error.diagnostics = {
+                "error": str(error),
+                "invalid_cells": len(issues),
+                "failing_field": issues[0].field,
+                "failing_candle": str(issues[0].timestamp),
+                "raw_value": str(issues[0].raw_value),
+                "value_kind": issues[0].kind,
+            }
+            raise error
+    elif symbol:
+        # Recovery: a clean frame retires the symbol's quarantine report so
+        # the diagnostic endpoint only ever shows current bad rows.
+        _record_quarantine(symbol, None)
+    return normalize_candles(clean)
+
+
+_QUARANTINE_LOCK = Lock()
+_QUARANTINE_REPORTS: dict[str, dict] = {}
+
+
+def _record_quarantine(symbol: str, report: dict | None) -> None:
+    with _QUARANTINE_LOCK:
+        if report is None:
+            _QUARANTINE_REPORTS.pop(symbol, None)
+        else:
+            _QUARANTINE_REPORTS[symbol] = report
+
+
+def last_quarantine(symbol: str) -> dict | None:
+    """Latest quarantine report for one symbol (dashboard diagnostics)."""
+    with _QUARANTINE_LOCK:
+        report = _QUARANTINE_REPORTS.get(str(symbol).strip().upper())
+        if report is None:
+            return None
+        return {**report, "issues": list(report["issues"])}
 
 
 def _ohlc(group: pd.DataFrame) -> dict:
@@ -120,7 +190,7 @@ def build_closed_candles(
     if current.tzinfo is None:
         raise ValueError("now must be timezone-aware")
     current = current.tz_convert(IST_TIMEZONE)
-    data = _ist(frame)
+    data = _ist(frame, symbol=symbol)
 
     if symbol in ("^NSEI", "^NSEBANK"):
         interval = _infer_interval(data)
@@ -242,4 +312,4 @@ def detect_sweep(
     )
 
 
-__all__ = ["SweepResult", "build_closed_candles", "detect_sweep"]
+__all__ = ["SweepResult", "build_closed_candles", "detect_sweep", "last_quarantine"]

@@ -34,6 +34,7 @@ EXPECTED_TABLES = {
     "active_trades",
     "closed_trades",
     "market_data_cache",
+    "scan_error_alerts",
     "scan_runs",
     "sent_signals",
     "signal_deliveries",

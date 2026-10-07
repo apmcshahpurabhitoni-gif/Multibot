@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS signals(signal_key TEXT PRIMARY KEY,send_count INTEGE
 CREATE TABLE IF NOT EXISTS signal_events(signal_id TEXT PRIMARY KEY,signal_key TEXT NOT NULL,strategy TEXT NOT NULL,version TEXT,symbol TEXT NOT NULL,direction TEXT NOT NULL,timestamp TEXT NOT NULL,timeframe TEXT,reason TEXT,pipeline_status TEXT NOT NULL,metadata TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signal_id TEXT NOT NULL,channel TEXT NOT NULL,status TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT,message_type TEXT,metadata TEXT);
 CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS scan_error_alerts(strategy_id TEXT PRIMARY KEY,fingerprint TEXT NOT NULL,first_sent_at TEXT NOT NULL,last_sent_at TEXT NOT NULL,suppressed INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS market_data_cache(cache_key TEXT PRIMARY KEY,symbol TEXT NOT NULL,period TEXT NOT NULL,interval TEXT NOT NULL,validate_hourly INTEGER NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
@@ -71,6 +72,12 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         text=str(exc)
         return "scan_runs" in text and "PGRST205" in text
 
+    @staticmethod
+    def _is_missing_remote_table(exc, table):
+        """True when Supabase simply has not been migrated to this table yet."""
+        text=str(exc)
+        return table in text and "PGRST205" in text
+
     def _restore_from_supabase_if_needed(self):
         if not self.supabase_enabled:return
         self._restore_accounts_if_needed()
@@ -79,6 +86,33 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         self._restore_signal_events_if_needed()
         self._restore_deliveries_if_needed()
         self._restore_scan_runs_if_needed()
+        self._restore_scan_error_alerts_if_needed()
+
+    def _restore_scan_error_alerts_if_needed(self):
+        """Rehydrate alert dedup state after a wiped disk (Render redeploy).
+
+        Without this, a redeploy would forget an open incident and re-alert
+        the next sweep. Tolerates a not-yet-migrated remote table exactly like
+        scan_runs: local dedup still works, remote durability activates once
+        the DDL is applied.
+        """
+        with self._connect() as c:
+            if c.execute("SELECT 1 FROM scan_error_alerts LIMIT 1").fetchone(): return
+        try:
+            rows=self._supabase_request("GET","scan_error_alerts",params="select=*") or []
+        except DatabaseError as exc:
+            if self._is_missing_remote_table(exc,"scan_error_alerts"):
+                logging.getLogger(__name__).warning("Supabase scan error alert restore skipped: public.scan_error_alerts is not available; using local alert state")
+                return
+            raise
+        with self._connect() as c:
+            for r in rows:
+                strategy_id=str(r.get("strategy_id") or "")
+                fingerprint=str(r.get("fingerprint") or "")
+                if not strategy_id or not fingerprint: continue
+                c.execute("INSERT OR IGNORE INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?)",
+                    (strategy_id,fingerprint,str(r.get("first_sent_at") or ""),str(r.get("last_sent_at") or ""),int(r.get("suppressed") or 0),str(r.get("updated_at") or "")))
+            c.commit()
 
     def _restore_accounts_if_needed(self):
         with self._connect() as c:
@@ -318,6 +352,47 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             except Exception: payload={}
             out.append({**dict(r),"payload":payload})
         return out
+
+    # --- scan-level error alert state (durable dedup) -------------------------
+    # The incident record lives in the same SQLite-primary / Supabase-mirror
+    # architecture as every other runtime state table, so suppression survives
+    # process restarts, Render redeploys (via the mirror) and worker recycling.
+
+    def load_scan_error_alert(self,strategy_id):
+        with self._connect() as c:
+            row=c.execute("SELECT * FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,)).fetchone()
+        return dict(row) if row else None
+
+    def save_scan_error_alert(self,strategy_id,fingerprint,*,first_sent_at,last_sent_at,suppressed=0,updated_at=None):
+        updated_at=updated_at or datetime.now(timezone.utc).isoformat()
+        row=(strategy_id,fingerprint,first_sent_at,last_sent_at,int(suppressed),updated_at)
+        with self._connect() as c:
+            c.execute("INSERT INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(strategy_id) DO UPDATE SET fingerprint=excluded.fingerprint,first_sent_at=excluded.first_sent_at,last_sent_at=excluded.last_sent_at,suppressed=excluded.suppressed,updated_at=excluded.updated_at",row); c.commit()
+        if not self.supabase_enabled:return
+        # Best-effort mirror (same policy as the market-data cache): a remote
+        # hiccup must never fail the scan cycle that recorded the incident.
+        try:
+            result=self._supabase_request("POST","scan_error_alerts",data={"strategy_id":strategy_id,"fingerprint":fingerprint,"first_sent_at":first_sent_at,"last_sent_at":last_sent_at,"suppressed":int(suppressed),"updated_at":updated_at},upsert=True)
+            if result is None: raise DatabaseError("Supabase unavailable")
+        except DatabaseError as exc:
+            if self._is_missing_remote_table(exc,"scan_error_alerts"):
+                logging.getLogger(__name__).warning("Supabase scan error alert save skipped: public.scan_error_alerts is not available; local alert state preserved")
+                return
+            logging.getLogger(__name__).warning("Supabase scan error alert save skipped | strategy=%s error=%s",strategy_id,exc)
+
+    def bump_scan_error_alert_suppression(self,strategy_id):
+        """Count a suppressed repeat locally; counters never need remote sync."""
+        with self._connect() as c:
+            c.execute("UPDATE scan_error_alerts SET suppressed=suppressed+1,updated_at=? WHERE strategy_id=?",(datetime.now(timezone.utc).isoformat(),strategy_id)); c.commit()
+
+    def clear_scan_error_alert(self,strategy_id):
+        with self._connect() as c:
+            c.execute("DELETE FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,)); c.commit()
+        if not self.supabase_enabled:return
+        try:self._supabase_request("DELETE","scan_error_alerts",params=parse.urlencode({"strategy_id":f"eq.{strategy_id}"}))
+        except DatabaseError as exc:
+            if self._is_missing_remote_table(exc,"scan_error_alerts"): return
+            logging.getLogger(__name__).warning("Supabase scan error alert clear skipped | strategy=%s error=%s",strategy_id,exc)
 
     def signal_event(self,signal_id):
         """Read the canonical lifecycle row for one signal by its event id.

@@ -33,6 +33,122 @@ class MarketDataError(ValueError):
 
 
 @dataclass(frozen=True)
+class OHLCIssue:
+    """One invalid OHLC cell, captured before any coercion.
+
+    Quarantine and diagnostics both need to know *which* field, *which*
+    candle and *what* the provider actually sent — the historic whole-frame
+    error ("OHLC data contains invalid values") answered none of that.
+    """
+
+    timestamp: object
+    field: str
+    raw_value: object
+    kind: str  # nan | non_numeric | non_positive | invalid_high | invalid_low
+
+    def describe(self) -> str:
+        return (
+            f"field={self.field}, candle={self.timestamp}, "
+            f"raw_value={self.raw_value!r}, kind={self.kind}"
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "field": self.field,
+            "candle": str(self.timestamp),
+            "raw_value": str(self.raw_value),
+            "kind": self.kind,
+        }
+
+
+def _invalid_ohlc_rows(frame: pd.DataFrame) -> tuple[list[OHLCIssue], list[bool]]:
+    """Identify invalid OHLC cells row-by-row. Never mutates values."""
+
+    missing = [
+        column
+        for column in REQUIRED_OHLC
+        if column not in frame.columns
+    ]
+    if missing:
+        raise MarketDataError(
+            "Missing required OHLC columns: " + ", ".join(missing)
+        )
+
+    issues: list[OHLCIssue] = []
+    row_bad = [False] * len(frame.index)
+    numeric: dict[str, list] = {}
+    raw_values = {column: frame[column].to_numpy() for column in REQUIRED_OHLC}
+    index_values = list(frame.index)
+
+    for column in REQUIRED_OHLC:
+        series = pd.to_numeric(frame[column], errors="coerce")
+        numeric[column] = series.tolist()
+        not_numeric = series.isna().to_numpy()
+        raw_missing = frame[column].isna().to_numpy()
+        not_positive = (series <= 0).to_numpy()
+        for position in range(len(index_values)):
+            if not_numeric[position]:
+                kind = "nan" if raw_missing[position] else "non_numeric"
+                issues.append(
+                    OHLCIssue(index_values[position], column, raw_values[column][position], kind)
+                )
+                row_bad[position] = True
+            elif not_positive[position]:
+                issues.append(
+                    OHLCIssue(index_values[position], column, raw_values[column][position], "non_positive")
+                )
+                row_bad[position] = True
+
+    for position in range(len(index_values)):
+        if row_bad[position]:
+            continue
+        open_value = numeric["open"][position]
+        high_value = numeric["high"][position]
+        low_value = numeric["low"][position]
+        close_value = numeric["close"][position]
+        if high_value < max(open_value, close_value):
+            issues.append(
+                OHLCIssue(index_values[position], "high", raw_values["high"][position], "invalid_high")
+            )
+            row_bad[position] = True
+        elif low_value > min(open_value, close_value):
+            issues.append(
+                OHLCIssue(index_values[position], "low", raw_values["low"][position], "invalid_low")
+            )
+            row_bad[position] = True
+
+    return issues, row_bad
+
+
+def find_invalid_ohlc_rows(frame: pd.DataFrame) -> list[OHLCIssue]:
+    """Public row-level inspection used by diagnostics and tests."""
+
+    issues, _ = _invalid_ohlc_rows(frame)
+    return issues
+
+
+def quarantine_invalid_rows(
+    frame: pd.DataFrame,
+) -> tuple[pd.DataFrame, list[OHLCIssue]]:
+    """Split invalid provider rows out of an otherwise valid frame.
+
+    Contract:
+    - invalid rows are identified, never repaired (no zero-fill, no
+      forward-fill, no coercion of the surviving cells);
+    - valid rows come back untouched so a single malformed candle can never
+      poison unrelated candles;
+    - strict ``normalize_candles`` still runs on the survivors, so validation
+      is not weakened — only scoped.
+    """
+
+    issues, row_bad = _invalid_ohlc_rows(frame)
+    if not issues:
+        return frame, []
+    clean = frame[[not bad for bad in row_bad]]
+    return clean, issues
+
+
+@dataclass(frozen=True)
 class Candle:
     """One normalized OHLC candle."""
 
@@ -133,12 +249,38 @@ def normalize_candles(
             "Market-data timestamps must be unique"
         )
 
+    # Row-level diagnosis first, still strict: any invalid cell raises, but the
+    # error now names the field, the candle timestamp and the raw value the
+    # provider actually sent (pre-coercion).
+    issues, _ = _invalid_ohlc_rows(result)
+    if issues:
+        first = issues[0]
+        detail = (
+            first.describe()
+            if len(issues) == 1
+            else f"{len(issues)} invalid cells; first: {first.describe()}"
+        )
+        error = MarketDataError(
+            "OHLC data contains invalid values (" + detail + ")"
+        )
+        error.diagnostics = {
+            "error": str(error),
+            "invalid_cells": len(issues),
+            "failing_field": first.field,
+            "failing_candle": str(first.timestamp),
+            "raw_value": str(first.raw_value),
+            "value_kind": first.kind,
+        }
+        raise error
+
     for column in REQUIRED_OHLC:
         result[column] = pd.to_numeric(
             result[column],
             errors="coerce",
         )
 
+    # Backstop: unreachable for cells already diagnosed above, retained so the
+    # strict OHLC contract keeps its historical guarantees.
     if result[list(REQUIRED_OHLC)].isna().any().any():
         raise MarketDataError(
             "OHLC data contains invalid values"

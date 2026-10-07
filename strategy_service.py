@@ -2,6 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from threading import RLock
+import json
 import logging
 import pandas as pd
 from config import ACCOUNT_SIZES,LIVE_ASSET_MAP,USD_TO_INR,account_names,assets_for_strategy,resolve_account
@@ -38,12 +39,47 @@ class StrategyService:
     def scan_symbol(self,strategy_id,symbol,*,now=None,period="30d"):
         strategy=self.registry.get(strategy_id); current=self._now(now)
         if symbol not in strategy.manifest.assets: raise ValueError(f"{strategy_id} does not support {symbol}")
-        raw=self.engine.fetch(strategy,symbol,period=period)
-        signal,prepared=self.engine.evaluate(strategy,symbol,now=current,period=period,candles=raw)
+        asset=LIVE_ASSET_MAP[symbol]
+        interval,fetch_period=strategy.data_request(symbol,period=period)
+        # Filled by the provider as the frame is obtained: when validation
+        # fails later, the failure record must say fresh-vs-cache and how old.
+        provenance={"source":"unknown","yahoo_symbol":asset.yahoo_symbol,"interval":interval,"period":fetch_period,"age_seconds":None,"cache_key":None}
+        try:
+            raw=self.engine.fetch(strategy,symbol,period=period,provenance=provenance)
+            signal,prepared=self.engine.evaluate(strategy,symbol,now=current,period=period,candles=raw)
+        except Exception as exc:
+            self._attach_market_data_diagnostics(exc,strategy=strategy,asset=asset,symbol=symbol,provenance=provenance,scan_ts=current)
+            raise
         metadata=dict(signal.metadata or {})
         metadata.update({"raw_candle_count":len(raw),"prepared_candle_count":len(prepared)})
         signal=Signal(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp,signal.timeframe,signal.reason,signal.entry,signal.stop_loss,signal.take_profit,metadata)
         return signal,prepared
+
+    @staticmethod
+    def _attach_market_data_diagnostics(exc,*,strategy,asset,symbol,provenance,scan_ts):
+        """Enrich a market-data failure with the full internal capture list.
+
+        Everything captured is market-data context only (symbols, timings,
+        invalid-cell detail, cache provenance) — never configuration secrets.
+        The diagnostics ride on the exception for logs, signal metadata and
+        the dashboard; the Telegram bubble only ever sees a short summary.
+        """
+        diagnostics=dict(getattr(exc,"diagnostics",None) or {})
+        diagnostics.update({
+            "strategy":strategy.manifest.id,
+            "asset":asset.label,
+            "symbol":symbol,
+            "yahoo_symbol":provenance.get("yahoo_symbol"),
+            "provider_interval":provenance.get("interval"),
+            "requested_period":provenance.get("period"),
+            "data_source":provenance.get("source"),
+            "cache_age_seconds":provenance.get("age_seconds"),
+            "cache_key":provenance.get("cache_key"),
+            "scan_timestamp":scan_ts.isoformat(),
+            "error":str(exc),
+        })
+        exc.diagnostics=diagnostics
+        logger.warning("Market-data failure diagnostics | %s",json.dumps(diagnostics,default=str))
 
     def _record(self,signal,key,status):
         """Persist every detected signal first and return the canonical persisted ID."""
@@ -173,7 +209,7 @@ class StrategyService:
                         price=float(resolved_price)
                 results.append(self.dispatch(strategy_id,asset.symbol,signal,current_price=price or 0.0,now=current,send=send))
             except Exception as exc:
-                signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)})
+                signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)} if not getattr(exc,"diagnostics",None) else {"error":str(exc),"diagnostics":exc.diagnostics})
                 key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"ERROR")
                 results.append(self._result(asset.symbol,signal,resolve_account(strategy_id,asset,current,strategy.manifest.account),f"MARKET_DATA_ERROR: {exc}",signal_id=sid))
         return results

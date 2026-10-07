@@ -185,6 +185,23 @@ class YahooProvider:
         with self._lock:
             return max(0.0, self._backoff_until.get(symbol, 0.0) - time.monotonic())
 
+    @staticmethod
+    def _mark_provenance(provenance: Optional[dict], *, source: str, age_seconds: Optional[float] = None, cache_key: Optional[str] = None) -> None:
+        """Record where a returned frame actually came from.
+
+        Filled into the caller's dict so the scan path can report
+        fresh-vs-cache (and cache age) when a later validation failure needs
+        diagnostics. Never raises: provenance is observational metadata.
+        """
+        if provenance is None:
+            return
+        provenance.update({
+            "source": source,
+            "age_seconds": age_seconds,
+            "cache_key": cache_key,
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+        })
+
     def fetch(
         self,
         symbol: str,
@@ -192,6 +209,7 @@ class YahooProvider:
         period: str = "5d",
         interval: str = "1h",
         validate_hourly: bool = True,
+        provenance: Optional[dict] = None,
     ) -> pd.DataFrame:
         """Fetch Yahoo candles with cache-first, deduplication and backoff."""
         if yf is None:
@@ -202,6 +220,7 @@ class YahooProvider:
 
         cached = self._cached(key)
         if cached is not None:
+            self._mark_provenance(provenance, source="memory_cache", age_seconds=0.0, cache_key=self._key_id(key))
             return cached
 
         symbol_lock = self._symbol_lock(symbol)
@@ -209,6 +228,7 @@ class YahooProvider:
             # Another concurrent caller may have completed while we waited.
             cached = self._cached(key)
             if cached is not None:
+                self._mark_provenance(provenance, source="memory_cache", age_seconds=0.0, cache_key=self._key_id(key))
                 return cached
 
             persisted = self._restore_persisted(key)
@@ -219,6 +239,7 @@ class YahooProvider:
                     with self._lock:
                         self._cache[key] = (frame.copy(), now)
                         self._last_success[key] = (frame.copy(), now - age)
+                    self._mark_provenance(provenance, source="persisted_cache", age_seconds=round(age, 1), cache_key=self._key_id(key))
                     return frame.copy()
 
             retry_in = self._in_backoff(symbol)
@@ -229,6 +250,7 @@ class YahooProvider:
                         "Yahoo request skipped during backoff | symbol=%s retry_in=%ds source=cache",
                         symbol, int(retry_in),
                     )
+                    self._mark_provenance(provenance, source="stale_fallback", cache_key=self._key_id(key))
                     return stale
                 raise YahooDataError(
                     f"Yahoo Finance is in rate-limit backoff for {symbol}; retry_in={int(retry_in)}s"
@@ -260,6 +282,7 @@ class YahooProvider:
                 self._activate_backoff(symbol, "rate_limit" if rate_limited else "request_error")
                 stale = self._stale(key)
                 if stale is not None:
+                    self._mark_provenance(provenance, source="stale_fallback", cache_key=self._key_id(key))
                     return stale
                 raise YahooDataError(f"Yahoo request failed for {symbol}: {exc}") from exc
 
@@ -268,6 +291,7 @@ class YahooProvider:
                 self._activate_backoff(symbol, "empty_response_or_rate_limit")
                 stale = self._stale(key)
                 if stale is not None:
+                    self._mark_provenance(provenance, source="stale_fallback", cache_key=self._key_id(key))
                     return stale
                 raise YahooDataError(f"Yahoo returned no data for {symbol}")
 
@@ -302,7 +326,9 @@ class YahooProvider:
             if interval == "1h" and validate_hourly:
                 validate_hourly_observations(frame)
 
-            return self._store(key, frame)
+            stored = self._store(key, frame)
+            self._mark_provenance(provenance, source="fresh", age_seconds=0.0, cache_key=self._key_id(key))
+            return stored
 
     def clear_cache(self) -> None:
         with self._lock:
