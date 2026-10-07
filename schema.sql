@@ -58,6 +58,18 @@ create index if not exists signal_deliveries_signal_idx on public.signal_deliver
 CREATE TABLE IF NOT EXISTS public.scan_runs(id text primary key,strategy_id text not null,started_at timestamptz not null,finished_at timestamptz,status text not null,payload jsonb not null default '{}'::jsonb);
 create index if not exists scan_runs_started_idx on public.scan_runs(started_at desc);
 
+-- Durable scan-level error alert dedup. Columns exactly match
+-- DatabaseManager.save_scan_error_alert(); one row per strategy keeps an
+-- open incident across process restarts and redeploys.
+create table if not exists public.scan_error_alerts(
+  strategy_id text primary key,
+  fingerprint text not null,
+  first_sent_at timestamptz not null,
+  last_sent_at timestamptz not null,
+  suppressed integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
 -- Runtime-aligned durable Yahoo cache. These columns exactly match DatabaseManager.save_market_data_cache().
 create table if not exists public.market_data_cache(
     cache_key text primary key,

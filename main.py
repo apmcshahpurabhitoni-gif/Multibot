@@ -14,7 +14,8 @@ import bot_settings
 import channels
 from strategy_service import StrategyService
 from strategies import discover_strategies
-from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
+from sweep_engine import last_quarantine
+from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_error, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
 from trading import AccountState
 from trade_monitor import TradeMonitor
 from strategy_scheduler import StrategyScheduler
@@ -165,6 +166,21 @@ def _backtest_payload(strategy,symbol,period):
         equity += float(trade.pnl)
         equity_curve.append({"timestamp": trade.timestamp.isoformat(), "equity": round(equity, 2)})
     return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"buy_signals":buy_signals,"sell_signals":sell_signals,"trades_taken":trades_taken,"planned_risk":planned_risk,"equity_curve":equity_curve,"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"trades":[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"entry":x.entry,"exit":x.exit,"pnl":x.pnl,"bars_held":x.bars_held} for x in result.trades][-200:],"generated_at":now().isoformat()}
+def _scan_error_alert_state(strategy_ids):
+    """Persisted incident rows for the dashboard's scan diagnostics (no secrets)."""
+    state = {}
+    for strategy_id in strategy_ids:
+        entry = DB.load_scan_error_alert(strategy_id)
+        if entry:
+            state[strategy_id] = {
+                "fingerprint": entry["fingerprint"],
+                "first_sent_at": entry["first_sent_at"],
+                "last_sent_at": entry["last_sent_at"],
+                "suppressed": int(entry["suppressed"]),
+                "updated_at": entry["updated_at"],
+            }
+    return state
+
 def _scan_snapshot():
     """Return one dashboard contract with aggregate and per-strategy scan state."""
     with LOCK:
@@ -173,7 +189,7 @@ def _scan_snapshot():
         return {
             "status": "NOT_RUN", "at": None, "checked": 0,
             "directional": 0, "sent": 0, "errors": 0,
-            "strategies": {},
+            "strategies": {}, "error_alerts": _scan_error_alert_state([]),
         }
     rows = list(strategies.values())
     completed = [row for row in rows if row.get("status") in {"OK","PARTIAL"}]
@@ -192,35 +208,99 @@ def _scan_snapshot():
         "sent": sum(int(row.get("sent", 0)) for row in completed),
         "errors": sum(int(row.get("errors", 0)) for row in rows),
         "strategies": strategies,
+        "error_alerts": _scan_error_alert_state(list(strategies)),
     }
 
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
     failed_deliveries=DB.failed_deliveries(20)
     return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
-# Scan-level error alerts are edge-triggered and bounded: an asset outage that
-# fails every sweep must not post one bubble per sweep. The first scan with
-# errors alerts; repeats with the same failing assets stay silent (every sweep
-# still logs its full technical detail and records a scan_runs row); a changed
-# failure set alerts immediately; an identical failure set re-alerts at most
-# once per SCAN_ERROR_REPEAT_SECONDS. A clean scan clears the state.
+# Scan-level error alerts are edge-triggered and durable: an asset outage that
+# fails every sweep must not post one bubble per sweep, and a Render redeploy or
+# process restart must not forget an open incident. The incident record lives in
+# db.scan_error_alerts (SQLite primary, Supabase mirror), keyed per strategy:
+# the first scan with errors alerts; repeats with the same failing-asset set and
+# error classes stay silent (every sweep still logs full technical detail and
+# records a scan_runs row); a changed failure set alerts immediately; an
+# identical failure set re-alerts at most once per SCAN_ERROR_REPEAT_SECONDS.
+# A clean scan clears the incident.
 SCAN_ERROR_REPEAT_SECONDS = 3600
-_SCAN_ERROR_ALERTS: dict[str, dict] = {}
 
-def _scan_error_alert_should_send(strategy_id, fingerprint, *, clock=None):
-    current = (clock or time.monotonic)()
-    entry = _SCAN_ERROR_ALERTS.get(strategy_id)
-    if (entry is None or entry["fingerprint"] != fingerprint
-            or current - entry["at"] >= SCAN_ERROR_REPEAT_SECONDS):
-        _SCAN_ERROR_ALERTS[strategy_id] = {"at": current, "fingerprint": fingerprint, "suppressed": 0}
-        return True
-    entry["suppressed"] += 1
-    return False
+def scan_error_alert_decision(entry, fingerprint, *, now, repeat_seconds=SCAN_ERROR_REPEAT_SECONDS):
+    """Decide what to do for one scan's error fingerprint.
 
-def _scan_error_alert_clear(strategy_id):
-    _SCAN_ERROR_ALERTS.pop(strategy_id, None)
+    Pure function over the *persisted* incident row so the same decision can be
+    reproduced after a restart, a redeploy or from another worker:
+      send     -> no open incident, or a different affected asset/error class
+      suppress -> identical open incident inside the repeat window
+      reminder -> identical open incident after the window (bounded: one send
+                  per window, because the reminder refreshes last_sent_at)
+    """
+    if entry is None or entry.get("fingerprint") != fingerprint:
+        return "send"
+    try:
+        last = pd.Timestamp(entry.get("last_sent_at"))
+    except Exception:
+        return "send"
+    if last.tzinfo is None:
+        last = last.tz_localize("UTC")
+    if (now - last).total_seconds() >= repeat_seconds:
+        return "reminder"
+    return "suppress"
 
-def _notify_scan(run_id,strategy_id,payload,results):
+def _short_market_reason(text):
+    """One human phrase for a market-data failure; raw exceptions stay in logs."""
+    lowered = str(text).lower()
+    if "invalid values" in lowered or "must be positive" in lowered or "invalid high" in lowered or "invalid low" in lowered:
+        return "invalid OHLC"
+    if "no data" in lowered:
+        return "no market data"
+    if "backoff" in lowered or "rate limit" in lowered or "rate-limit" in lowered:
+        return "rate-limit backoff"
+    if "duplicate" in lowered:
+        return "duplicate candles"
+    if "missing required ohlc" in lowered or "missing ohlc" in lowered:
+        return "missing OHLC columns"
+    if "timezone" in lowered:
+        return "bad timestamps"
+    if "telegram" in lowered:
+        return "telegram delivery failed"
+    return "market data error"
+
+def _scan_error_entries(results):
+    """Asset-first alert entries built from signal metadata (never raw traces)."""
+    entries = []
+    for result in results:
+        reason = getattr(result, "reason", "") or ""
+        signal = getattr(result, "signal", None)
+        metadata = getattr(signal, "metadata", None)
+        diagnostics = (metadata or {}).get("diagnostics") if isinstance(metadata, dict) else None
+        diagnostics = diagnostics or {}
+        symbol = str(getattr(result, "symbol", "") or "")
+        asset = LIVE_ASSET_MAP.get(symbol.strip().upper())
+        label = asset.label if asset is not None else symbol
+        is_market = reason.startswith("MARKET_DATA_ERROR")
+        detail = diagnostics.get("error") or reason.split(":", 1)[-1].strip() or reason
+        candle = None
+        failing = diagnostics.get("failing_candle")
+        if failing:
+            try:
+                timestamp = pd.Timestamp(failing)
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.tz_localize(IST_TIMEZONE)
+                candle = timestamp.tz_convert(IST_TIMEZONE).strftime("%d %b %Y %H:%M IST")
+            except Exception:
+                candle = str(failing)
+        entries.append({
+            "heading": "MARKET DATA ERROR" if is_market else "DELIVERY ERROR",
+            "asset": label,
+            "symbol": symbol,
+            "reason": _short_market_reason(detail) if is_market else "telegram delivery failed",
+            "candle": candle,
+        })
+    return entries
+
+def _notify_scan(run_id,strategy_id,payload,results,*,at=None):
     """Tell subscribed channels how one strategy's scan ended.
 
     Scan events are opt-in per channel (channels.py): the scanner runs every few
@@ -230,28 +310,42 @@ def _notify_scan(run_id,strategy_id,payload,results):
     `audit=False` because a scan run has no signal_events row, and
     signal_deliveries.signal_id is a foreign key into that table in Supabase.
 
-    Repeated ERROR notifications are deduplicated/bounded by
-    `_scan_error_alert_should_send` (see above): strict validation and the
-    per-sweep technical logs are unchanged; only the chat spam is bounded.
+    Repeated ERROR notifications are deduplicated by the persisted incident in
+    db.scan_error_alerts (see scan_error_alert_decision): strict validation and
+    the per-sweep technical logs are unchanged; only the chat bubble is bounded,
+    and the bubble names each affected asset with a short reason instead of
+    echoing raw exceptions.
     """
     if SERVICE is None: return
     try:
         if payload.get("errors"):
-            error_results=[r for r in results if r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED"]
+            error_results=[r for r in results if getattr(r,"reason","").startswith("MARKET_DATA_ERROR") or getattr(r,"reason","")=="TELEGRAM_FAILED"]
             categories=sorted({r.reason.split(":")[0].strip() for r in error_results})
             symbols=sorted({r.symbol for r in error_results})
             fingerprint="|".join(categories+["@"]+symbols)
-            if not _scan_error_alert_should_send(strategy_id,fingerprint):
-                logger.info("Scan error alert suppressed | strategy=%s | errors=%s | identical failure set already reported",strategy_id,payload.get("errors"))
+            current=at or now()
+            entry=DB.load_scan_error_alert(strategy_id)
+            decision=scan_error_alert_decision(entry,fingerprint,now=current)
+            if decision=="suppress":
+                DB.bump_scan_error_alert_suppression(strategy_id)
+                refreshed=DB.load_scan_error_alert(strategy_id) or {}
+                logger.info("Scan error alert suppressed | strategy=%s | errors=%s | identical failure set already reported | suppressed=%s",strategy_id,payload.get("errors"),refreshed.get("suppressed"))
                 return
-            reasons=sorted({r.reason for r in error_results})
-            message=TelegramMessage("MSG-ERROR-V1",msg_error(f"SCAN {strategy_id}",", ".join(reasons) or "scan reported errors"))
-            kind="ERROR"
-        else:
-            _scan_error_alert_clear(strategy_id)
-            message=TelegramMessage("MSG-SCAN-COMPLETE-V1",msg_scan_result(payload.get("sent",0),payload.get("checked",0)))
-            kind="SCAN"
-        SERVICE.notifier.deliver(signal_id=f"scan:{run_id}",message=message,kind=kind,metadata={"strategy":strategy_id,**payload},audit=False)
+            message=TelegramMessage("MSG-SCAN-ERROR-V1",msg_scan_error(strategy_id,_scan_error_entries(error_results)))
+            delivered=SERVICE.notifier.deliver(signal_id=f"scan:{run_id}",message=message,kind="ERROR",metadata={"strategy":strategy_id,**payload},audit=False)
+            if delivered:
+                first_sent_at=(entry.get("first_sent_at") if decision=="reminder" and entry else None) or current.isoformat()
+                DB.save_scan_error_alert(strategy_id,fingerprint,first_sent_at=first_sent_at,last_sent_at=current.isoformat(),suppressed=0,updated_at=current.isoformat())
+            else:
+                # Nothing reached chat: keep the incident open so the next scan
+                # retries instead of silently swallowing the first alert.
+                logger.info("Scan error alert not delivered; incident not recorded | strategy=%s",strategy_id)
+            return
+        if DB.load_scan_error_alert(strategy_id):
+            DB.clear_scan_error_alert(strategy_id)
+            logger.info("Scan error alert cleared after clean scan | strategy=%s",strategy_id)
+        message=TelegramMessage("MSG-SCAN-COMPLETE-V1",msg_scan_result(payload.get("sent",0),payload.get("checked",0)))
+        SERVICE.notifier.deliver(signal_id=f"scan:{run_id}",message=message,kind="SCAN",metadata={"strategy":strategy_id,**payload},audit=False)
     except Exception:
         logger.exception("Scan notification failed")
 
@@ -434,9 +528,17 @@ def _sweep_diagnostic_payload(*, period="30d"):
             totals["reasons"][signal.reason] = totals["reasons"].get(signal.reason, 0) + 1
         except Exception as exc:
             row.update({"status": "ERROR", "error_type": type(exc).__name__, "error": str(exc),
+                        "diagnostics": getattr(exc, "diagnostics", None),
+                        "quarantined": last_quarantine(asset.symbol),
                         "direction": None, "reason": "MARKET_DATA_ERROR"})
             totals["errors"] += 1
             totals["reasons"]["MARKET_DATA_ERROR"] = totals["reasons"].get("MARKET_DATA_ERROR", 0) + 1
+        else:
+            # Rows that scanned clean still surface any quarantined (dropped)
+            # provider rows the sweep engine saw while building candles.
+            quarantined = last_quarantine(asset.symbol)
+            if quarantined:
+                row["quarantined"] = quarantined
         rows.append(row)
     return {"ok": True, "strategy": {"id": strategy.manifest.id, "name": strategy.manifest.name,
             "version": strategy.manifest.version}, "generated_at": current.isoformat(),

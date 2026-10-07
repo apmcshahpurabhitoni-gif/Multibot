@@ -58,10 +58,28 @@ def msg_news_pause(enabled): return f"📰 *NEWS PAUSE*\n{BR}\n{'🟡 ENABLED' i
 def msg_news_refresh(): return f"📰 *NEWS CALENDAR REFRESH*\n{BR}\n🔄 Refresh requested.\n{BR2}"
 def msg_backtest(): return f"📈 *BACKTEST ENGINE*\n{BR}\n🧪 Versioned strategy research only.\n🛡️ Paper trading remains active.\n{BR2}"
 def msg_error(context,error): return f"⚠️ *ERROR — {context}*\n{BR}\n❌ `{str(error)[:700]}`\n🛡️ Paper mode remains active.\n{BR2}"
+def msg_scan_error(strategy_id,entries):
+    """Scan-failure bubble that names each affected asset with a short reason.
+
+    Raw exceptions never reach chat: full technical diagnostics stay in the
+    per-sweep logs, signal metadata and /api/diagnostics/sweep. Each entry is
+    {heading, asset, symbol, reason, candle}.
+    """
+    parts=[f"⚠️ *ERROR — SCAN {strategy_id}*\n{BR}\n"]
+    for entry in list(entries)[:5]:
+        parts.append(f"❌ *{entry.get('heading','MARKET DATA ERROR')}*\n")
+        parts.append(f"🪙 Asset: {entry.get('asset')}\n")
+        if entry.get("reason"): parts.append(f"📝 Reason: {entry['reason']}\n")
+        if entry.get("candle"): parts.append(f"🕐 Candle: {entry['candle']}\n")
+        parts.append("\n")
+    if len(entries)>5:
+        parts.append(f"…and {len(entries)-5} more affected assets\n\n")
+    parts.append(f"🛡️ Paper mode remains active.\n{BR2}")
+    return "".join(parts)
 def reminder_message(original_text): return TelegramMessage("MSG-REMINDER-V1",f"🔔 *SIGNAL REMINDER*\n{BR}\n{original_text}\n{BR2}")
 def send_message(message,config):
     if not message.text.strip(): raise TelegramTemplateError("Cannot send an empty Telegram message")
     data=parse.urlencode({"chat_id":config.chat_id,"text":message.text,"parse_mode":"Markdown"}).encode(); req=request.Request(f"https://api.telegram.org/bot{config.bot_token}/sendMessage",data=data,method="POST",headers={"Content-Type":"application/x-www-form-urlencoded"})
     with request.urlopen(req,timeout=15) as response:
         if response.status!=200: raise RuntimeError(f"Telegram API request failed: HTTP {response.status}")
-__all__=["TelegramConfig","TelegramMessage","TelegramConfigurationError","TelegramTemplateError","signal_message_type","render_signal_message","send_message","signal_rejection_message","trade_closed_message","msg_start","msg_whats_new","msg_scan_started","msg_scan_result","msg_balance","msg_summary","msg_risk","msg_stats","msg_weekly","msg_test","msg_news_pause","msg_news_refresh","msg_backtest","msg_error","reminder_message","build_trade_fields"]
+__all__=["TelegramConfig","TelegramMessage","TelegramConfigurationError","TelegramTemplateError","signal_message_type","render_signal_message","send_message","signal_rejection_message","trade_closed_message","msg_start","msg_whats_new","msg_scan_started","msg_scan_result","msg_scan_error","msg_balance","msg_summary","msg_risk","msg_stats","msg_weekly","msg_test","msg_news_pause","msg_news_refresh","msg_backtest","msg_error","reminder_message","build_trade_fields"]
