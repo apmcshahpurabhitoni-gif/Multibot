@@ -596,7 +596,7 @@ def _admin_api_guard(env,start):
     return None
 def _config_endpoint_guard(env,start):
     """Preserve configuration same-origin checks and protect reads and writes."""
-    return _admin_api_guard(env,start) if env.get("REQUEST_METHOD","GET").upper()=="GET" else _admin_api_guard(env,start)
+    return _admin_api_guard(env,start)
 def build_app():
     root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css"),"/foundation.css":("foundation.css","text/css"),"/notifications.js":("notifications.js","application/javascript"),"/manifest.webmanifest":("manifest.webmanifest","application/manifest+json"),"/sw.js":("sw.js","application/javascript"),"/app-icon.svg":("app-icon.svg","image/svg+xml")}
     def app(env,start):
