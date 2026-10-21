@@ -125,11 +125,11 @@ def test_admin_token_gates_every_configuration_write(monkeypatch):
     status, _ = _call("POST", "/api/settings", origin=origin,
                       token="sekret-token", body=b"{")
     assert status == "400 Bad Request"
-    # Correct token via Authorization: Bearer -> also proceeds.
+    # Correct token via Authorization: Bearer -> writes reach the handler.
     status, _ = _call("POST", "/api/notifications", origin=origin,
                       authorization="Bearer sekret-token", body=b"{")
     assert status == "400 Bad Request"
-    # With deployment protection enabled, configuration reads need the same token.
+    # Protected configuration reads need the same token.
     status, payload = _call("GET", "/api/settings", origin=origin)
     assert status == "401 Unauthorized" and payload["code"] == "ADMIN_TOKEN_REQUIRED"
     status, payload = _call("GET", "/api/settings", origin=origin, token="sekret-token")
