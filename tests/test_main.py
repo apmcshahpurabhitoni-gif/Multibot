@@ -123,10 +123,11 @@ def test_configuration_endpoints_reject_cross_origin_requests(monkeypatch):
 def test_configuration_writes_are_open_by_default(monkeypatch):
     """Local-first default: no token configured, same-origin writes proceed."""
     monkeypatch.delenv("DASHBOARD_API_TOKEN", raising=False)
+    monkeypatch.setattr(main, "_settings_response",
+                        lambda env, start: main._json_response(start, {"ok": True}))
     status, payload = _call("POST", "/api/settings",
-                            origin="http://localhost:3000", body=b"{")
-    assert status == "400 Bad Request"  # reached the handler, not an auth wall
-    assert payload["ok"] is False
+                            origin="http://localhost:3000", body=b"{}")
+    assert status == "200 OK" and payload["ok"] is True
 
 
 def test_admin_token_gates_configuration_writes_and_reads(monkeypatch):
