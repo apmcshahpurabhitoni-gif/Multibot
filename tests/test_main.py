@@ -43,14 +43,54 @@ def test_ping_contract_exists():
 
 # --- configuration endpoint protection ----------------------------------
 
-def test_settings_reads_stay_open_for_the_dashboard(monkeypatch):
-    """Reads must keep working without a token: the Tools cards consume them."""
+def test_configuration_reads_stay_open_without_deployment_token(monkeypatch):
+    """Local development remains compatible when the deployment token is unset."""
     monkeypatch.delenv("DASHBOARD_API_TOKEN", raising=False)
     status, payload = _call("GET", "/api/settings", origin="http://localhost:3000")
     assert status == "200 OK" and payload["ok"] is True
-    # Clients without Origin/Referer (curl, server-to-server) also read.
     status, payload = _call("GET", "/api/notifications")
     assert status == "200 OK" and payload["ok"] is True
+
+
+def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    protected = (
+        "/api/health",
+        "/api/dashboard",
+        "/api/diagnostics/sweep",
+        "/api/calendar",
+        "/api/news",
+        "/api/backtest",
+        "/api/settings",
+        "/api/notifications",
+    )
+    for path in protected:
+        status, payload = _call("GET", path)
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
+        status, payload = _call("GET", path, token="wrong-token")
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
+    # Both supported credentials are accepted on protected reads.
+    status, payload = _call("GET", "/api/dashboard", token="sekret-token")
+    assert status == "200 OK" and payload["ok"] is True
+    status, payload = _call("GET", "/api/health", authorization="Bearer sekret-token")
+    assert status == "200 OK" and payload["ok"] is True
+
+
+def test_ping_remains_public_with_deployment_token(monkeypatch):
+    """The external keepalive endpoint exposes no trading data."""
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    status, payload = _call("GET", "/ping")
+    assert status == "200 OK" and payload is None
+
+
+def test_private_api_rejects_cross_origin_before_authentication(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    status, payload = _call("GET", "/api/dashboard", origin="https://evil.example")
+    assert status == "403 Forbidden" and payload["code"] == "CROSS_ORIGIN"
 
 
 def test_configuration_endpoints_reject_cross_origin_requests(monkeypatch):
