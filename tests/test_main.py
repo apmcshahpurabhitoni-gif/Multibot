@@ -43,14 +43,72 @@ def test_ping_contract_exists():
 
 # --- configuration endpoint protection ----------------------------------
 
-def test_settings_reads_stay_open_for_the_dashboard(monkeypatch):
-    """Reads must keep working without a token: the Tools cards consume them."""
+def test_configuration_reads_stay_open_without_deployment_token(monkeypatch):
+    """Local development remains compatible when the deployment token is unset."""
     monkeypatch.delenv("DASHBOARD_API_TOKEN", raising=False)
     status, payload = _call("GET", "/api/settings", origin="http://localhost:3000")
     assert status == "200 OK" and payload["ok"] is True
-    # Clients without Origin/Referer (curl, server-to-server) also read.
     status, payload = _call("GET", "/api/notifications")
     assert status == "200 OK" and payload["ok"] is True
+
+
+def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    protected = (
+        "/api/dashboard",
+        "/api/diagnostics/sweep",
+        "/api/calendar",
+        "/api/news",
+        "/api/backtest",
+        "/api/settings",
+        "/api/notifications",
+    )
+    for path in protected:
+        status, payload = _call("GET", path)
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
+        status, payload = _call("GET", path, token="wrong-token")
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
+    for path in ("/api/settings", "/api/notifications"):
+        status, payload = _call("POST", path, body=b"{}")
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
+    # Private dashboard data accepts a valid token.
+    status, payload = _call("GET", "/api/dashboard", token="sekret-token")
+    assert status == "200 OK" and payload["ok"] is True
+    # Health is intentionally public and exposes only a minimal status contract.
+    status, payload = _call("GET", "/api/health")
+    assert status == "200 OK"
+    assert set(payload) == {"ok", "status", "timestamp"}
+    assert payload["ok"] is True
+    # Secondary protected routes also proceed with the correct token; replace
+    # expensive/news-dependent handlers with deterministic test doubles.
+    monkeypatch.setattr(main, "_sweep_diagnostic_payload", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(main, "_calendar_payload", lambda query: {"ok": True})
+    monkeypatch.setattr(main, "_backtest_payload", lambda *args: {"ok": True})
+    for path in ("/api/diagnostics/sweep", "/api/calendar", "/api/news", "/api/backtest"):
+        status, payload = _call("GET", path, token="sekret-token")
+        assert status == "200 OK" and payload["ok"] is True, (path, status, payload)
+    for path in ("/api/settings", "/api/notifications"):
+        status, payload = _call("GET", path, token="sekret-token")
+        assert status == "200 OK" and payload["ok"] is True, (path, status, payload)
+
+
+def test_ping_remains_public_with_deployment_token(monkeypatch):
+    """The external keepalive endpoint exposes no trading data."""
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    status, payload = _call("GET", "/ping")
+    assert status == "200 OK" and payload is None
+
+
+def test_private_api_rejects_cross_origin_before_authentication(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
+    status, payload = _call("GET", "/api/dashboard", origin="https://evil.example")
+    assert status == "403 Forbidden" and payload["code"] == "CROSS_ORIGIN"
 
 
 def test_configuration_endpoints_reject_cross_origin_requests(monkeypatch):
@@ -65,13 +123,14 @@ def test_configuration_endpoints_reject_cross_origin_requests(monkeypatch):
 def test_configuration_writes_are_open_by_default(monkeypatch):
     """Local-first default: no token configured, same-origin writes proceed."""
     monkeypatch.delenv("DASHBOARD_API_TOKEN", raising=False)
+    monkeypatch.setattr(main, "_settings_response",
+                        lambda env, start: main._json_response(start, {"ok": True}))
     status, payload = _call("POST", "/api/settings",
-                            origin="http://localhost:3000", body=b"{")
-    assert status == "400 Bad Request"  # reached the handler, not an auth wall
-    assert payload["ok"] is False
+                            origin="http://localhost:3000", body=b"{}")
+    assert status == "200 OK" and payload["ok"] is True
 
 
-def test_admin_token_gates_every_configuration_write(monkeypatch):
+def test_admin_token_gates_configuration_writes_and_reads(monkeypatch):
     monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
     origin = "http://localhost:3000"
     # Missing token -> 401 with a machine-readable code.
@@ -85,12 +144,14 @@ def test_admin_token_gates_every_configuration_write(monkeypatch):
     status, _ = _call("POST", "/api/settings", origin=origin,
                       token="sekret-token", body=b"{")
     assert status == "400 Bad Request"
-    # Correct token via Authorization: Bearer -> also proceeds.
+    # Correct token via Authorization: Bearer -> writes reach the handler.
     status, _ = _call("POST", "/api/notifications", origin=origin,
                       authorization="Bearer sekret-token", body=b"{")
     assert status == "400 Bad Request"
-    # Reads remain open so the dashboard keeps rendering.
-    status, _ = _call("GET", "/api/settings", origin=origin)
+    # Protected configuration reads need the same token.
+    status, payload = _call("GET", "/api/settings", origin=origin)
+    assert status == "401 Unauthorized" and payload["code"] == "ADMIN_TOKEN_REQUIRED"
+    status, payload = _call("GET", "/api/settings", origin=origin, token="sekret-token")
     assert status == "200 OK"
 
 

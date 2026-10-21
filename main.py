@@ -573,26 +573,30 @@ def _same_origin_request(env):
         referrer_host=_hostname(referer)
         if referrer_host: return bool(host) and referrer_host==host
     return True
-def _admin_write_allowed(env):
-    """Optional write gate for public deployments: when DASHBOARD_API_TOKEN is
-    set, every POST to /api/settings or /api/notifications must present it as
-    `X-Admin-Token` or `Authorization: Bearer`. Unset (the local-first
-    default), same-origin enforcement is the only gate — unchanged behavior."""
+def _admin_token_allowed(env):
+    """Require the configured deployment admin token using constant-time comparison."""
     expected=os.getenv("DASHBOARD_API_TOKEN","").strip()
+    # Keep local-first development compatible when no deployment token is set.
     if not expected: return True
     supplied=str(env.get("HTTP_X_ADMIN_TOKEN","") or "").strip()
     if not supplied:
         authorization=str(env.get("HTTP_AUTHORIZATION","") or "")
         if authorization[:7].lower()=="bearer ": supplied=authorization[7:].strip()
     return bool(supplied) and hmac.compare_digest(supplied,expected)
-def _config_endpoint_guard(env,start):
-    """403 on cross-origin, 401 on an unauthenticated write; None to proceed."""
+def _admin_write_allowed(env):
+    """Compatibility alias for the existing configuration-write gate."""
+    return _admin_token_allowed(env)
+def _admin_api_guard(env,start,*,require_token=True):
+    """Reject cross-origin requests and optionally require the deployment token."""
     if not _same_origin_request(env):
-        logger.info("Config request rejected | reason=CROSS_ORIGIN origin=%s host=%s",env.get("HTTP_ORIGIN") or env.get("HTTP_REFERER"),env.get("HTTP_HOST"))
-        return _json_response(start,{"ok":False,"error":"Cross-origin requests to configuration endpoints are not allowed.","code":"CROSS_ORIGIN"},"403 Forbidden")
-    if env.get("REQUEST_METHOD","GET").upper()!="GET" and not _admin_write_allowed(env):
-        return _json_response(start,{"ok":False,"error":"An admin token is required to change this configuration. Send it as X-Admin-Token or Authorization: Bearer.","code":"ADMIN_TOKEN_REQUIRED"},"401 Unauthorized")
+        logger.info("API request rejected | reason=CROSS_ORIGIN origin=%s host=%s",env.get("HTTP_ORIGIN") or env.get("HTTP_REFERER"),env.get("HTTP_HOST"))
+        return _json_response(start,{"ok":False,"error":"Cross-origin requests to the dashboard API are not allowed.","code":"CROSS_ORIGIN"},"403 Forbidden")
+    if require_token and not _admin_token_allowed(env):
+        return _json_response(start,{"ok":False,"error":"An admin token is required for this dashboard API. Send it as X-Admin-Token or Authorization: Bearer.","code":"ADMIN_TOKEN_REQUIRED"},"401 Unauthorized")
     return None
+def _config_endpoint_guard(env,start):
+    """Preserve configuration same-origin checks and protect reads and writes."""
+    return _admin_api_guard(env,start)
 def build_app():
     root=os.path.dirname(__file__); files={"/":("dashboard.html","text/html; charset=utf-8"),"/dashboard":("dashboard.html","text/html; charset=utf-8"),"/app.js":("app.js","application/javascript"),"/styles.css":("styles.css","text/css"),"/appearance.js":("appearance.js","application/javascript"),"/dashboard-live-wiring.js":("dashboard-live-wiring.js","application/javascript"),"/appearance-overrides.css":("appearance-overrides.css","text/css"),"/foundation.css":("foundation.css","text/css"),"/notifications.js":("notifications.js","application/javascript"),"/manifest.webmanifest":("manifest.webmanifest","application/manifest+json"),"/sw.js":("sw.js","application/javascript"),"/app-icon.svg":("app-icon.svg","image/svg+xml")}
     def app(env,start):
@@ -604,30 +608,19 @@ def build_app():
             start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
             return [b"pong"]
         if path=="/api/health":
-            try:
-                ensure_runtime()
-                current=now()
-                with LOCK: last_ping=LAST_PING_AT
-                keepalive_age_minutes=None
-                keepalive="UNKNOWN"
-                if last_ping:
-                    keepalive_age_minutes=max(0,(current-pd.Timestamp(last_ping)).total_seconds()/60)
-                    keepalive="OK" if keepalive_age_minutes <= 15 else "STALE"
-                payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":current.isoformat(),
-                    "runtime":True,"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK",
-                    "scheduler":not STOP.is_set(),"strategies":len(REGISTRY.all()),
-                    "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED",
-                    "keepalive":keepalive,"last_ping_at":last_ping,
-                    "keepalive_age_minutes":round(keepalive_age_minutes,1) if keepalive_age_minutes is not None else None}
-                return _json_response(start,payload)
-            except Exception as exc:
-                return _json_response(start,{"ok":False,"status":"DEGRADED","error":str(exc),"timestamp":now().isoformat()},"503 Service Unavailable")
+            # Public, deliberately minimal health response: never expose strategy,
+            # database, provider, or Telegram configuration to anonymous callers.
+            return _json_response(start,{"ok":True,"status":"ONLINE","timestamp":now().isoformat()})
         if path=="/api/dashboard":
+            guard=_admin_api_guard(env,start)
+            if guard is not None: return guard
             try:return _json_response(start,snapshot())
             except Exception as exc:
                 logger.exception("Dashboard snapshot failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path=="/api/diagnostics/sweep":
+            guard=_admin_api_guard(env,start)
+            if guard is not None: return guard
             try:return _json_response(start,_sweep_diagnostic_payload(period=query.get("period",["30d"])[0]))
             except Exception as exc:
                 logger.exception("Sweep diagnostics failed")
@@ -649,9 +642,13 @@ def build_app():
                 logger.exception("Notification channel request failed")
                 return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path in ("/api/calendar","/api/news"):
+            guard=_admin_api_guard(env,start)
+            if guard is not None: return guard
             try:return _json_response(start,_calendar_payload(query))
             except Exception as exc:return _json_response(start,{"ok":False,"error":str(exc)},"400 Bad Request")
         if path=="/api/backtest":
+            guard=_admin_api_guard(env,start)
+            if guard is not None: return guard
             try:
                 ensure_runtime()
                 default_strategy = REGISTRY.ids()[0]
