@@ -78,11 +78,22 @@ def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
         assert status == "401 Unauthorized", (path, status)
         assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
 
-    # Both supported credentials are accepted on protected reads.
+    # The primary dashboard snapshot and health status accept both header forms.
     status, payload = _call("GET", "/api/dashboard", token="sekret-token")
     assert status == "200 OK" and payload["ok"] is True
     status, payload = _call("GET", "/api/health", authorization="Bearer sekret-token")
     assert status == "200 OK" and payload["ok"] is True
+    # Secondary protected routes also proceed with the correct token; replace
+    # expensive/news-dependent handlers with deterministic test doubles.
+    monkeypatch.setattr(main, "_sweep_diagnostic_payload", lambda **kwargs: {"ok": True})
+    monkeypatch.setattr(main, "_calendar_payload", lambda query: {"ok": True})
+    monkeypatch.setattr(main, "_backtest_payload", lambda *args: {"ok": True})
+    for path in ("/api/diagnostics/sweep", "/api/calendar", "/api/news", "/api/backtest"):
+        status, payload = _call("GET", path, token="sekret-token")
+        assert status == "200 OK" and payload["ok"] is True, (path, status, payload)
+    for path in ("/api/settings", "/api/notifications"):
+        status, payload = _call("GET", path, token="sekret-token")
+        assert status == "200 OK" and payload["ok"] is True, (path, status, payload)
 
 
 def test_ping_remains_public_with_deployment_token(monkeypatch):
