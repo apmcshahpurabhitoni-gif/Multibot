@@ -127,7 +127,7 @@ def test_configuration_writes_are_open_by_default(monkeypatch):
     assert payload["ok"] is False
 
 
-def test_admin_token_gates_every_configuration_write(monkeypatch):
+def test_admin_token_gates_configuration_writes_and_reads(monkeypatch):
     monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
     origin = "http://localhost:3000"
     # Missing token -> 401 with a machine-readable code.
