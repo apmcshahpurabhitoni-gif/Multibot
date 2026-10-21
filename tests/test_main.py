@@ -80,10 +80,11 @@ def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
     # Private dashboard data accepts a valid token.
     status, payload = _call("GET", "/api/dashboard", token="sekret-token")
     assert status == "200 OK" and payload["ok"] is True
-    # Health is intentionally public but exposes no database/provider/runtime configuration.
+    # Health is intentionally public and exposes only a minimal status contract.
     status, payload = _call("GET", "/api/health")
-    assert status in ("200 OK", "503 Service Unavailable")
-    assert set(payload).issubset({"ok", "status", "timestamp"})
+    assert status == "200 OK"
+    assert set(payload) == {"ok", "status", "timestamp"}
+    assert payload["ok"] is True
     # Secondary protected routes also proceed with the correct token; replace
     # expensive/news-dependent handlers with deterministic test doubles.
     monkeypatch.setattr(main, "_sweep_diagnostic_payload", lambda **kwargs: {"ok": True})
