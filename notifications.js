@@ -210,7 +210,7 @@
     if (loading || dirty) return;
     loading = true;
     try {
-      const response = await fetch("/api/notifications", { cache: "no-store" });
+      const response = await adminFetch("/api/notifications", { cache: "no-store" });
       apply(await readJsonResponse(response, "Notification API"));
       setStatus(model.options.telegram_configured ? "Saved · Telegram token present" : "Saved · Telegram token not set", "info");
     } catch (error) {
