@@ -55,7 +55,6 @@ def test_configuration_reads_stay_open_without_deployment_token(monkeypatch):
 def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
     monkeypatch.setenv("DASHBOARD_API_TOKEN", "sekret-token")
     protected = (
-        "/api/health",
         "/api/dashboard",
         "/api/diagnostics/sweep",
         "/api/calendar",
@@ -78,11 +77,13 @@ def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
         assert status == "401 Unauthorized", (path, status)
         assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
 
-    # The primary dashboard snapshot and health status accept both header forms.
+    # Private dashboard data accepts a valid token.
     status, payload = _call("GET", "/api/dashboard", token="sekret-token")
     assert status == "200 OK" and payload["ok"] is True
-    status, payload = _call("GET", "/api/health", authorization="Bearer sekret-token")
-    assert status == "200 OK" and payload["ok"] is True
+    # Health is intentionally public but exposes no database/provider/runtime configuration.
+    status, payload = _call("GET", "/api/health")
+    assert status in ("200 OK", "503 Service Unavailable")
+    assert set(payload).issubset({"ok", "status", "timestamp"})
     # Secondary protected routes also proceed with the correct token; replace
     # expensive/news-dependent handlers with deterministic test doubles.
     monkeypatch.setattr(main, "_sweep_diagnostic_payload", lambda **kwargs: {"ok": True})
