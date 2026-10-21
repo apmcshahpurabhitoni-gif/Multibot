@@ -608,9 +608,22 @@ def build_app():
             start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
             return [b"pong"]
         if path=="/api/health":
-            # Public, deliberately minimal health response: never expose strategy,
-            # database, provider, or Telegram configuration to anonymous callers.
-            return _json_response(start,{"ok":True,"status":"ONLINE","timestamp":now().isoformat()})
+            # Public health contract: expose status and keepalive only.
+            try:
+                current=now()
+                with LOCK: last_ping=LAST_PING_AT
+                keepalive_age_minutes=None
+                keepalive="UNKNOWN"
+                if last_ping:
+                    keepalive_age_minutes=max(0,(current-pd.Timestamp(last_ping)).total_seconds()/60)
+                    keepalive="OK" if keepalive_age_minutes <= 15 else "STALE"
+                payload={"ok":True,"status":"ONLINE","timestamp":current.isoformat(),
+                    "keepalive":keepalive,"last_ping_at":last_ping,
+                    "keepalive_age_minutes":round(keepalive_age_minutes,1) if keepalive_age_minutes is not None else None}
+                return _json_response(start,payload)
+            except Exception:
+                logger.exception("Health check failed")
+                return _json_response(start,{"ok":False,"status":"DEGRADED","timestamp":now().isoformat()},"503 Service Unavailable")
         if path=="/api/dashboard":
             guard=_admin_api_guard(env,start)
             if guard is not None: return guard
