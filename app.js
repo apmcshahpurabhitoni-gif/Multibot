@@ -27,7 +27,8 @@ function withAdminToken(options={}){const token=localStorage.getItem(ADMIN_TOKEN
 // One canonical path for protected API requests: attach the operator's admin
 // token and, on a 401 ADMIN_TOKEN_REQUIRED, ask once, remember it and retry.
 async function adminFetch(url,options={}){
-  let response=await fetch(url,withAdminToken(options));
+  const requestWithToken=()=>fetch(url,withAdminToken(options));
+  let response=await requestWithToken();
   if(response.status===401){
     let payload=null;
     try{payload=JSON.parse(await response.clone().text());}catch(error){}
@@ -35,7 +36,7 @@ async function adminFetch(url,options={}){
       const entered=window.prompt("This dashboard requires its admin token. Enter DASHBOARD_API_TOKEN:","");
       if(entered&&entered.trim()){
         localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY,entered.trim());
-        response=await fetch(url,withAdminToken(options));
+        response=await requestWithToken();
       }
     }
   }
