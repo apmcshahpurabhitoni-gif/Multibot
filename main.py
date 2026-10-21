@@ -586,12 +586,12 @@ def _admin_token_allowed(env):
 def _admin_write_allowed(env):
     """Compatibility alias for the existing configuration-write gate."""
     return _admin_token_allowed(env)
-def _admin_api_guard(env,start):
-    """Protect private API data and writes when a public-deployment token is set."""
+def _admin_api_guard(env,start,*,require_token=True):
+    """Reject cross-origin requests and optionally require the deployment token."""
     if not _same_origin_request(env):
         logger.info("API request rejected | reason=CROSS_ORIGIN origin=%s host=%s",env.get("HTTP_ORIGIN") or env.get("HTTP_REFERER"),env.get("HTTP_HOST"))
         return _json_response(start,{"ok":False,"error":"Cross-origin requests to the dashboard API are not allowed.","code":"CROSS_ORIGIN"},"403 Forbidden")
-    if not _admin_token_allowed(env):
+    if require_token and not _admin_token_allowed(env):
         return _json_response(start,{"ok":False,"error":"An admin token is required for this dashboard API. Send it as X-Admin-Token or Authorization: Bearer.","code":"ADMIN_TOKEN_REQUIRED"},"401 Unauthorized")
     return None
 def _config_endpoint_guard(env,start):
@@ -608,7 +608,7 @@ def build_app():
             start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
             return [b"pong"]
         if path=="/api/health":
-            guard=_admin_api_guard(env,start)
+            guard=_admin_api_guard(env,start,require_token=False)
             if guard is not None: return guard
             try:
                 ensure_runtime()
