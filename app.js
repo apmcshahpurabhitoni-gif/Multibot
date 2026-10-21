@@ -28,13 +28,16 @@ function requestAdminToken(){const entered=window.prompt("This dashboard require
 // One canonical path for protected API requests: attach the operator's admin
 // token and, on a 401 ADMIN_TOKEN_REQUIRED, ask once, remember it and retry.
 async function adminFetch(url,options={}){
-  const send=()=>fetch(url,withAdminToken(options));
-  let response=await send();
+  let response=await fetch(url,withAdminToken(options));
   if(response.status===401){
     let payload=null;
     try{payload=JSON.parse(await response.clone().text());}catch(error){}
     if(payload&&payload.code==="ADMIN_TOKEN_REQUIRED"){
-      if(requestAdminToken())response=await send();
+      const entered=requestAdminToken();
+      if(entered){
+        const headers={...(options.headers||{}),"X-Admin-Token":entered};
+        response=await fetch(url,{...options,headers});
+      }
     }
   }
   return response;
