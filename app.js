@@ -24,26 +24,17 @@ function dateKey(value){if(!value)return "unknown";const d=new Date(value);if(Nu
 function clock(){return new Intl.DateTimeFormat("en-IN",{timeZone:CONFIG.timezone,hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(new Date());}
 function safeApiError(status,text){const compact=String(text||"").replace(/\s+/g," ").trim();return compact?`HTTP ${status}: ${compact.slice(0,240)}`:`HTTP ${status}`;}const ADMIN_TOKEN_STORAGE_KEY="mavis-admin-token";
 function withAdminToken(options={}){const token=localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);if(!token)return options;return {...options,headers:{...(options.headers||{}),"X-Admin-Token":token}};}
+function requestAdminToken(){const entered=window.prompt("This dashboard requires its admin token. Enter DASHBOARD_API_TOKEN:","");if(!entered||!entered.trim())return "";const token=entered.trim();localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY,token);return token;}
 // One canonical path for protected API requests: attach the operator's admin
 // token and, on a 401 ADMIN_TOKEN_REQUIRED, ask once, remember it and retry.
 async function adminFetch(url,options={}){
-  const token=localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-  const withToken=()=>{
-    const headers={...(options.headers||{})};
-    if(token)headers["X-Admin-Token"]=token;
-    return fetch(url,{...options,headers});
-  };
-  let response=await withToken();
+  const send=()=>fetch(url,withAdminToken(options));
+  let response=await send();
   if(response.status===401){
     let payload=null;
     try{payload=JSON.parse(await response.clone().text());}catch(error){}
     if(payload&&payload.code==="ADMIN_TOKEN_REQUIRED"){
-      const entered=window.prompt("This dashboard requires its admin token. Enter DASHBOARD_API_TOKEN:","");
-      if(entered&&entered.trim()){
-        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY,entered.trim());
-        const headers={...(options.headers||{}),"X-Admin-Token":entered.trim()};
-        response=await fetch(url,{...options,headers});
-      }
+      if(requestAdminToken())response=await send();
     }
   }
   return response;
