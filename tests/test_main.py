@@ -73,6 +73,11 @@ def test_sensitive_dashboard_apis_require_token_when_configured(monkeypatch):
         assert status == "401 Unauthorized", (path, status)
         assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
 
+    for path in ("/api/settings", "/api/notifications"):
+        status, payload = _call("POST", path, body=b"{}")
+        assert status == "401 Unauthorized", (path, status)
+        assert payload["code"] == "ADMIN_TOKEN_REQUIRED", (path, payload)
+
     # Both supported credentials are accepted on protected reads.
     status, payload = _call("GET", "/api/dashboard", token="sekret-token")
     assert status == "200 OK" and payload["ok"] is True
