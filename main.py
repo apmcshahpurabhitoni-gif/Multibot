@@ -608,26 +608,9 @@ def build_app():
             start("200 OK",[("Content-Type","text/plain"),("Cache-Control","no-store")])
             return [b"pong"]
         if path=="/api/health":
-            guard=_admin_api_guard(env,start,require_token=False)
-            if guard is not None: return guard
-            try:
-                ensure_runtime()
-                current=now()
-                with LOCK: last_ping=LAST_PING_AT
-                keepalive_age_minutes=None
-                keepalive="UNKNOWN"
-                if last_ping:
-                    keepalive_age_minutes=max(0,(current-pd.Timestamp(last_ping)).total_seconds()/60)
-                    keepalive="OK" if keepalive_age_minutes <= 15 else "STALE"
-                payload={"ok":True,"status":"ONLINE","version":APP_VERSION,"timestamp":current.isoformat(),
-                    "runtime":True,"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK",
-                    "scheduler":not STOP.is_set(),"strategies":len(REGISTRY.all()),
-                    "provider":MARKET_DATA_PROVIDER,"telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED",
-                    "keepalive":keepalive,"last_ping_at":last_ping,
-                    "keepalive_age_minutes":round(keepalive_age_minutes,1) if keepalive_age_minutes is not None else None}
-                return _json_response(start,payload)
-            except Exception as exc:
-                return _json_response(start,{"ok":False,"status":"DEGRADED","error":str(exc),"timestamp":now().isoformat()},"503 Service Unavailable")
+            # Public, deliberately minimal health response: never expose strategy,
+            # database, provider, or Telegram configuration to anonymous callers.
+            return _json_response(start,{"ok":True,"status":"ONLINE","timestamp":now().isoformat()})
         if path=="/api/dashboard":
             guard=_admin_api_guard(env,start)
             if guard is not None: return guard
