@@ -25,15 +25,15 @@ BUILD = os.getenv(
     "unknown",
 )[:8]
 
-# Canonical MULTIBOT2 dashboard.
-# Deliberately not configurable so an old Render environment variable
-# cannot accidentally point the bot back to another application.
-DASHBOARD_URL = (
-    "https://multibot2-t74l.onrender.com/dashboard"
-)
-ARCHITECTURE_URL = (
-    "https://multibot2-t74l.onrender.com/architecture"
-)
+# Deployment URLs; defaults are local until the secure endpoint is configured.
+DASHBOARD_URL = os.getenv(
+    "DASHBOARD_URL",
+    "http://127.0.0.1:10000/dashboard",
+).rstrip("/")
+ARCHITECTURE_URL = os.getenv(
+    "ARCHITECTURE_URL",
+    "http://127.0.0.1:10000/architecture",
+).rstrip("/")
 
 
 logging.basicConfig(
