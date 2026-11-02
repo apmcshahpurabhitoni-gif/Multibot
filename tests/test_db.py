@@ -10,3 +10,57 @@ def test_account_daily_reset(tmp_path):
     db=DatabaseManager(str(tmp_path/"state.db"));rows=db.load_accounts(("nifty",),100000,"2026-08-31");assert rows["nifty"]["trades_today"]==0
     db.save_account("nifty",balance=98000,trades_today=2,planned_risk_used=4000,reset_date="2026-08-31")
     rows=db.load_accounts(("nifty",),100000,"2026-09-01");assert rows["nifty"]["trades_today"]==0 and rows["nifty"]["planned_risk_used"]==0
+
+
+def test_supabase_restore_network_failure_does_not_block_sqlite_startup(tmp_path, monkeypatch):
+    """A Supabase outage must not prevent a local SQLite runtime from opening."""
+    from db import DatabaseManager, DatabaseError
+
+    db = DatabaseManager(str(tmp_path / "state.db"))
+    calls = []
+
+    monkeypatch.setattr(DatabaseManager, "supabase_enabled", property(lambda self: True))
+
+    def unavailable(self, method, table, **kwargs):
+        calls.append((method, table))
+        raise DatabaseError(f"Supabase {method} {table} failed: DNS unavailable")
+
+    monkeypatch.setattr(DatabaseManager, "_supabase_request", unavailable)
+
+    # A wiped/new local database must still initialize even when the very first
+    # remote restore (accounts) cannot resolve Supabase.
+    reopened = DatabaseManager(str(tmp_path / "fresh.db"))
+    accounts = reopened.load_accounts(("sweep_4h",), 100000, "2026-11-03")
+
+    assert accounts["sweep_4h"]["balance"] == 100000
+    assert calls == [("GET", "accounts")]
+
+
+def test_supabase_restore_failure_does_not_replace_existing_local_state(tmp_path, monkeypatch):
+    """Local records remain authoritative when remote rehydration is offline."""
+    from db import DatabaseManager, DatabaseError
+
+    path = str(tmp_path / "state.db")
+    local = DatabaseManager(path)
+    local.load_accounts(("sweep_4h",), 100000, "2026-11-03")
+    local.save_account(
+        "sweep_4h",
+        balance=98500,
+        trades_today=1,
+        planned_risk_used=2000,
+        reset_date="2026-11-03",
+    )
+
+    monkeypatch.setattr(DatabaseManager, "supabase_enabled", property(lambda self: True))
+
+    def unavailable(self, method, table, **kwargs):
+        raise DatabaseError(f"Supabase {method} {table} failed: DNS unavailable")
+
+    monkeypatch.setattr(DatabaseManager, "_supabase_request", unavailable)
+
+    reopened = DatabaseManager(path)
+    accounts = reopened.load_accounts(("sweep_4h",), 100000, "2026-11-03")
+
+    assert accounts["sweep_4h"]["balance"] == 98500
+    assert accounts["sweep_4h"]["trades_today"] == 1
+    assert accounts["sweep_4h"]["planned_risk_used"] == 2000

@@ -79,14 +79,58 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return table in text and "PGRST205" in text
 
     def _restore_from_supabase_if_needed(self):
-        if not self.supabase_enabled:return
-        self._restore_accounts_if_needed()
-        self._restore_trades_if_needed()
-        self._restore_signals_if_needed()
-        self._restore_signal_events_if_needed()
-        self._restore_deliveries_if_needed()
-        self._restore_scan_runs_if_needed()
-        self._restore_scan_error_alerts_if_needed()
+        """Best-effort remote rehydration; local SQLite must remain bootable.
+
+        Supabase is a remote mirror, not a prerequisite for starting the
+        dashboard/scanner. A paused project, exhausted quota, transient DNS
+        failure or network outage must not turn an otherwise healthy local
+        SQLite database into a process-start failure. Writes retain the strict
+        _require_supabase contract.
+        """
+        if not self.supabase_enabled:
+            return
+        logger = logging.getLogger(__name__)
+
+        # Keep each restore boundary explicit so the architecture contract
+        # remains reviewable. A failed section stops further remote rehydrate
+        # attempts for this boot, but the already initialized SQLite store
+        # remains available to the dashboard/scanner.
+        try:
+            self._restore_accounts_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=accounts | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_trades_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=trades | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_signals_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=signals | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_signal_events_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=signal_events | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_deliveries_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=signal_deliveries | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_scan_runs_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=scan_runs | using local SQLite state | error=%s", exc)
+            return
+        try:
+            self._restore_scan_error_alerts_if_needed()
+        except DatabaseError as exc:
+            logger.warning("Supabase restore unavailable | section=scan_error_alerts | using local SQLite state | error=%s", exc)
+            return
+        logger.info("Supabase restore completed | local SQLite remains primary")
 
     def _restore_scan_error_alerts_if_needed(self):
         """Rehydrate alert dedup state after a wiped disk (Render redeploy).
