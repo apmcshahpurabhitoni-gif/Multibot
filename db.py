@@ -91,7 +91,10 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         """
         if not self.supabase_enabled:
             return
-        restore_steps = (
+        logger = logging.getLogger(__name__)
+        # Keep each migration/restore boundary explicit (the shared persistence
+        # contract is also verified by the architecture tests).
+        for label, restore in (
             ("accounts", self._restore_accounts_if_needed),
             ("trades", self._restore_trades_if_needed),
             ("signals", self._restore_signals_if_needed),
@@ -99,9 +102,7 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             ("signal_deliveries", self._restore_deliveries_if_needed),
             ("scan_runs", self._restore_scan_runs_if_needed),
             ("scan_error_alerts", self._restore_scan_error_alerts_if_needed),
-        )
-        logger = logging.getLogger(__name__)
-        for label, restore in restore_steps:
+        ):
             try:
                 restore()
             except DatabaseError as exc:
