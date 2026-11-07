@@ -25,15 +25,11 @@ BUILD = os.getenv(
     "unknown",
 )[:8]
 
-# Deployment URLs; defaults are local until the secure endpoint is configured.
-DASHBOARD_URL = os.getenv(
-    "DASHBOARD_URL",
-    "http://127.0.0.1:10000/dashboard",
-).rstrip("/")
-ARCHITECTURE_URL = os.getenv(
-    "ARCHITECTURE_URL",
-    "http://127.0.0.1:10000/architecture",
-).rstrip("/")
+# Canonical hosted MULTIBOT2 endpoints.
+# Keep these fixed so a missing or stale Render environment variable cannot
+# publish a loopback URL or point Telegram users at a different application.
+DASHBOARD_URL = "https://multibot2-t74l.onrender.com/dashboard"
+ARCHITECTURE_URL = "https://multibot2-t74l.onrender.com/architecture"
 
 
 logging.basicConfig(
