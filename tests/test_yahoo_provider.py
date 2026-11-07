@@ -73,3 +73,41 @@ def test_yahoo_provider_rejects_duplicate_timestamps(monkeypatch):
             interval="1m",
             validate_hourly=False,
         )
+
+
+def test_yahoo_rate_limit_backoff_is_shared_across_symbols(monkeypatch):
+    calls = []
+
+    def rate_limited_download(symbol, **kwargs):
+        calls.append(symbol)
+        raise RuntimeError("YFRateLimitError: Too Many Requests")
+
+    monkeypatch.setattr(yahoo_provider.yf, "download", rate_limited_download)
+    provider = yahoo_provider.YahooProvider()
+
+    with pytest.raises(yahoo_provider.YahooDataError, match="request failed"):
+        provider.fetch("GC=F", period="5d", interval="1h")
+
+    with pytest.raises(yahoo_provider.YahooDataError, match="rate-limit backoff"):
+        provider.fetch("USDJPY=X", period="5d", interval="1h")
+
+    assert calls == ["GC=F"]
+
+
+def test_yahoo_empty_response_activates_provider_wide_backoff(monkeypatch):
+    calls = []
+
+    def empty_download(symbol, **kwargs):
+        calls.append(symbol)
+        return pd.DataFrame()
+
+    monkeypatch.setattr(yahoo_provider.yf, "download", empty_download)
+    provider = yahoo_provider.YahooProvider()
+
+    with pytest.raises(yahoo_provider.YahooDataError, match="returned no data"):
+        provider.fetch("GC=F", period="5d", interval="1h")
+
+    with pytest.raises(yahoo_provider.YahooDataError, match="rate-limit backoff"):
+        provider.fetch("SBIN.NS", period="5d", interval="1h")
+
+    assert calls == ["GC=F"]

@@ -47,6 +47,12 @@ class YahooProvider:
         self._last_success: dict[tuple[str, str, str, bool], tuple[pd.DataFrame, float]] = {}
         self._backoff_until: dict[str, float] = {}
         self._failure_count: dict[str, int] = {}
+        # Yahoo applies throttles at provider/account level, not reliably per
+        # ticker. Coordinate cooldowns across symbols after a confirmed or
+        # suspected rate-limit response so concurrent strategies do not keep
+        # hitting the same upstream limit with different symbols.
+        self._global_backoff_until = 0.0
+        self._global_failure_count = 0
         self._symbol_locks: dict[str, Lock] = {}
         self._lock = RLock()
 
@@ -159,7 +165,14 @@ class YahooProvider:
             logger.info("Yahoo persistent cache saved | symbol=%s key=%s", key[0], self._key_id(key))
         return frame.copy()
 
-    def _activate_backoff(self, symbol: str, reason: str) -> float:
+    def _activate_backoff(
+        self,
+        symbol: str,
+        reason: str,
+        *,
+        provider_wide: bool = False,
+    ) -> float:
+        now = time.monotonic()
         with self._lock:
             failures = self._failure_count.get(symbol, 0) + 1
             self._failure_count[symbol] = failures
@@ -167,12 +180,26 @@ class YahooProvider:
                 YAHOO_BACKOFF_SECONDS * (2 ** (failures - 1)),
                 YAHOO_MAX_BACKOFF_SECONDS,
             )
-            self._backoff_until[symbol] = time.monotonic() + delay
+            self._backoff_until[symbol] = now + delay
+            if provider_wide:
+                self._global_failure_count += 1
+                global_delay = min(
+                    YAHOO_BACKOFF_SECONDS * (2 ** (self._global_failure_count - 1)),
+                    YAHOO_MAX_BACKOFF_SECONDS,
+                )
+                self._global_backoff_until = max(
+                    self._global_backoff_until,
+                    now + global_delay,
+                )
+            else:
+                global_delay = 0.0
         logger.warning(
-            "Yahoo backoff activated | symbol=%s failures=%d retry_in=%ds reason=%s",
-            symbol, failures, int(delay), reason,
+            "Yahoo backoff activated | symbol=%s failures=%d retry_in=%ds "
+            "scope=%s reason=%s",
+            symbol, failures, int(max(delay, global_delay)),
+            "provider" if provider_wide else "symbol", reason,
         )
-        return delay
+        return max(delay, global_delay)
 
     @staticmethod
     def _validate_request(period: str, interval: str) -> None:
@@ -183,7 +210,10 @@ class YahooProvider:
 
     def _in_backoff(self, symbol: str) -> float:
         with self._lock:
-            return max(0.0, self._backoff_until.get(symbol, 0.0) - time.monotonic())
+            now = time.monotonic()
+            symbol_wait = self._backoff_until.get(symbol, 0.0) - now
+            provider_wait = self._global_backoff_until - now
+            return max(0.0, symbol_wait, provider_wait)
 
     @staticmethod
     def _mark_provenance(provenance: Optional[dict], *, source: str, age_seconds: Optional[float] = None, cache_key: Optional[str] = None) -> None:
@@ -279,7 +309,11 @@ class YahooProvider:
                     or "rate limit" in message.lower()
                     or "ratelimit" in message.lower()
                 )
-                self._activate_backoff(symbol, "rate_limit" if rate_limited else "request_error")
+                self._activate_backoff(
+                    symbol,
+                    "rate_limit" if rate_limited else "request_error",
+                    provider_wide=rate_limited,
+                )
                 stale = self._stale(key)
                 if stale is not None:
                     self._mark_provenance(provenance, source="stale_fallback", cache_key=self._key_id(key))
@@ -288,7 +322,15 @@ class YahooProvider:
 
             # yfinance may swallow YFRateLimitError and return an empty frame.
             if frame is None or frame.empty:
-                self._activate_backoff(symbol, "empty_response_or_rate_limit")
+                # yfinance can swallow YFRateLimitError and return an empty
+                # frame. Treat empty responses as provider-wide cooldowns;
+                # this prevents the next ticker/strategy from immediately
+                # repeating the same upstream request burst.
+                self._activate_backoff(
+                    symbol,
+                    "empty_response_or_rate_limit",
+                    provider_wide=True,
+                )
                 stale = self._stale(key)
                 if stale is not None:
                     self._mark_provenance(provenance, source="stale_fallback", cache_key=self._key_id(key))
