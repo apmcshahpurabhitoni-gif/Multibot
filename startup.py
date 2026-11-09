@@ -28,11 +28,11 @@ BUILD = os.getenv(
 # Deployment URLs; defaults are local until the secure endpoint is configured.
 DASHBOARD_URL = os.getenv(
     "DASHBOARD_URL",
-    "http://127.0.0.1:10000/dashboard",
+    "https://4hbot.netlify.app/dashboard",
 ).rstrip("/")
 ARCHITECTURE_URL = os.getenv(
     "ARCHITECTURE_URL",
-    "http://127.0.0.1:10000/architecture",
+    "https://4hbot.netlify.app/architecture",
 ).rstrip("/")
 
 
