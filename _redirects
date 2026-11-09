@@ -4,4 +4,4 @@
 /architecture /docs/architecture/multibot2-architecture.html 200
 
 # Netlify Function proxies protected API requests to the HTTPS Google Cloud backend.
-/api/* /.netlify/functions/api-proxy 200!
+/api/* /.netlify/functions/api-proxy?route=/api/:splat 200!
