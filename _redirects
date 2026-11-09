@@ -1,0 +1,9 @@
+# Route the static dashboard to its actual entry pages.
+/ /dashboard.html 200
+/dashboard /dashboard.html 200
+/architecture /docs/architecture/multibot2-architecture.html 200
+
+# Netlify serves the frontend; Render owns the Python API.
+# Proxy same-origin API requests to the existing Render service.
+# The original host is forwarded so Render's same-origin guard can validate the browser origin.
+/api/* https://multibot2-t74l.onrender.com/api/:splat 200!
