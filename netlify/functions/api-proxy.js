@@ -12,8 +12,8 @@ exports.handler = async (event) => {
 
   const allowed = new Set(["/api/dashboard", "/api/health", "/api/diagnostics/sweep",
     "/api/settings", "/api/notifications", "/api/calendar", "/api/news", "/api/backtest"]);
-  const originalPath = String(event.path || "");
-  const path = originalPath.startsWith("/api/") ? originalPath : "";
+  const route = String(event.queryStringParameters?.route || "");
+  const path = route.startsWith("/api/") ? route : "";
   if (!allowed.has(path)) {
     return { statusCode: 404, headers: { "content-type": "application/json", "cache-control": "no-store" },
       body: JSON.stringify({ ok: false, error: "Unknown API route.", code: "NOT_FOUND" }) };
@@ -31,7 +31,10 @@ exports.handler = async (event) => {
   if (incoming["x-admin-token"]) headers["x-admin-token"] = incoming["x-admin-token"];
   if (incoming.authorization) headers.authorization = incoming.authorization;
 
-  const query = event.rawQuery ? "?" + event.rawQuery : "";
+  const params = new URLSearchParams(event.queryStringParameters || {});
+  params.delete("route");
+  const queryString = params.toString();
+  const query = queryString ? "?" + queryString : "";
   const method = String(event.httpMethod || "GET").toUpperCase();
   const options = { method, headers, redirect: "manual" };
   if (!["GET", "HEAD"].includes(method) && event.body) {
