@@ -2,8 +2,16 @@
 // The browser supplies the operator token; this function forwards it without
 // storing it in Netlify or exposing it in a URL.
 export default async (request) => {
-  const backend = String(Netlify.env.get("MULTIBOT2_BACKEND_URL") || "").trim().replace(/\\/+$/, "");
-  if (!backend || !/^https:\\/\\//i.test(backend)) {
+  let backend = String(Netlify.env.get("MULTIBOT2_BACKEND_URL") || "").trim();
+  while (backend.endsWith("/")) backend = backend.slice(0, -1);
+
+  let backendUrl;
+  try {
+    backendUrl = new URL(backend);
+  } catch {
+    backendUrl = null;
+  }
+  if (!backendUrl || backendUrl.protocol !== "https:") {
     return Response.json(
       { ok: false, error: "Secure backend URL is not configured.", code: "BACKEND_NOT_CONFIGURED" },
       { status: 503, headers: { "cache-control": "no-store" } }
@@ -25,7 +33,7 @@ export default async (request) => {
   }
 
   const headers = new Headers({
-    "accept": request.headers.get("accept") || "application/json",
+    accept: request.headers.get("accept") || "application/json",
     "x-forwarded-host": incomingUrl.host
   });
   for (const name of ["origin", "referer", "content-type", "x-admin-token", "authorization"]) {
@@ -37,7 +45,9 @@ export default async (request) => {
     const upstream = await fetch(backend + path + incomingUrl.search, {
       method: request.method,
       headers,
-      body: ["GET", "HEAD"].includes(request.method.toUpperCase()) ? undefined : await request.arrayBuffer(),
+      body: ["GET", "HEAD"].includes(request.method.toUpperCase())
+        ? undefined
+        : await request.arrayBuffer(),
       redirect: "manual"
     });
     return new Response(upstream.body, {
