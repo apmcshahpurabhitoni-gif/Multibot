@@ -240,3 +240,63 @@ def test_origin_check_honours_forwarded_host_behind_a_proxy(monkeypatch):
     status, payload = _call("POST", "/api/settings", origin="https://app.example",
                             host="internal:8080", body=b"{")
     assert status == "403 Forbidden" and payload["code"] == "CROSS_ORIGIN"
+
+
+def test_initial_scan_history_failure_prevents_live_scan(monkeypatch):
+    from types import SimpleNamespace
+    import pytest
+    from db import DatabaseError
+
+    calls = []
+    class BrokenDatabase:
+        def record_scan_run(self, *args, **kwargs):
+            raise DatabaseError("Turso record scan run failed: SQLITE_BUSY")
+
+    monkeypatch.setattr(main, "_require_runtime_leader", lambda: None)
+    monkeypatch.setattr(main, "ensure_runtime", lambda: None)
+    monkeypatch.setattr(main, "DB", BrokenDatabase())
+    monkeypatch.setattr(main, "SERVICE", SimpleNamespace(
+        scan_and_dispatch=lambda *args, **kwargs: calls.append("scan") or []
+    ))
+
+    with pytest.raises(DatabaseError, match="SQLITE_BUSY"):
+        main.run_strategy_cycle(
+            "sweep_v2",
+            now_at=main.pd.Timestamp("2026-11-23 10:00:00+05:30"),
+        )
+    assert calls == []
+
+
+def test_final_scan_history_failure_does_not_replay_completed_scan(monkeypatch):
+    from types import SimpleNamespace
+    from db import DatabaseError
+
+    class FinalWriteFailsDatabase:
+        def __init__(self):
+            self.writes = 0
+
+        def record_scan_run(self, *args, **kwargs):
+            self.writes += 1
+            if self.writes == 2:
+                raise DatabaseError("Turso final scan history failed: SQLITE_BUSY")
+
+    scan_calls = []
+    database = FinalWriteFailsDatabase()
+    monkeypatch.setattr(main, "_require_runtime_leader", lambda: None)
+    monkeypatch.setattr(main, "ensure_runtime", lambda: None)
+    monkeypatch.setattr(main, "DB", database)
+    monkeypatch.setattr(main, "SERVICE", SimpleNamespace(
+        scan_and_dispatch=lambda *args, **kwargs: scan_calls.append("scan") or []
+    ))
+    monkeypatch.setattr(main, "LAST_SCANS", {"sweep_v2": {}})
+    monkeypatch.setattr(main, "_notify_scan", lambda *args, **kwargs: None)
+
+    result = main.run_strategy_cycle(
+        "sweep_v2",
+        now_at=main.pd.Timestamp("2026-11-23 10:00:00+05:30"),
+    )
+
+    assert result == []
+    assert scan_calls == ["scan"]
+    assert database.writes == 2
+    assert main.LAST_SCANS["sweep_v2"]["status"] == "OK"

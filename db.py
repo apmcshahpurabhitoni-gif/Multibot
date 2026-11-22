@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import time
+import threading
 from datetime import datetime, timezone
 
 from config import ACCOUNT_SIZE_INR, ACCOUNT_SIZES
@@ -33,90 +34,83 @@ class _RemoteRow(dict):
 class _RemoteCursor:
     def __init__(self,cursor):
         self._cursor=cursor
-
     @property
-    def description(self):
-        return self._cursor.description
-
+    def description(self): return self._cursor.description
     @property
-    def rowcount(self):
-        return self._cursor.rowcount
-
+    def rowcount(self): return self._cursor.rowcount
     @property
-    def lastrowid(self):
-        return self._cursor.lastrowid
-
+    def lastrowid(self): return self._cursor.lastrowid
     def _convert(self,row):
-        if row is None:
-            return None
+        if row is None:return None
         names=[column[0] for column in (self.description or ())]
         return _RemoteRow(names,row)
-
     def fetchone(self):
-        return self._convert(self._cursor.fetchone())
-
+        try:return self._convert(self._cursor.fetchone())
+        except Exception as exc:raise DatabaseError(f"Turso cursor fetch failed: {exc}") from exc
     def fetchall(self):
-        return [self._convert(row) for row in (self._cursor.fetchall() or [])]
-
+        try:return [self._convert(row) for row in (self._cursor.fetchall() or [])]
+        except Exception as exc:raise DatabaseError(f"Turso cursor fetch failed: {exc}") from exc
     def fetchmany(self,size=None):
-        rows=self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
-        return [self._convert(row) for row in (rows or [])]
-
+        try:
+            rows=self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
+            return [self._convert(row) for row in (rows or [])]
+        except Exception as exc:raise DatabaseError(f"Turso cursor fetch failed: {exc}") from exc
     def __iter__(self):
         while True:
             row=self.fetchone()
-            if row is None:
-                break
+            if row is None:break
             yield row
 
 
 class _RemoteConnection:
-    """Small sqlite3-compatible adapter for Turso's DB-API connection."""
+    """sqlite3-compatible adapter with one commit per pending write."""
+    _WRITE_KEYWORDS={"INSERT","UPDATE","DELETE","REPLACE","CREATE","DROP","ALTER","VACUUM","REINDEX","PRAGMA","BEGIN","SAVEPOINT","RELEASE","END"}
     def __init__(self,connection):
         self._connection=connection
-
+        self._transaction_pending=False
     def execute(self,sql,parameters=()):
-        return _RemoteCursor(self._connection.execute(sql,tuple(parameters or ())))
-
+        try:cursor=self._connection.execute(sql,tuple(parameters or ()))
+        except Exception as exc:raise DatabaseError(f"Turso SQL execution failed: {exc}") from exc
+        statement=str(sql).lstrip()
+        keyword=statement.split(None,1)[0].upper() if statement else ""
+        if keyword in self._WRITE_KEYWORDS:self._transaction_pending=True
+        return _RemoteCursor(cursor)
     def executemany(self,sql,seq_of_parameters):
         cursor=None
-        for parameters in seq_of_parameters:
-            cursor=self.execute(sql,parameters)
+        for parameters in seq_of_parameters:cursor=self.execute(sql,parameters)
         return cursor
-
     def executescript(self,script):
         for statement in script.split(";"):
-            if statement.strip():
-                self.execute(statement)
-
+            if statement.strip():self.execute(statement)
     def commit(self):
-        self._connection.commit()
-
+        if not self._transaction_pending:return
+        try:self._connection.commit()
+        except Exception as exc:raise DatabaseError(f"Turso commit failed: {exc}") from exc
+        self._transaction_pending=False
     def rollback(self):
-        self._connection.rollback()
-
-    def close(self):
-        self._connection.close()
-
-    def __enter__(self):
-        return self
-
+        if not self._transaction_pending:return
+        try:self._connection.rollback()
+        except Exception as exc:raise DatabaseError(f"Turso rollback failed: {exc}") from exc
+        self._transaction_pending=False
+    def close(self):self._connection.close()
+    def __enter__(self):return self
     def __exit__(self,exc_type,exc_value,traceback):
+        active_exception=exc_type is not None
         try:
-            if exc_type is None:
-                self.commit()
+            if active_exception:
+                try:self.rollback()
+                except Exception:pass
             else:
-                # A failed Turso statement may already have aborted its
-                # interactive transaction. A subsequent rollback can then
-                # raise SQLITE_UNKNOWN and mask the original SQLITE_BUSY,
-                # preventing the caller's transient-error retry from running.
-                try:
-                    self.rollback()
+                try:self.commit()
                 except Exception:
-                    if exc_value is None:
-                        raise
+                    active_exception=True
+                    try:self.rollback()
+                    except Exception:pass
+                    raise
         finally:
-            self.close()
+            try:self.close()
+            except Exception:
+                if not active_exception:raise
         return False
 
 
@@ -132,6 +126,9 @@ class DatabaseManager:
     def __init__(self,path=None):
         self.path=path or DEFAULT_DB_PATH
         self.turso_enabled=bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
+        self._health_check_lock=threading.Lock()
+        self._health_check_at=0.0
+        self._health_check_result=None
         if bool(TURSO_DATABASE_URL) != bool(TURSO_AUTH_TOKEN):
             raise DatabaseError("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be configured")
         os.makedirs(os.path.dirname(os.path.abspath(self.path)),exist_ok=True)
@@ -232,41 +229,36 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     # holding this database-backed lease may scan, monitor trades or poll
     # Telegram. Atomic UPSERT makes the election safe across containers.
     @staticmethod
-    def _is_retryable_runtime_lease_error(exc):
-        """Only retry transient Turso/libSQL transport and SQLite busy failures."""
+    def _is_retryable_turso_error(exc):
         message=str(exc).lower()
         return any(marker in message for marker in (
-            "sqlite_busy",
-            "database is locked",
-            "database is busy",
-            "stream was idle for too long",
-            "stream is idle",
-            "connection reset",
-            "connection closed",
-            "broken pipe",
-            "timed out",
-            "timeout",
-            "temporarily unavailable",
+            "sqlite_busy","database is locked","database is busy",
+            "interactive transaction was rolled back","stream was idle for too long",
+            "stream is idle for too long","connection reset","connection closed",
+            "broken pipe","timed out","timeout","temporarily unavailable","transport error",
         ))
 
-    def _retry_turso_cache_operation(self, operation):
-        """Retry only idempotent cache operations after transient Turso failures.
+    @staticmethod
+    def _is_retryable_runtime_lease_error(exc):
+        return DatabaseManager._is_retryable_turso_error(exc)
 
-        Every attempt creates its own connection inside the operation. This is
-        intentionally not applied to append-only/non-idempotent writes such as
-        delivery records, where replaying an ambiguous commit could duplicate data.
-        """
-        for attempt in range(3):
-            try:
-                return operation()
+    def _retry_turso_operation(self,operation,*,operation_name="database operation",attempts=3):
+        """Retry only idempotent work; every attempt must open a fresh connection."""
+        attempts=max(1,int(attempts))
+        for attempt in range(attempts):
+            try:return operation()
             except Exception as exc:
-                if (
-                    not self.turso_enabled
-                    or attempt == 2
-                    or not self._is_retryable_runtime_lease_error(exc)
-                ):
-                    raise
-                time.sleep(0.2 * (2 ** attempt))
+                if not self.turso_enabled or not self._is_retryable_turso_error(exc):raise
+                if attempt+1>=attempts:
+                    raise DatabaseError(f"Turso {operation_name} failed after {attempts} attempts: {exc}") from exc
+                time.sleep(0.2*(2**attempt))
+
+    def run_idempotent_operation(self,operation,*,operation_name="database operation"):
+        """Retry a repeatable read or idempotent write using fresh connections."""
+        return self._retry_turso_operation(operation,operation_name=operation_name)
+
+    def _retry_turso_cache_operation(self,operation):
+        return self._retry_turso_operation(operation,operation_name="market-data cache operation")
 
     def acquire_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
         import time
@@ -329,14 +321,10 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return dict(row) if row else None
 
     def release_runtime_lease(self,owner_id):
-        with self._connect() as c:
-            c.execute(
-                "DELETE FROM runtime_leases WHERE lease_key='primary' AND owner_id=?",
-                (str(owner_id),),
-            )
-            c.commit()
-
-
+        def release():
+            with self._connect() as c:
+                c.execute("DELETE FROM runtime_leases WHERE lease_key='primary' AND owner_id=?",(str(owner_id),))
+        return self._retry_turso_operation(release,operation_name="release runtime lease")
     def load_app_config(self,key):
         """Load an operator configuration document from the durable store."""
         with self._connect() as connection:
@@ -351,30 +339,25 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def save_app_config(self,key,payload):
         """Atomically replace one operator configuration document."""
         encoded=json.dumps(payload,separators=(",",":"),ensure_ascii=False)
-        with self._connect() as connection:
-            connection.execute(
-                "INSERT OR REPLACE INTO app_config(config_key,payload,updated_at) VALUES(?,?,?)",
-                (key,encoded,datetime.now(timezone.utc).isoformat()),
-            )
-            connection.commit()
-
+        def write():
+            with self._connect() as connection:
+                connection.execute("INSERT OR REPLACE INTO app_config(config_key,payload,updated_at) VALUES(?,?,?)",(key,encoded,datetime.now(timezone.utc).isoformat()))
+        return self._retry_turso_operation(write,operation_name="save app configuration")
     def load_accounts(self,names,starting_balance,today):
-        """Create/refresh one row per account.
-
-        `starting_balance` is either a single figure (every account opens at the
-        same size) or a per-account mapping, so an operator can give one book a
-        different capital base without touching the others.
-        """
+        """Create/refresh account rows; replay is safe because values are deterministic."""
         sizes=starting_balance if isinstance(starting_balance,dict) else None
-        with self._connect() as c:
-            for name in names:
-                opening=float(sizes.get(name,ACCOUNT_SIZE_INR) if sizes is not None else starting_balance)
-                row=c.execute("SELECT * FROM accounts WHERE name=?",(name,)).fetchone()
-                if row is None:c.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)",(name,opening,opening,0,0.0,today))
-                elif row["reset_date"]!=today:c.execute("UPDATE accounts SET trades_today=0,planned_risk_used=0,reset_date=? WHERE name=?",(today,name))
-            c.commit(); rows=c.execute("SELECT * FROM accounts WHERE name IN (%s)"%",".join("?" for _ in names),names).fetchall()
-        return {x["name"]:dict(x) for x in rows}
-
+        names=tuple(names)
+        def load():
+            with self._connect() as c:
+                for name in names:
+                    opening=float(sizes.get(name,ACCOUNT_SIZE_INR) if sizes is not None else starting_balance)
+                    row=c.execute("SELECT * FROM accounts WHERE name=?",(name,)).fetchone()
+                    if row is None:c.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)",(name,opening,opening,0,0.0,today))
+                    elif row["reset_date"]!=today:c.execute("UPDATE accounts SET trades_today=0,planned_risk_used=0,reset_date=? WHERE name=?",(today,name))
+                if not names:return {}
+                rows=c.execute("SELECT * FROM accounts WHERE name IN (%s)" % ",".join("?" for _ in names),names).fetchall()
+            return {x["name"]:dict(x) for x in rows}
+        return self._retry_turso_operation(load,operation_name="load accounts")
     def account_trade_count(self,name):
         """Trades ever recorded against an account, open and closed.
 
@@ -386,23 +369,17 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return int(live["n"] if live and "n" in live.keys() else 0)
 
     def save_account(self,name,*,balance,trades_today,planned_risk_used,reset_date):
-        with self._connect() as c:
-            c.execute(
-                "UPDATE accounts SET balance=?,trades_today=?,planned_risk_used=?,reset_date=? WHERE name=?",
-                (balance,trades_today,planned_risk_used,reset_date,name),
-            )
-            c.commit()
-
+        def write():
+            with self._connect() as c:
+                c.execute("UPDATE accounts SET balance=?,trades_today=?,planned_risk_used=?,reset_date=? WHERE name=?",(balance,trades_today,planned_risk_used,reset_date,name))
+        return self._retry_turso_operation(write,operation_name="save account")
     def save_trade(self,trade_id,status,payload,updated_at):
-        payload=dict(payload)
-        payload["status"]=status
-        with self._connect() as c:
-            c.execute(
-                "INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",
-                (trade_id,status,json.dumps(payload,default=str),updated_at),
-            )
-            c.commit()
-
+        payload=dict(payload);payload["status"]=status
+        encoded=json.dumps(payload,default=str)
+        def write():
+            with self._connect() as c:
+                c.execute("INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",(trade_id,status,encoded,updated_at))
+        return self._retry_turso_operation(write,operation_name="save trade")
     def load_trades(self,status=None):
         with self._connect() as c: rows=c.execute("SELECT payload FROM trades"+(" WHERE status=?" if status else "")+" ORDER BY updated_at DESC",(status,) if status else ()).fetchall()
         return [json.loads(x["payload"]) for x in rows]
@@ -411,28 +388,26 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         ts=created_at or datetime.now(timezone.utc).isoformat()
         metadata=dict(signal.metadata or {})
         metadata.update({"entry":getattr(signal,"entry",None),"stop_loss":getattr(signal,"stop_loss",None),"take_profit":getattr(signal,"take_profit",None)})
-        with self._connect() as c:
-            existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
-            if existing:
-                signal_id=str(existing["signal_id"])
-                created_at=existing["created_at"]
-                c.execute(
-                    """UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",
-                    (signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key),
-                )
-            else:
-                created_at=created_at or ts
-                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),created_at,ts)
-                c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
-            c.commit()
-        return signal_id
-
+        encoded=json.dumps(metadata,default=str);requested_id=str(signal_id)
+        def write():
+            canonical_id=requested_id
+            with self._connect() as c:
+                existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
+                if existing:
+                    canonical_id=str(existing["signal_id"])
+                    c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,encoded,ts,signal_key))
+                else:
+                    created=created_at or ts
+                    row=(canonical_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,encoded,created,ts)
+                    c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
+            return canonical_id
+        return self._retry_turso_operation(write,operation_name="record signal event")
     def update_signal_status(self,signal_id,status):
         ts=datetime.now(timezone.utc).isoformat()
-        with self._connect() as c:
-            c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,ts,signal_id))
-            c.commit()
-
+        def write():
+            with self._connect() as c:
+                c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,ts,signal_id))
+        return self._retry_turso_operation(write,operation_name="update signal status")
     def record_delivery(self,signal_id,*,channel,status,attempted_at=None,error_text=None,message_type=None,metadata=None):
         ts=attempted_at or datetime.now(timezone.utc).isoformat()
         meta=metadata or {}
@@ -472,14 +447,23 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return self._retry_turso_cache_operation(write)
 
     def market_data_cache_health(self):
-        if not self.turso_enabled:
-            return {"enabled":False,"remote":False,"reason":"LOCAL_SQLITE"}
-        try:
-            with self._connect() as c:
-                c.execute("SELECT 1").fetchone()
-            return {"enabled":True,"remote":True,"reason":"OK"}
-        except Exception as exc:
-            return {"enabled":True,"remote":False,"reason":str(exc)}
+        """Check remote reads and writes, cached briefly to avoid probe traffic."""
+        if not self.turso_enabled:return {"enabled":False,"remote":False,"reason":"LOCAL_SQLITE"}
+        with self._health_check_lock:
+            checked_at=time.monotonic()
+            if self._health_check_result is not None and checked_at-self._health_check_at<30:
+                return dict(self._health_check_result)
+            stamp=datetime.now(timezone.utc).isoformat()
+            def probe():
+                with self._connect() as c:
+                    c.execute("SELECT 1").fetchone()
+                    c.execute("INSERT INTO market_data_cache(cache_key,symbol,period,interval,validate_hourly,payload,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET updated_at=excluded.updated_at",("__multibot_health_probe__","__HEALTHCHECK__","0","0",0,"{}",stamp))
+            try:
+                self._retry_turso_operation(probe,operation_name="read/write health probe")
+                result={"enabled":True,"remote":True,"reason":"READ_WRITE_OK"}
+            except Exception as exc:result={"enabled":True,"remote":False,"reason":str(exc)}
+            self._health_check_at=checked_at;self._health_check_result=dict(result)
+            return result
 
     def load_market_data_cache(self,cache_key):
         """Read one cache value, retrying transient Turso failures safely."""
@@ -491,13 +475,15 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return self._retry_turso_cache_operation(read)
 
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
-        with self._connect() as c:
-            c.execute(
-                "INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",
-                (run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str)),
-            )
-            c.commit()
-
+        """Upsert by stable run_id so an ambiguous commit can be retried safely."""
+        row=(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))
+        def write():
+            with self._connect() as c:
+                c.execute("""INSERT INTO scan_runs(id,strategy_id,started_at,finished_at,status,payload)
+                    VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                    strategy_id=excluded.strategy_id,started_at=excluded.started_at,
+                    finished_at=excluded.finished_at,status=excluded.status,payload=excluded.payload""",row)
+        return self._retry_turso_operation(write,operation_name="record scan run")
     def load_scan_runs(self,limit=50):
         with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
         out=[]
@@ -519,23 +505,19 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def save_scan_error_alert(self,strategy_id,fingerprint,*,first_sent_at,last_sent_at,suppressed=0,updated_at=None):
         updated_at=updated_at or datetime.now(timezone.utc).isoformat()
         row=(strategy_id,fingerprint,first_sent_at,last_sent_at,int(suppressed),updated_at)
-        with self._connect() as c:
-            c.execute(
-                "INSERT INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(strategy_id) DO UPDATE SET fingerprint=excluded.fingerprint,first_sent_at=excluded.first_sent_at,last_sent_at=excluded.last_sent_at,suppressed=excluded.suppressed,updated_at=excluded.updated_at",
-                row,
-            )
-            c.commit()
-
+        def write():
+            with self._connect() as c:
+                c.execute("INSERT INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(strategy_id) DO UPDATE SET fingerprint=excluded.fingerprint,first_sent_at=excluded.first_sent_at,last_sent_at=excluded.last_sent_at,suppressed=excluded.suppressed,updated_at=excluded.updated_at",row)
+        return self._retry_turso_operation(write,operation_name="save scan error alert")
     def bump_scan_error_alert_suppression(self,strategy_id):
         """Count a suppressed repeat locally; counters never need remote sync."""
         with self._connect() as c:
             c.execute("UPDATE scan_error_alerts SET suppressed=suppressed+1,updated_at=? WHERE strategy_id=?",(datetime.now(timezone.utc).isoformat(),strategy_id)); c.commit()
 
     def clear_scan_error_alert(self,strategy_id):
-        with self._connect() as c:
-            c.execute("DELETE FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,))
-            c.commit()
-
+        def write():
+            with self._connect() as c:c.execute("DELETE FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,))
+        return self._retry_turso_operation(write,operation_name="clear scan error alert")
     def signal_event(self,signal_id):
         """Read the canonical lifecycle row for one signal by its event id.
 
@@ -592,9 +574,7 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return [dict(x) for x in rows]
 
     def mark_reminder_sent(self,key,sent_at):
-        with self._connect() as c:
-            c.execute(
-                "UPDATE signals SET send_count=2,reminder_sent=1,last_sent_at=? WHERE signal_key=? AND send_count=1",
-                (sent_at,key),
-            )
-            c.commit()
+        def write():
+            with self._connect() as c:
+                c.execute("UPDATE signals SET send_count=2,reminder_sent=1,last_sent_at=? WHERE signal_key=? AND send_count=1",(sent_at,key))
+        return self._retry_turso_operation(write,operation_name="mark reminder sent")

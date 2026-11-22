@@ -135,7 +135,10 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
         results=SERVICE.scan_and_dispatch(strategy_id,now=current,period=period,send=send)
     except Exception as exc:
         payload={"checked":0,"directional":0,"sent":0,"errors":1,"error":str(exc)}
-        DB.record_scan_run(run_id,strategy_id,current.isoformat(),"FAILED",payload,now().isoformat())
+        try:
+            DB.record_scan_run(run_id,strategy_id,current.isoformat(),"FAILED",payload,now().isoformat())
+        except Exception:
+            logger.exception("Failed to persist FAILED scan history | strategy=%s run_id=%s",strategy_id,run_id)
         with LOCK: LAST_SCANS[strategy_id].update(status="ERROR",at=current.isoformat(),**payload)
         raise
     payload={"checked":len(results),"directional":sum(r.signal.is_directional for r in results),"sent":sum(r.sent for r in results),"errors":sum(r.reason.startswith("MARKET_DATA_ERROR") or r.reason=="TELEGRAM_FAILED" for r in results)}
@@ -146,7 +149,12 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     if directional:
         logger.info("Directional dispatch | strategy=%s | outcomes=%s",strategy_id,"; ".join("{}:{}:{}:sent={}".format(r.symbol,r.signal.direction,r.reason,r.sent) for r in directional))
     logger.info("Scan complete | strategy=%s | checked=%s | buy=%s | sell=%s | no_signal=%s | sent=%s | errors=%s | reasons=%s | elapsed_ms=%s",strategy_id,payload["checked"],payload["buy"],payload["sell"],payload["no_signal"],payload["sent"],payload["errors"],reasons,round((time.monotonic()-started)*1000))
-    DB.record_scan_run(run_id,strategy_id,current.isoformat(),status,payload,now().isoformat())
+    try:
+        DB.record_scan_run(run_id,strategy_id,current.isoformat(),status,payload,now().isoformat())
+    except Exception:
+        # The scan and its side effects have already completed. Do not replay
+        # trading or Telegram delivery because only history finalization failed.
+        logger.exception("Scan completed but final history persistence failed | strategy=%s run_id=%s",strategy_id,run_id)
     with LOCK:
         info=LAST_SCANS[strategy_id]
         info.update(

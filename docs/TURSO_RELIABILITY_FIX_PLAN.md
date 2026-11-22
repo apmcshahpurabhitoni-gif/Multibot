@@ -75,13 +75,15 @@ The current code has several concrete weaknesses:
    - Verify non-idempotent delivery/counter operations are not blindly retried.
    - Verify explicit commit plus context exit does not issue a second commit.
    - Verify local SQLite behavior and calendar persistence remain compatible.
-2. `tests/test_sweep_market_data_errors.py`
+2. `tests/test_runtime_lifecycle.py`
+   - Verify typed SQL errors preserve the Hrana detail through the remote adapter.
+3. `tests/test_sweep_market_data_errors.py`
    - Confirm real market-data failures retain their current diagnostics.
    - Confirm a typed database failure is not converted into a market-data error signal.
-3. `tests/test_main.py` or a focused new scan-cycle test
+4. `tests/test_main.py`
    - Confirm failure to persist the initial RUNNING row prevents trading.
    - Confirm failure to persist the final row does not replay a completed scan or duplicate Telegram/trade side effects.
-4. Run the full existing test suite and schema-parity checks.
+5. Run the full existing test suite and schema-parity checks.
 
 ## 3. Files intentionally not planned for modification
 
