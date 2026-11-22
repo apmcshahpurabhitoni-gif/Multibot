@@ -154,3 +154,19 @@ def test_strategy_service_propagates_lease_loss():
     )
     with pytest.raises(RuntimeLeadershipError, match="lease lost"):
         service._check_runtime_guard()
+
+
+def test_runtime_guard_caches_remote_lease_verification(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main, "RUNTIME_LEASE_REQUIRED", True)
+    monkeypatch.setattr(main, "RUNTIME_LEADER", True)
+    monkeypatch.setattr(main, "RUNTIME_OWNER_ID", "process-a")
+    monkeypatch.setattr(main, "STOP", threading.Event())
+    monkeypatch.setattr(main, "RUNTIME_LEASE_LAST_VERIFIED", 0.0)
+    monkeypatch.setattr(main, "RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS", 5.0)
+    monkeypatch.setattr(main, "RUNTIME_LEASE_VERIFY_LOCK", threading.Lock())
+    monkeypatch.setattr(main.DB, "runtime_lease_is_owned", lambda owner: calls.append(owner) or True)
+
+    main._require_runtime_leader()
+    main._require_runtime_leader()
+    assert calls == ["process-a"]
