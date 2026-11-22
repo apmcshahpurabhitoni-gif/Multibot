@@ -6,7 +6,7 @@ import json
 import logging
 import pandas as pd
 from config import ACCOUNT_SIZES,LIVE_ASSET_MAP,USD_TO_INR,account_names,assets_for_strategy,resolve_account
-from db import DatabaseManager
+from db import DatabaseError,DatabaseManager
 from notification_service import NotificationService
 from signal_gate import SignalGate
 from signal_lifecycle import new_signal_id,signal_key
@@ -55,6 +55,8 @@ class StrategyService:
         try:
             raw=self.engine.fetch(strategy,symbol,period=period,provenance=provenance)
             signal,prepared=self.engine.evaluate(strategy,symbol,now=current,period=period,candles=raw)
+        except DatabaseError:
+            raise
         except Exception as exc:
             self._attach_market_data_diagnostics(exc,strategy=strategy,asset=asset,symbol=symbol,provenance=provenance,scan_ts=current)
             raise
@@ -186,6 +188,8 @@ class StrategyService:
             if isinstance(value,pd.Series):
                 value=value.iloc[0]
             return float(value)
+        except DatabaseError:
+            raise
         except Exception as exc:
             logger.warning("Current price lookup failed for %s: %s",symbol,exc)
             return None
@@ -228,7 +232,7 @@ class StrategyService:
                         signal=Signal(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp,signal.timeframe,signal.reason,signal.entry,signal.stop_loss,signal.take_profit,metadata)
                         price=float(resolved_price)
                 results.append(self.dispatch(strategy_id,asset.symbol,signal,current_price=price or 0.0,now=current,send=send))
-            except RuntimeLeadershipError:
+            except (RuntimeLeadershipError,DatabaseError):
                 raise
             except Exception as exc:
                 signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)} if not getattr(exc,"diagnostics",None) else {"error":str(exc),"diagnostics":exc.diagnostics})

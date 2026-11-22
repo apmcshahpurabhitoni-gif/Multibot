@@ -25,7 +25,7 @@ import pytest
 
 import config  # noqa: F401  # strategy discovery must precede sweep_engine
 from config import IST_TIMEZONE, LIVE_ASSET_MAP
-from db import DatabaseManager
+from db import DatabaseError, DatabaseManager
 from market_data import (
     MarketDataError,
     find_invalid_ohlc_rows,
@@ -423,3 +423,25 @@ def test_quarantine_never_repairs_values():
 
     assert len(issues) == 1
     pd.testing.assert_frame_equal(clean, before)
+
+
+def test_database_failure_is_not_misreported_as_market_data_error(tmp_path, monkeypatch):
+    class _DatabaseFailureProvider:
+        def fetch(self, symbol, *, period, interval, validate_hourly=True, provenance=None):
+            raise DatabaseError("Turso commit failed: SQLITE_BUSY")
+
+    service = StrategyService(
+        registry=discover_strategies(),
+        provider=_DatabaseFailureProvider(),
+        database=DatabaseManager(str(tmp_path / "database-failure.db")),
+        accounts={"sweep_4h": AccountState("sweep_4h", 100000.0, 100000.0, 0.0, 0)},
+    )
+    monkeypatch.setattr(
+        "strategy_service.assets_for_strategy",
+        lambda strategy_id: [LIVE_ASSET_MAP[SYMBOL]],
+    )
+
+    with pytest.raises(DatabaseError, match="SQLITE_BUSY"):
+        service.scan_and_dispatch("sweep_v2", now=NOW, send=False)
+
+    assert service.database.load_signal_history(10) == []

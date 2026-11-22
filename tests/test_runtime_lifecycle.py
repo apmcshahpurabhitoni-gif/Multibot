@@ -281,7 +281,7 @@ def test_web_server_retries_address_in_use_without_exiting_runtime(monkeypatch):
     assert main.HTTP_SERVER is None
 
 
-def test_remote_connection_preserves_original_error_when_rollback_also_fails():
+def test_remote_connection_wraps_statement_error_without_masking_it():
     import db as db_module
 
     class BrokenTursoConnection:
@@ -298,6 +298,6 @@ def test_remote_connection_preserves_original_error_when_rollback_also_fails():
             pass
 
     remote=db_module._RemoteConnection(BrokenTursoConnection())
-    with pytest.raises(ValueError, match="stream was idle for too long"):
+    with pytest.raises(db_module.DatabaseError, match="stream was idle for too long"):
         with remote as connection:
             connection.execute("UPDATE runtime_leases SET owner_id=?",("process-a",))
