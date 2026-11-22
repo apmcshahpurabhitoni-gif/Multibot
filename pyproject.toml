@@ -7,7 +7,7 @@ name = "multibot2"
 version = "3.5.0"
 description = "Mavis MULTIBOT2 paper-trading bot"
 requires-python = ">=3.11"
-dependencies = ["pandas>=2.2,<3", "yfinance>=0.2.50,<1", "requests>=2.31,<3", "beautifulsoup4>=4.12,<5"]
+dependencies = ["pandas>=2.2,<3", "yfinance>=0.2.50,<1", "requests>=2.31,<3", "beautifulsoup4>=4.12,<5", "libsql==0.1.11"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]

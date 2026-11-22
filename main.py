@@ -214,11 +214,11 @@ def _scan_snapshot():
 def snapshot():
     ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
     failed_deliveries=DB.failed_deliveries(20)
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"SUPABASE+SQLITE" if DB.supabase_enabled else "SQLITE_FALLBACK","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"TURSO" if DB.turso_enabled else "LOCAL_SQLITE","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
 # Scan-level error alerts are edge-triggered and durable: an asset outage that
 # fails every sweep must not post one bubble per sweep, and a Render redeploy or
 # process restart must not forget an open incident. The incident record lives in
-# db.scan_error_alerts (SQLite primary, Supabase mirror), keyed per strategy:
+# db.scan_error_alerts (Turso primary, local SQLite for development), keyed per strategy:
 # the first scan with errors alerts; repeats with the same failing-asset set and
 # error classes stay silent (every sweep still logs full technical detail and
 # records a scan_runs row); a changed failure set alerts immediately; an
@@ -308,7 +308,7 @@ def _notify_scan(run_id,strategy_id,payload,results,*,at=None):
     traffic -- the delivery fan-out never falls back to the default Telegram chat
     for SCAN, which is what posted a "Scan complete" bubble every sweep.
     `audit=False` because a scan run has no signal_events row, and
-    signal_deliveries.signal_id is a foreign key into that table in Supabase.
+    signal_deliveries.signal_id is a foreign key into that table.
 
     Repeated ERROR notifications are deduplicated by the persisted incident in
     db.scan_error_alerts (see scan_error_alert_decision): strict validation and

@@ -318,37 +318,6 @@ def test_process_restart_keeps_suppression(monkeypatch, tmp_path):
     assert len(notifier.calls) == 1  # still suppressed after restart
 
 
-def test_redeploy_restores_incident_from_supabase_mirror(monkeypatch, tmp_path):
-    """Wiped local disk (Render redeploy) rehydrates the incident from remote."""
-    from db import DatabaseManager as DB
-
-    source = DB(str(tmp_path / "source.db"))
-    first = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
-    source.save_scan_error_alert(
-        "sweep_v2", "MARKET_DATA_ERROR@BTC-USD",
-        first_sent_at=first.isoformat(), last_sent_at=first.isoformat(),
-    )
-    remote_rows = [source.load_scan_error_alert("sweep_v2")]
-
-    monkeypatch.setattr(DB, "supabase_enabled", True)
-    monkeypatch.setattr(
-        DB, "_supabase_request",
-        lambda self, method, table, **kw: (remote_rows if method == "GET" else True),
-    )
-    wiped = DB(str(tmp_path / "wiped.db"))  # empty local disk at boot
-
-    restored = wiped.load_scan_error_alert("sweep_v2")
-    assert restored is not None
-    assert restored["fingerprint"] == "MARKET_DATA_ERROR@BTC-USD"
-
-    import main
-    decision = main.scan_error_alert_decision(
-        restored, "MARKET_DATA_ERROR@BTC-USD",
-        now=first + timedelta(minutes=5),
-    )
-    assert decision == "suppress"  # redeploy did not re-arm the alert
-
-
 def test_different_asset_failure_sends_a_new_alert(monkeypatch, tmp_path):
     main = main_module()
     notifier, db = _wire(monkeypatch, tmp_path)

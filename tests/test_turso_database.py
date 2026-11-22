@@ -1,0 +1,129 @@
+import sqlite3
+import sys
+import types
+
+import db as db_module
+from db import DatabaseManager
+
+
+def _fake_libsql_module(remote_path):
+    def connect(database, auth_token):
+        assert database.startswith("libsql://")
+        assert auth_token == "test-token"
+        return sqlite3.connect(remote_path, timeout=30)
+    return types.SimpleNamespace(connect=connect)
+
+
+def test_turso_remote_database_survives_manager_restart(tmp_path, monkeypatch):
+    remote_path = str(tmp_path / "turso-primary.db")
+    monkeypatch.setattr(db_module, "TURSO_DATABASE_URL", "libsql://unit-test.aws-ap-south-1.turso.io")
+    monkeypatch.setattr(db_module, "TURSO_AUTH_TOKEN", "test-token")
+    monkeypatch.setattr(db_module, "DEFAULT_DB_PATH", str(tmp_path / "unused-default.db"))
+    monkeypatch.setitem(sys.modules, "libsql", _fake_libsql_module(remote_path))
+
+    first = DatabaseManager(str(tmp_path / "ephemeral-a.db"))
+    first.load_accounts(("sweep_4h",), 100000, "2026-11-22")
+    first.save_account(
+        "sweep_4h",
+        balance=98500,
+        trades_today=1,
+        planned_risk_used=2000,
+        reset_date="2026-11-22",
+    )
+    first.record_scan_run("run-1", "sweep_v2", "2026-11-22T10:00:00+05:30", "OK", {"checked": 25})
+    first.save_trade("trade-1", "CLOSED", {"symbol": "BTC-USD", "account": "sweep_4h", "pnl": 1200}, "2026-11-22T10:05:00+05:30")
+    first.record_signal_send("sweep_v2|BTC-USD|BUY|candle-1", "2026-11-22T10:06:00+05:30")
+    first.save_scan_error_alert(
+        "sweep_v2", "MARKET_DATA_ERROR@BTC-USD",
+        first_sent_at="2026-11-22T10:00:00+05:30",
+        last_sent_at="2026-11-22T10:00:00+05:30",
+    )
+    first.save_market_data_cache(
+        "test-cache", "BTC-USD", "30d", "1h", True,
+        '{"close":100}', "2026-11-22T10:00:00+05:30",
+    )
+
+    # A new app container has a different local path but reconnects to the same
+    # remote Turso database and sees the previous account and scan history.
+    restarted = DatabaseManager(str(tmp_path / "ephemeral-b.db"))
+    account = restarted.load_accounts(("sweep_4h",), 100000, "2026-11-22")["sweep_4h"]
+    assert account["balance"] == 98500
+    assert account["trades_today"] == 1
+    assert account["planned_risk_used"] == 2000
+    assert restarted.load_scan_runs()[0]["id"] == "run-1"
+    assert restarted.load_trades("CLOSED")[0]["pnl"] == 1200
+    assert restarted.signal_count("sweep_v2|BTC-USD|BUY|candle-1") == 1
+    assert restarted.load_scan_error_alert("sweep_v2")["fingerprint"] == "MARKET_DATA_ERROR@BTC-USD"
+    assert restarted.load_market_data_cache("test-cache")["payload"] == '{"close":100}'
+    assert restarted.market_data_cache_health() == {"enabled": True, "remote": True, "reason": "OK"}
+
+
+def test_turso_imports_existing_local_sqlite_state_once(tmp_path, monkeypatch):
+    local_path = str(tmp_path / "legacy-state.db")
+    legacy = DatabaseManager(local_path)
+    legacy.load_accounts(("macro",), 100000, "2026-11-22")
+    legacy.save_account(
+        "macro",
+        balance=97000,
+        trades_today=2,
+        planned_risk_used=4000,
+        reset_date="2026-11-22",
+    )
+    legacy.save_trade(
+        "trade-1",
+        "CLOSED",
+        {"symbol": "BTC-USD", "account": "macro", "pnl": 1500},
+        "2026-11-22T10:00:00+05:30",
+    )
+
+    remote_path = str(tmp_path / "turso-migration.db")
+    monkeypatch.setattr(db_module, "TURSO_DATABASE_URL", "libsql://unit-test.aws-ap-south-1.turso.io")
+    monkeypatch.setattr(db_module, "TURSO_AUTH_TOKEN", "test-token")
+    monkeypatch.setattr(db_module, "DEFAULT_DB_PATH", str(tmp_path / "unused-default.db"))
+    monkeypatch.setitem(sys.modules, "libsql", _fake_libsql_module(remote_path))
+
+    migrated = DatabaseManager(local_path)
+    account = migrated.load_accounts(("macro",), 100000, "2026-11-22")["macro"]
+    assert account["balance"] == 97000
+    assert account["trades_today"] == 2
+    assert migrated.load_trades("CLOSED")[0]["pnl"] == 1500
+
+    # Reopening must not re-import stale local rows over later remote changes.
+    migrated.save_account(
+        "macro",
+        balance=96000,
+        trades_today=3,
+        planned_risk_used=6000,
+        reset_date="2026-11-22",
+    )
+    reopened = DatabaseManager(local_path)
+    assert reopened.load_accounts(("macro",), 100000, "2026-11-22")["macro"]["balance"] == 96000
+
+
+def test_partial_turso_configuration_fails_clearly(tmp_path, monkeypatch):
+    monkeypatch.setattr(db_module, "TURSO_DATABASE_URL", "libsql://unit-test.aws-ap-south-1.turso.io")
+    monkeypatch.setattr(db_module, "TURSO_AUTH_TOKEN", "")
+    import pytest
+    with pytest.raises(db_module.DatabaseError, match="must both be configured"):
+        DatabaseManager(str(tmp_path / "state.db"))
+
+
+def test_calendar_cache_uses_turso_as_its_durable_store(tmp_path, monkeypatch):
+    remote_path = str(tmp_path / "turso-calendar.db")
+    monkeypatch.setattr(db_module, "TURSO_DATABASE_URL", "libsql://unit-test.aws-ap-south-1.turso.io")
+    monkeypatch.setattr(db_module, "TURSO_AUTH_TOKEN", "test-token")
+    monkeypatch.setattr(db_module, "DEFAULT_DB_PATH", str(tmp_path / "unused-default.db"))
+    monkeypatch.setitem(sys.modules, "libsql", _fake_libsql_module(remote_path))
+
+    from calendar_store import CalendarStore
+
+    first = CalendarStore(str(tmp_path / "calendar-a.db"))
+    events = [{"id": "event-1", "title": "CPI", "impact": "High"}]
+    first.save_week("forex_factory", "2026-11-23", events)
+
+    restarted = CalendarStore(str(tmp_path / "calendar-b.db"))
+    restored, fetched_at = restarted.load_week("forex_factory", "2026-11-23")
+    assert restored == events
+    assert fetched_at
+    latest, _ = restarted.load_latest()
+    assert latest == events

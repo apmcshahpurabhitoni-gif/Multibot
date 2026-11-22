@@ -22,7 +22,7 @@ Starting account: ₹100,000
 Base risk per trade: ₹2,000
 Leverage: 1.0x
 Freshness: exactly 1 hour
-Persistence: Supabase authoritative + SQLite fallback
+Persistence: Turso/libSQL primary; local SQLite for development and one-time legacy-state import
 ```
 
 Canonical dashboard URL:
@@ -522,9 +522,9 @@ trades
 signals
 ```
 
-Supabase is authoritative when configured.
+Turso/libSQL is the authoritative durable database in deployments.
 
-SQLite is local fallback/cache.
+Local SQLite is used for development and for a one-time, non-destructive import of legacy local state.
 
 Signal metadata should preserve strategy version and parameter snapshot.
 
@@ -773,8 +773,8 @@ Required environment variables include:
 ```text
 TELEGRAM_BOT_TOKEN
 TELEGRAM_CHAT_ID
-SUPABASE_URL
-SUPABASE_KEY
+TURSO_DATABASE_URL
+TURSO_AUTH_TOKEN
 WEBHOOK_URL
 DASHBOARD_URL
 ```
@@ -880,11 +880,11 @@ sweep_engine.py
 
 # --- persistence -----------------------------------------------------------
 db.py
-    Supabase/SQLite persistence.
+    Turso/libSQL persistence with local SQLite development fallback.
 schema.sql
-    Canonical Supabase DDL (authoritative).
+    Runtime schema is declared and initialized by db.py for both local SQLite and Turso.
 supabase/schema.sql
-    Byte-mirrored copy of schema.sql; parity enforced by tests/test_schema_parity.py.
+    Legacy Supabase schema retained only for historical reference; not used by the runtime.
 
 # --- news and calendar -----------------------------------------------------
 news.py
