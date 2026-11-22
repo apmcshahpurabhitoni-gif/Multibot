@@ -38,7 +38,7 @@ DOCS = (
 DESIGN_SYSTEM = ("geometry.md", "type.md", "components.md", "motion.md", "icons.md", "validation.md")
 # Root-level, NOT under docs/ -- see module docstring.
 REFERENCE_ROOT = ("AI_REBUILD_SPEC.md", "AI_CONTEXT.md", "STRATEGY_DEVELOPER_GUIDE.md", "DESIGN.md")
-REFERENCE_FLAT = ("MANIFEST.txt", "schema.sql", "render.yaml", "pyproject.toml")
+REFERENCE_FLAT = ("MANIFEST.txt", "schema.sql", "pyproject.toml")
 GUARDS = (
     "test_api_contract.py", "test_contrast_tokens.py", "test_frontend_syntax.py",
     "test_keepalive_health.py", "test_no_wall_clock_dependence.py", "test_rebuild_kit.py",
