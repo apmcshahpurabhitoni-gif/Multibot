@@ -107,3 +107,10 @@ def test_deployed_runtime_requires_shared_turso_lease_backend(monkeypatch):
 
     monkeypatch.setenv("MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE", "true")
     main._validate_runtime_lease_backend()
+
+
+def test_shutdown_drains_workers_before_releasing_lease():
+    source = Path(main.__file__).read_text(encoding="utf-8")
+    shutdown = source.split("deadline=time.monotonic()+45.0", 1)[1]
+    assert shutdown.index("worker.join") < shutdown.index("DB.release_runtime_lease")
+    assert "lease left to expire" in shutdown
