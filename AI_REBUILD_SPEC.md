@@ -28,7 +28,7 @@ Persistence: Turso/libSQL primary; local SQLite for development and one-time leg
 Canonical dashboard URL:
 
 ```text
-https://multibot2-t74l.onrender.com/dashboard
+https://multibot-1d1fdf1c.aic.com/dashboard
 ```
 
 ---
@@ -748,7 +748,7 @@ No component should fabricate market data.
 
 # 23. Startup/deployment
 
-Render has one web service.
+AIC Cloud is the sole hosting and deployment platform. It runs one application service.
 
 Build:
 
@@ -940,8 +940,8 @@ appearance-overrides.css
 # --- delivery of the build -------------------------------------------------
 pyproject.toml
     Version, dependency pins, py-modules inventory.
-render.yaml
-    Deployment contract; Render runs `python main.py`; AIC Cloud runs `./.venv/bin/python main.py`. Both must use main.py as the sole runtime entrypoint.
+AIC Cloud
+    Sole deployment target; run `./.venv/bin/python main.py` with the required runtime environment variables.
 tests/
     Contract regression suite.
 tools/check_release_docs.py

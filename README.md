@@ -417,11 +417,10 @@ pip install -e ".[test]"
 python main.py
 ```
 
-Both platforms execute the same canonical entrypoint; only the virtual-environment interpreter path differs:
+AIC Cloud is the sole deployment target and executes the canonical entrypoint:
 
 ```text
-AIC Cloud: ./.venv/bin/python main.py
-Render:    python main.py
+./.venv/bin/python main.py
 ```
 
 `startup.py` remains only as a backward-compatible launcher and delegates to `main.py`; it never sends a separate startup message or starts a second runtime.
@@ -435,7 +434,7 @@ Health endpoint:
 Dashboard:
 
 ```text
-https://multibot2-t74l.onrender.com/dashboard
+https://multibot-1d1fdf1c.aic.com/dashboard
 ```
 
 ---

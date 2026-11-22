@@ -19,7 +19,7 @@ FILES = [
     )],
     *[(f"reference/{name}", name) for name in (
         "AI_REBUILD_SPEC.md", "AI_CONTEXT.md", "STRATEGY_DEVELOPER_GUIDE.md", "DESIGN.md",
-        "MANIFEST.txt", "schema.sql", "render.yaml", "pyproject.toml",
+        "MANIFEST.txt", "schema.sql", "pyproject.toml",
     )],
     *[(f"guards/{name}", f"tests/{name}") for name in (
         "test_api_contract.py", "test_contrast_tokens.py", "test_frontend_syntax.py",

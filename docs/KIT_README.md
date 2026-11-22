@@ -39,7 +39,7 @@ likely to hit.
 ### `reference/` — the backend you are NOT rewriting
 `AI_REBUILD_SPEC.md` (full contract, §1–30) · `AI_CONTEXT.md` (orientation) ·
 `STRATEGY_DEVELOPER_GUIDE.md` · `DESIGN.md` (current UI ownership) ·
-`MANIFEST.txt` · `schema.sql` (legacy Supabase reference, not runtime DDL) · `render.yaml` (deploy) ·
+`MANIFEST.txt` · `schema.sql` (legacy Supabase reference, not runtime DDL) ·
 `pyproject.toml` (deps, version) · `strategies/` (the strategy contract).
 
 `reference/strategies/` is a **byte-identical copy of the repo's `strategies/`
