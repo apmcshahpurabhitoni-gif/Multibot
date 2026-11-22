@@ -907,6 +907,11 @@ def main():
                         # fails, release the lease so another healthy instance can try.
                         try:
                             ensure_runtime()
+                            # Initialization/migration may take time on a cold
+                            # deployment. Re-claim immediately before workers
+                            # start so an expired lease cannot activate a stale owner.
+                            if not DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS):
+                                raise RuntimeError("Runtime lease was lost during initialization")
                         except Exception:
                             DB.release_runtime_lease(RUNTIME_OWNER_ID)
                             raise
