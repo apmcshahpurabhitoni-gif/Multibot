@@ -10,6 +10,7 @@ from db import DatabaseManager
 from notification_service import NotificationService
 from signal_gate import SignalGate
 from signal_lifecycle import new_signal_id,signal_key
+from market_sessions import market_session_status
 from strategy_engine import StrategyEngine
 from strategies.base import Signal
 from telegram import TelegramConfig,TelegramMessage,render_signal_message,signal_rejection_message
@@ -194,8 +195,17 @@ class StrategyService:
         # assets_for_strategy() is the manifest unioned with any asset the
         # operator assigned to this strategy from the dashboard, so an added
         # asset is actually scanned instead of only appearing in the universe.
+        closed_assets = 0
         for asset in assets_for_strategy(strategy_id):
             self._check_runtime_guard()
+            session = market_session_status(asset, current.to_pydatetime())
+            if not session.is_open:
+                closed_assets += 1
+                logger.info(
+                    "Market closed; scan skipped | strategy=%s symbol=%s market=%s reason=%s at=%s",
+                    strategy_id, asset.symbol, session.market, session.reason, current.isoformat(),
+                )
+                continue
             try:
                 pause = self.news_gate.check(asset,current) if self.news_gate else None
                 if pause:
@@ -224,4 +234,9 @@ class StrategyService:
                 signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)} if not getattr(exc,"diagnostics",None) else {"error":str(exc),"diagnostics":exc.diagnostics})
                 key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"ERROR")
                 results.append(self._result(asset.symbol,signal,resolve_account(strategy_id,asset,current,strategy.manifest.account),f"MARKET_DATA_ERROR: {exc}",signal_id=sid))
+        if closed_assets:
+            logger.info(
+                "Market-session gate summary | strategy=%s scanned=%d skipped_closed=%d",
+                strategy_id, len(results), closed_assets,
+            )
         return results
