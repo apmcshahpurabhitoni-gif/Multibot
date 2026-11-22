@@ -48,7 +48,7 @@ def build_archive(output: str | Path) -> Path:
             source = ROOT / source_name
             if not source.is_file():
                 raise FileNotFoundError(f"Required rebuild-kit source is missing: {source_name}")
-            archive.write(source, archive_name)
+            archive.write(source, f"multibot2-ai-rebuild-kit/{archive_name}")
     return output
 
 
