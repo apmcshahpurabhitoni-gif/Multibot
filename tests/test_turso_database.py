@@ -134,6 +134,7 @@ def test_market_data_cache_read_retries_transient_turso_error_with_fresh_connect
     import db as db_module
 
     database = DatabaseManager(str(tmp_path / "cache-read.db"))
+    database.turso_enabled = True
     monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
     connections = []
 
@@ -182,6 +183,7 @@ def test_market_data_cache_upsert_retries_transient_turso_error(tmp_path, monkey
     import db as db_module
 
     database = DatabaseManager(str(tmp_path / "cache-write.db"))
+    database.turso_enabled = True
     monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
     connections = []
 
