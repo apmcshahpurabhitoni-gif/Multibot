@@ -127,3 +127,92 @@ def test_calendar_cache_uses_turso_as_its_durable_store(tmp_path, monkeypatch):
     assert fetched_at
     latest, _ = restarted.load_latest()
     assert latest == events
+
+
+
+def test_market_data_cache_read_retries_transient_turso_error_with_fresh_connection(tmp_path, monkeypatch):
+    import db as db_module
+
+    database = DatabaseManager(str(tmp_path / "cache-read.db"))
+    monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
+    connections = []
+
+    class Cursor:
+        def fetchone(self):
+            return {
+                "cache_key": "BTC-USD|1d|1h|0",
+                "symbol": "BTC-USD",
+                "period": "1d",
+                "interval": "1h",
+                "validate_hourly": 0,
+                "payload": '{"close":100}',
+                "updated_at": "2026-11-22T10:00:00+00:00",
+            }
+
+    class FakeConnection:
+        def __init__(self, fail):
+            self.fail = fail
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def execute(self, sql, parameters=()):
+            if self.fail:
+                raise RuntimeError(
+                    "interactive transaction was rolled back because the stream "
+                    "was idle for too long; retry the transaction (SQLITE_BUSY)"
+                )
+            return Cursor()
+
+    def connect():
+        connection = FakeConnection(fail=not connections)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(database, "_connect", connect)
+    row = database.load_market_data_cache("BTC-USD|1d|1h|0")
+    assert row["payload"] == '{"close":100}'
+    assert len(connections) == 2
+
+
+def test_market_data_cache_upsert_retries_transient_turso_error(tmp_path, monkeypatch):
+    import db as db_module
+
+    database = DatabaseManager(str(tmp_path / "cache-write.db"))
+    monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
+    connections = []
+
+    class FakeConnection:
+        def __init__(self, fail):
+            self.fail = fail
+            self.executed = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def execute(self, sql, parameters=()):
+            self.executed = True
+            if self.fail:
+                raise RuntimeError(
+                    "interactive transaction was rolled back because the stream "
+                    "was idle for too long; retry the transaction (SQLITE_BUSY)"
+                )
+
+    def connect():
+        connection = FakeConnection(fail=not connections)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(database, "_connect", connect)
+    database.save_market_data_cache(
+        "BTC-USD|1d|1h|0", "BTC-USD", "1d", "1h", False,
+        '{"close":100}', "2026-11-22T10:00:00+00:00",
+    )
+    assert len(connections) == 2
+    assert all(connection.executed for connection in connections)
