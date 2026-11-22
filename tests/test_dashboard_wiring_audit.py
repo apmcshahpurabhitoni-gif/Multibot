@@ -29,12 +29,14 @@ def test_dashboard_trade_serializer_preserves_operational_fields():
         assert token in source
 
 
-def test_signal_history_restore_covers_signal_events_and_deliveries():
+def test_signal_history_and_deliveries_use_the_durable_database():
     source = (ROOT / "db.py").read_text(encoding="utf-8")
-    assert '_restore_signal_events_if_needed()' in source
-    assert '_restore_deliveries_if_needed()' in source
-    assert 'signal_deliveries' in source
-    assert 'if any(c.execute(f"SELECT 1 FROM {t} LIMIT 1")' not in source
+    assert "CREATE TABLE IF NOT EXISTS signal_events" in source
+    assert "CREATE TABLE IF NOT EXISTS deliveries" in source
+    assert "def load_signal_history" in source
+    assert "def delivery_status" in source
+    assert "libsql.connect(TURSO_DATABASE_URL,auth_token=TURSO_AUTH_TOKEN)" in source
+    assert "_supabase_request" not in source
 
 
 def test_appearance_bridge_does_not_double_bind_existing_runtime_controls():
