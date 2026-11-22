@@ -30,7 +30,7 @@ def test_comex_sunday_reopens_at_1800_new_york():
     assert market_session_status(item, stamp("2026-11-23 04:30:00+05:30")).is_open
 
 def test_comex_daily_maintenance_break():
-    assert not market_session_status(asset("Gold","commodity"), stamp("2026-11-23 03:45:00+05:30")).is_open
+    assert not market_session_status(asset("Gold","commodity"), stamp("2026-11-24 03:45:00+05:30")).is_open
 
 def test_forex_week_opens_sunday_1700_new_york():
     item = asset("Forex","forex")
