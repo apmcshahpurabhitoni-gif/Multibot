@@ -37,6 +37,9 @@ RUNTIME_LEASE_HEARTBEAT_SECONDS=15
 RUNTIME_OWNER_ID=None
 RUNTIME_LEADER=False
 RUNTIME_LEASE_REQUIRED=False
+RUNTIME_LEASE_LAST_VERIFIED=0.0
+RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS=5.0
+RUNTIME_LEASE_VERIFY_LOCK=threading.Lock()
 HTTP_SERVER=None
 REMINDER_THREAD=None
 WORKER_THREADS={}
@@ -85,26 +88,34 @@ def ensure_runtime():
                 {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
             )
 def _require_runtime_leader():
-    global RUNTIME_LEADER
+    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED
     if not RUNTIME_LEASE_REQUIRED:
         return
     if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
         raise RuntimeLeadershipError("This process is not the active MULTIBOT2 runtime leader")
-    # A worker may wake after a long scheduler pause. Re-check the durable owner
-    # before starting a strategy cycle so an expired/stolen lease cannot resume
-    # trading merely because this process still has a stale in-memory flag.
-    try:
-        owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
-    except Exception:
-        RUNTIME_LEADER=False
-        STOP.set()
-        if REMINDERS is not None: REMINDERS.stop()
-        raise RuntimeLeadershipError("Runtime lease could not be verified; trading stopped")
-    if not owned:
-        RUNTIME_LEADER=False
-        STOP.set()
-        if REMINDERS is not None: REMINDERS.stop()
-        raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
+    # Guard every asset and dispatch boundary, but amortize the remote read:
+    # the lease heartbeat is 15s and a verification is cached for at most 5s.
+    # A process resuming after a long pause always re-checks before trading.
+    verified_at=time.monotonic()
+    if verified_at-RUNTIME_LEASE_LAST_VERIFIED<RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS:
+        return
+    with RUNTIME_LEASE_VERIFY_LOCK:
+        verified_at=time.monotonic()
+        if verified_at-RUNTIME_LEASE_LAST_VERIFIED<RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS:
+            return
+        try:
+            owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
+        except Exception:
+            RUNTIME_LEADER=False
+            STOP.set()
+            if REMINDERS is not None: REMINDERS.stop()
+            raise RuntimeLeadershipError("Runtime lease could not be verified; trading stopped")
+        if not owned:
+            RUNTIME_LEADER=False
+            STOP.set()
+            if REMINDERS is not None: REMINDERS.stop()
+            raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
+        RUNTIME_LEASE_LAST_VERIFIED=verified_at
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     _require_runtime_leader()
@@ -867,7 +878,7 @@ def _validate_runtime_lease_backend():
         )
 
 def main():
-    global _MAIN_STARTED,RUNTIME_OWNER_ID,RUNTIME_LEADER,RUNTIME_LEASE_REQUIRED
+    global _MAIN_STARTED,RUNTIME_OWNER_ID,RUNTIME_LEADER,RUNTIME_LEASE_REQUIRED,RUNTIME_LEASE_LAST_VERIFIED
     try:
         _validate_runtime_lease_backend()
     except Exception as exc:
@@ -881,6 +892,7 @@ def main():
 
     STOP.clear()
     RUNTIME_LEASE_REQUIRED=True
+    RUNTIME_LEASE_LAST_VERIFIED=0.0
     RUNTIME_OWNER_ID=f"{os.getenv('HOSTNAME','host')}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
     logger.info("Runtime process booting | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
 
@@ -912,6 +924,7 @@ def main():
                             # start so an expired lease cannot activate a stale owner.
                             if not DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS):
                                 raise RuntimeError("Runtime lease was lost during initialization")
+                            RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
                         except Exception:
                             DB.release_runtime_lease(RUNTIME_OWNER_ID)
                             raise
@@ -924,6 +937,7 @@ def main():
             else:
                 try:
                     renewed=DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS)
+                    if renewed: RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
                 except Exception:
                     logger.exception("Runtime lease heartbeat failed; stopping trading workers | pid=%s",os.getpid())
                     renewed=False
