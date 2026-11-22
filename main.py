@@ -1,6 +1,6 @@
 """MULTIBOT2 runtime: registry-driven strategies, one shared trade lifecycle."""
 from __future__ import annotations
-import hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
+import errno, hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
 from urllib import parse, request
 from wsgiref.simple_server import make_server
 import pandas as pd
@@ -751,7 +751,7 @@ def web_server():
             server.serve_forever()
             return
         except OSError as exc:
-            if exc.errno==98 and not STOP.is_set():
+            if exc.errno==errno.EADDRINUSE and not STOP.is_set():
                 # Another process may already own the shared application port.
                 # Keep this runtime alive and retry; do not kill its trading
                 # supervisor just because this process cannot bind the UI yet.
