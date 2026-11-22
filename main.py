@@ -1,6 +1,6 @@
 """MULTIBOT2 runtime: registry-driven strategies, one shared trade lifecycle."""
 from __future__ import annotations
-import hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
+import errno, hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
 from urllib import parse, request
 from wsgiref.simple_server import make_server
 import pandas as pd
@@ -741,19 +741,35 @@ def build_app():
     return app
 def web_server():
     global HTTP_SERVER
-    server=None
-    try:
-        server=make_server("0.0.0.0",int(os.getenv("PORT","10000")),build_app())
-        with LOCK: HTTP_SERVER=server
-        logger.info("Dashboard HTTP server listening | port=%s pid=%s",os.getenv("PORT","10000"),os.getpid())
-        server.serve_forever()
-    except Exception:
-        logger.exception("Dashboard HTTP server stopped unexpectedly | pid=%s",os.getpid())
-    finally:
-        if server is not None:
-            try: server.server_close()
-            except Exception: logger.exception("Dashboard HTTP server close failed")
-        with LOCK: HTTP_SERVER=None
+    port=int(os.getenv("PORT","10000"))
+    while not STOP.is_set():
+        server=None
+        try:
+            server=make_server("0.0.0.0",port,build_app())
+            with LOCK: HTTP_SERVER=server
+            logger.info("Dashboard HTTP server listening | port=%s pid=%s",port,os.getpid())
+            server.serve_forever()
+            return
+        except OSError as exc:
+            if exc.errno==errno.EADDRINUSE and not STOP.is_set():
+                # Another process may already own the shared application port.
+                # Keep this runtime alive and retry; do not kill its trading
+                # supervisor just because this process cannot bind the UI yet.
+                logger.warning("Dashboard port already in use | port=%s pid=%s retry_in=5s",port,os.getpid())
+                STOP.wait(5)
+                continue
+            logger.exception("Dashboard HTTP server stopped unexpectedly | pid=%s",os.getpid())
+            return
+        except Exception:
+            logger.exception("Dashboard HTTP server stopped unexpectedly | pid=%s",os.getpid())
+            return
+        finally:
+            if server is not None:
+                try: server.server_close()
+                except Exception: logger.exception("Dashboard HTTP server close failed")
+            with LOCK:
+                if HTTP_SERVER is server:
+                    HTTP_SERVER=None
 def _send_chat(chat_id,message):
     config=TelegramConfig.from_env(); target=TelegramConfig(config.bot_token,str(chat_id)); send_message(message if isinstance(message,TelegramMessage) else TelegramMessage("MSG-COMMAND-V1",message),target)
 def _handle_command(chat_id,cmd):
