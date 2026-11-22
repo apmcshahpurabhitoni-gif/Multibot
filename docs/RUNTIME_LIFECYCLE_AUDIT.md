@@ -28,7 +28,8 @@ The repository audit did find deployment lifecycle drift that needed correction 
 ## Lease contract
 
 - Lease key: `primary`
-- Storage: same Turso/libSQL database used by the deployed runtime (SQLite for local development/tests)
+- Storage: same Turso/libSQL database used by every deployed instance (SQLite for local development/tests only)
+- Deployment guard: when `PORT` is set, startup refuses a local-only lease backend unless `MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE=true` is explicitly set for a single-process test
 - TTL: 60 seconds
 - Renewal interval: 15 seconds
 - Claim/renew: one atomic SQLite-compatible UPSERT
