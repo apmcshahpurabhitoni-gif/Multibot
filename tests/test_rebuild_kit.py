@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import filecmp
 import io
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-KIT_ZIP = ROOT / "multibot2-ai-rebuild-kit.zip"
 KIT_PREFIX = "multibot2-ai-rebuild-kit/"
 
 # kit path -> repository path. Kept explicit on purpose: an inferred mapping is
@@ -48,12 +49,20 @@ EXPECTED_FILE_COUNT = 1 + len(DOCS) + len(DESIGN_SYSTEM) + len(REFERENCE_ROOT) +
 
 
 @pytest.fixture(scope="module")
-def archive() -> zipfile.ZipFile:
-    if not KIT_ZIP.is_file():
-        pytest.skip(f"{KIT_ZIP.name} is not built; rebuild it per docs/KIT_README.md")
-    handle = zipfile.ZipFile(KIT_ZIP)
+def archive(tmp_path_factory) -> zipfile.ZipFile:
+    # Build from the current sources instead of trusting a checked-in binary
+    # that can silently drift after any reference/test change.
+    output = tmp_path_factory.mktemp("rebuild-kit") / "multibot2-ai-rebuild-kit.zip"
+    subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "build_rebuild_kit.py"), "--output", str(output)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    handle = zipfile.ZipFile(output)
     bad = handle.testzip()
-    assert bad is None, f"corrupt entry in {KIT_ZIP.name}: {bad}"
+    assert bad is None, f"corrupt entry in generated kit: {bad}"
     return handle
 
 
