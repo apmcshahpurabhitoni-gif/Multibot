@@ -110,7 +110,7 @@ def test_yahoo_empty_response_only_backs_off_the_affected_symbol(monkeypatch):
         provider.fetch("GC=F", period="5d", interval="1h")
 
     # A missing/unsupported Gold interval must not block unrelated symbols.
-    frame = provider.fetch("SBIN.NS", period="5d", interval="1h")
+    frame = provider.fetch("SBIN.NS", period="5d", interval="1h", validate_hourly=False)
     assert not frame.empty
     assert calls == ["GC=F", "SBIN.NS"]
 
