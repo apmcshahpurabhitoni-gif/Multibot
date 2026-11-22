@@ -167,6 +167,7 @@ DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_even
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
 CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempted_at DESC);
+CREATE INDEX IF NOT EXISTS deliveries_signal_id_idx ON deliveries(signal_id,id DESC);
 CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
 """
         with self._connect() as connection:
@@ -535,7 +536,30 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return dict(row) if row else None
 
     def load_signal_history(self,limit=500):
-        with self._connect() as c: rows=c.execute("SELECT * FROM signal_events ORDER BY timestamp DESC LIMIT ?",(max(1,min(int(limit),2000)),)).fetchall()
+        """Load signal rows and their latest delivery/send state in one DB round trip.
+
+        The dashboard displays at most 500 signals. Fetching delivery_status()
+        and signal_send_state() inside this loop used to open two additional
+        Turso connections per signal (up to 1,001 reads for one snapshot).
+        The joins preserve the previous latest-delivery-by-id semantics while
+        keeping the whole history read to one query.
+        """
+        bounded_limit=max(1,min(int(limit),2000))
+        sql="""SELECT e.*,
+                      d.status AS delivery_status,
+                      d.attempted_at AS delivery_attempted_at,
+                      d.error AS delivery_error,
+                      d.message_type AS delivery_message_type,
+                      s.send_count AS state_send_count,
+                      s.first_sent_at AS state_first_sent_at,
+                      s.last_sent_at AS state_last_sent_at
+               FROM signal_events e
+               LEFT JOIN deliveries d
+                 ON d.id=(SELECT MAX(d2.id) FROM deliveries d2 WHERE d2.signal_id=e.signal_id)
+               LEFT JOIN signals s ON s.signal_key=e.signal_key
+               ORDER BY e.timestamp DESC LIMIT ?"""
+        with self._connect() as c:
+            rows=c.execute(sql,(bounded_limit,)).fetchall()
         out=[]
         for r in rows:
             try: metadata=json.loads(r["metadata"] or "{}")
@@ -543,10 +567,15 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             item={k:r[k] for k in ("signal_id","signal_key","strategy","version","symbol","direction","timestamp","timeframe","reason","pipeline_status","created_at","updated_at")}
             item["signal"]=item["direction"]; item["strategy_version"]=item["version"]; item["metadata"]=metadata
             item["entry"]=metadata.get("entry"); item["stop_loss"]=metadata.get("stop_loss"); item["take_profit"]=metadata.get("take_profit")
-            try:
-                item["delivery"]=self.delivery_status(r["signal_id"]); item["send_state"]=self.signal_send_state(r["signal_key"])
-            except Exception:
-                item["delivery"]=None; item["send_state"]={"send_count":0,"first_sent_at":None,"last_sent_at":None}
+            item["delivery"]=(
+                {"status":r["delivery_status"],"attempted_at":r["delivery_attempted_at"],"error":r["delivery_error"],"message_type":r["delivery_message_type"]}
+                if r["delivery_status"] is not None else None
+            )
+            item["send_state"]={
+                "send_count":int(r["state_send_count"] or 0),
+                "first_sent_at":r["state_first_sent_at"],
+                "last_sent_at":r["state_last_sent_at"],
+            }
             out.append(item)
         return out
 
