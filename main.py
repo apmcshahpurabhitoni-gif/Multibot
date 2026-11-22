@@ -97,10 +97,12 @@ def _require_runtime_leader():
     except Exception:
         RUNTIME_LEADER=False
         STOP.set()
+        if REMINDERS is not None: REMINDERS.stop()
         raise RuntimeError("Runtime lease could not be verified; trading stopped")
     if not owned:
         RUNTIME_LEADER=False
         STOP.set()
+        if REMINDERS is not None: REMINDERS.stop()
         raise RuntimeError("Runtime lease ownership was lost; trading stopped")
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
@@ -161,6 +163,7 @@ def scanner_loop():
             except Exception: logger.exception("Could not resolve strategy scan interval")
         STOP.wait(interval)
 def monitor_once():
+    _require_runtime_leader()
     ensure_runtime(); return TRADE_MONITOR.monitor_once(now=now())
 def monitor_loop():
     while not STOP.is_set():
@@ -452,7 +455,9 @@ def run_summaries():
 
 def summary_loop():
     while not STOP.is_set():
-        try: run_summaries()
+        try:
+            _require_runtime_leader()
+            run_summaries()
         except Exception: logger.exception("Summary cycle failed")
         STOP.wait(60)
 
@@ -903,6 +908,7 @@ def main():
                     RUNTIME_LEADER=False
                     logger.critical("Runtime leadership lost; fail-closed shutdown initiated | pid=%s",os.getpid())
                     STOP.set()
+                    if REMINDERS is not None: REMINDERS.stop()
             STOP.wait(RUNTIME_LEASE_HEARTBEAT_SECONDS)
     finally:
         RUNTIME_LEADER=False
