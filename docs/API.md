@@ -124,13 +124,12 @@ a well-formed body so a monitor can read the reason.
 
 ## 4. `GET /ping`
 
-The keepalive endpoint. External cron (cron-job.org every 10 min in
-`render.yaml`) hits it to keep the free Render service warm.
+The lightweight health endpoint. The AIC-hosted service can use it for uptime checks.
 
 - **200** `text/plain`, body `pong`, `Cache-Control: no-store`.
 - **Side effect:** updates the module-level `LAST_PING_AT`.
 - **Explicitly does NOT** start a scan, touch the database, or mutate trading
-  state. This is stated in `render.yaml` and is load-bearing.
+  state. This endpoint remains read-only and lightweight.
 - `/api/health` computes `keepalive` from this value: `OK` when the ping is
   ≤ 15 minutes old, `STALE` beyond that, `UNKNOWN` if never pinged.
 
