@@ -252,6 +252,19 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             owner_id,ttl_seconds=ttl_seconds,now_epoch=now_epoch
         )
 
+    def runtime_lease_is_owned(self,owner_id,*,now_epoch=None):
+        import time
+        current=float(time.time() if now_epoch is None else now_epoch)
+        with self._connect() as c:
+            row=c.execute(
+                "SELECT owner_id,expires_at FROM runtime_leases WHERE lease_key='primary'"
+            ).fetchone()
+        return bool(
+            row
+            and row["owner_id"]==str(owner_id)
+            and float(row["expires_at"])>current
+        )
+
     def runtime_lease_owner(self):
         with self._connect() as c:
             row=c.execute(
