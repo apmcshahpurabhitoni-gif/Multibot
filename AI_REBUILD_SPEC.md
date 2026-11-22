@@ -826,7 +826,8 @@ no other section describes.
 ```text
 # --- runtime ---------------------------------------------------------------
 main.py
-    Runtime orchestration, HTTP endpoints, Telegram command loop.
+    Sole runtime entrypoint, database-backed leader election, worker lifecycle,
+    HTTP endpoints and Telegram command loop.
 startup.py
     Backward-compatible launcher that delegates to main.py; no independent runtime side effects.
 report_builder.py
@@ -880,7 +881,7 @@ sweep_engine.py
 
 # --- persistence -----------------------------------------------------------
 db.py
-    Turso/libSQL persistence with local SQLite development fallback.
+    Turso/libSQL persistence, atomic runtime-leader lease and local SQLite development fallback.
 schema.sql
     Runtime schema is declared and initialized by db.py for both local SQLite and Turso.
 supabase/schema.sql
@@ -938,7 +939,7 @@ appearance-overrides.css
 pyproject.toml
     Version, dependency pins, py-modules inventory.
 render.yaml
-    Deployment, env-var contract, health path.
+    Deployment contract; start command must match AIC Cloud: python main.py.
 tests/
     Contract regression suite.
 tools/check_release_docs.py
