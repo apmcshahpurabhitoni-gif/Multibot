@@ -32,6 +32,7 @@ The repository audit did find deployment lifecycle drift that needed correction 
 - Deployment guard: when `PORT` is set, startup refuses a local-only lease backend unless `MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE=true` is explicitly set for a single-process test
 - TTL: 60 seconds
 - Renewal interval: 15 seconds
+- Strategy guard verification: at most every 5 seconds (cached between asset/dispatch boundaries to limit remote reads)
 - Claim/renew: one atomic SQLite-compatible UPSERT
 - Release: owner-qualified delete, so one process cannot release another process's lease
 - Failure policy: do not start workers without a lease; stop workers if renewal fails
