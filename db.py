@@ -117,7 +117,7 @@ class DatabaseManager:
     _TABLES = (
         "accounts","trades","signals","signal_events","deliveries","scan_runs",
         "scan_error_alerts","market_data_cache","forex_calendar_week_cache","app_config",
-        "forex_calendar_attempts","runtime_leases",
+        "forex_calendar_attempts",
     )
 
     def __init__(self,path=None):
