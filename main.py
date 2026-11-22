@@ -25,7 +25,7 @@ from yahoo_provider import YahooProvider
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger=logging.getLogger("multibot2")
 warnings.filterwarnings("ignore", message="The .*generic.* unit for NumPy timedelta is deprecated.*", category=DeprecationWarning, module="yfinance\\..*")
-DB=DatabaseManager(settings.db_path); bot_settings.configure_database(DB); channels.configure_database(DB); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
+DB=DatabaseManager(settings.db_path); _CONFIG_DB=DB if DB.turso_enabled else None; bot_settings.configure_database(_CONFIG_DB); channels.configure_database(_CONFIG_DB); NEWS=NewsService(); ACCOUNTS={}; REMINDERS=None; STOP=threading.Event(); LOCK=threading.RLock(); NEWS_PAUSE_ENABLED=False
 REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); NEWS_GATE=NewsGate(NEWS, enabled=NEWS_PAUSE_ENABLED)
 LAST_SCANS={}
 LAST_PING_AT=None
