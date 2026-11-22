@@ -17,7 +17,7 @@ Locked rules
 - Paper only, Yahoo only, 25 assets, ₹100,000, ₹2,000 risk, 1x leverage.
 - Freshness exactly 1 hour.
 - Maximum two sends per signal identity.
-- Supabase authoritative + SQLite fallback.
+- Turso/libSQL is the deployed runtime primary; SQLite is for local development/tests.
 
 Research
 - 11 common backtest metrics.
