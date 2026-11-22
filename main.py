@@ -84,8 +84,24 @@ def ensure_runtime():
                 {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
             )
 def _require_runtime_leader():
-    if RUNTIME_LEASE_REQUIRED and (not RUNTIME_LEADER or STOP.is_set()):
+    global RUNTIME_LEADER
+    if not RUNTIME_LEASE_REQUIRED:
+        return
+    if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
         raise RuntimeError("This process is not the active MULTIBOT2 runtime leader")
+    # A worker may wake after a long scheduler pause. Re-check the durable owner
+    # before starting a strategy cycle so an expired/stolen lease cannot resume
+    # trading merely because this process still has a stale in-memory flag.
+    try:
+        owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
+    except Exception:
+        RUNTIME_LEADER=False
+        STOP.set()
+        raise RuntimeError("Runtime lease could not be verified; trading stopped")
+    if not owned:
+        RUNTIME_LEADER=False
+        STOP.set()
+        raise RuntimeError("Runtime lease ownership was lost; trading stopped")
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     _require_runtime_leader()
