@@ -849,7 +849,9 @@ def _start_leader_workers():
     global RUNTIME_LEADER,REMINDER_THREAD
     RUNTIME_LEADER=True
     logger.info("Runtime leadership acquired | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
+    _require_runtime_leader()
     _send_startup_announcement()
+    _require_runtime_leader()
     _start_worker("scanner",scanner_loop)
     _start_worker("monitor",monitor_loop)
     _start_worker("summaries",summary_loop)
