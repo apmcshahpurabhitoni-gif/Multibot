@@ -39,17 +39,20 @@ def test_runtime_lease_release_only_releases_its_owner(tmp_path):
 def test_named_worker_start_is_idempotent(monkeypatch):
     stop = threading.Event()
     started = []
+    started_event = threading.Event()
     monkeypatch.setattr(main, "WORKER_THREADS", {})
     monkeypatch.setattr(main, "LOCK", threading.RLock())
 
     def worker():
         started.append(True)
+        started_event.set()
         stop.wait(2)
 
     first = main._start_worker("test-worker", worker)
     second = main._start_worker("test-worker", worker)
     try:
         assert first is second
+        assert started_event.wait(1)
         assert len(started) == 1
     finally:
         stop.set()
