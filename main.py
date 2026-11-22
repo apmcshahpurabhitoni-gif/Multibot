@@ -807,7 +807,7 @@ def _send_startup_announcement():
         return
     try:
         send_message(
-            TelegramMessage("MSG-STARTUP-V1", msg_start()),
+            TelegramMessage("MSG-STARTUP-V1", msg_start().replace("🤖 *MULTIBOT2 ONLINE*", "🚀 *MULTIBOT2 STARTED*")),
             TelegramConfig.from_env(),
         )
         logger.info("Telegram startup announcement sent | pid=%s", os.getpid())
