@@ -234,6 +234,7 @@ The count (3) and each name/version are asserted against the live registry by
 | Health path | `/ping` |
 | Active worker owner | Atomic Turso/SQLite `runtime_leases` row; 60s lease, 15s heartbeat |
 | Standby behavior | Dashboard may serve; scanner, monitor, reminders and Telegram polling remain stopped |
+| Deployment database | Shared Turso required for the lease; deployed local-SQLite fallback is refused unless explicitly overridden for a single-process test |
 | Startup order | `main.py` only; `startup.py` is a compatibility wrapper |
 | Auth | No user login. `/api/settings` + `/api/notifications` reject cross-origin requests (403 `CROSS_ORIGIN`); when `DASHBOARD_API_TOKEN` is set, writes require it (401 `ADMIN_TOKEN_REQUIRED`, `X-Admin-Token` or `Bearer`). Reads stay open and redacted — do not expose publicly without a reverse-proxy auth layer. |
 | Keepalive | External cron every 10 min; `/api/health` reports `OK` ≤ 15 min, else `STALE` |
