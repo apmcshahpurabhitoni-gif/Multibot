@@ -114,3 +114,25 @@ def test_shutdown_drains_workers_before_releasing_lease():
     shutdown = source.split("deadline=time.monotonic()+45.0", 1)[1]
     assert shutdown.index("worker.join") < shutdown.index("DB.release_runtime_lease")
     assert "lease left to expire" in shutdown
+
+
+def test_concurrent_runtime_claims_have_exactly_one_winner(tmp_path):
+    db_path = str(tmp_path / "shared-runtime.db")
+    first_db = DatabaseManager(db_path)
+    second_db = DatabaseManager(db_path)
+    barrier = threading.Barrier(2)
+    results = []
+
+    def claim(database, owner):
+        barrier.wait(timeout=2)
+        results.append(database.acquire_runtime_lease(owner, now_epoch=500))
+
+    first = threading.Thread(target=claim, args=(first_db, "process-a"))
+    second = threading.Thread(target=claim, args=(second_db, "process-b"))
+    first.start()
+    second.start()
+    first.join(timeout=5)
+    second.join(timeout=5)
+
+    assert not first.is_alive() and not second.is_alive()
+    assert sum(results) == 1
