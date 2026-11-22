@@ -941,7 +941,7 @@ appearance-overrides.css
 pyproject.toml
     Version, dependency pins, py-modules inventory.
 render.yaml
-    Deployment contract; start command must match AIC Cloud: python main.py.
+    Deployment contract; Render runs `python main.py`; AIC Cloud runs `./.venv/bin/python main.py`. Both must use main.py as the sole runtime entrypoint.
 tests/
     Contract regression suite.
 tools/check_release_docs.py
