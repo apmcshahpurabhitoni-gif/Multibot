@@ -16,6 +16,8 @@ def test_runtime_lease_allows_one_owner_and_expires(tmp_path):
     assert db.acquire_runtime_lease("process-a", ttl_seconds=60, now_epoch=100)
     assert not db.acquire_runtime_lease("process-b", ttl_seconds=60, now_epoch=110)
     assert db.runtime_lease_owner()["owner_id"] == "process-a"
+    assert db.runtime_lease_is_owned("process-a", now_epoch=159)
+    assert not db.runtime_lease_is_owned("process-a", now_epoch=160)
 
     # The current owner can renew; a competing process cannot steal a live lease.
     assert db.renew_runtime_lease("process-a", ttl_seconds=60, now_epoch=120)
@@ -25,6 +27,7 @@ def test_runtime_lease_allows_one_owner_and_expires(tmp_path):
     assert db.acquire_runtime_lease("process-b", ttl_seconds=60, now_epoch=181)
     assert not db.renew_runtime_lease("process-a", ttl_seconds=60, now_epoch=182)
     assert db.runtime_lease_owner()["owner_id"] == "process-b"
+    assert db.runtime_lease_is_owned("process-b", now_epoch=182)
 
 
 def test_runtime_lease_release_only_releases_its_owner(tmp_path):
