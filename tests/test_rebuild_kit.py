@@ -1,7 +1,8 @@
 """Guard the AI rebuild starter kit against the two ways it silently rots.
 
-The kit is a copy of tracked repo files, so it has no build step to fail loudly.
-Two defects shipped in its first build and neither raised an error:
+The kit is generated from tracked repo files by a deterministic builder.
+The regression suite rebuilds it from current sources so drift cannot hide in a
+previously generated ZIP. Two defects shipped in its first build and neither raised an error:
 
 1. ``reference/strategies/`` was flattened to ``<id>.py``. The repo is a package
    tree (``strategies/<id>/strategy.py``); the flat copy was byte-identical in
@@ -12,7 +13,7 @@ Two defects shipped in its first build and neither raised an error:
    that is missing four contracts and still builds cleanly.
 
 Both are content defects that ``zipfile.testzip()`` cannot see. These tests
-compare the shipped archive byte-for-byte against its sources.
+compare the generated archive byte-for-byte against its sources.
 """
 from __future__ import annotations
 
