@@ -265,10 +265,12 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         now_epoch=float(time.time() if now_epoch is None else now_epoch)
         expires=now_epoch+max(15.0,float(ttl_seconds))
         stamp=datetime.now(timezone.utc).isoformat()
-        # Each retry gets a completely new connection. The UPSERT and owner
-        # read stay in one short transaction, committed once on context exit.
-        # Retrying this idempotent owner claim is safe even if a previous
-        # response was lost after the database committed it.
+        # Commit the atomic UPSERT before verifying ownership. Keeping a
+        # write followed by a read in the same interactive Hrana transaction
+        # can leave the stream open long enough for Turso to roll it back.
+        # The ownership read therefore uses a separate, fresh connection.
+        # Repeating this claim is idempotent even if a prior commit response
+        # was lost, and the conditional UPSERT still prevents lease stealing.
         for attempt in range(3):
             try:
                 with self._connect() as c:
@@ -283,7 +285,8 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
                               OR runtime_leases.owner_id=?""",
                         (str(owner_id),expires,stamp,now_epoch,str(owner_id)),
                     )
-                    row=c.execute(
+                with self._connect() as verify:
+                    row=verify.execute(
                         "SELECT owner_id FROM runtime_leases WHERE lease_key='primary'"
                     ).fetchone()
                 return bool(row and row["owner_id"]==str(owner_id))
