@@ -249,6 +249,25 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             "temporarily unavailable",
         ))
 
+    def _retry_turso_cache_operation(self, operation):
+        """Retry only idempotent cache operations after transient Turso failures.
+
+        Every attempt creates its own connection inside the operation. This is
+        intentionally not applied to append-only/non-idempotent writes such as
+        delivery records, where replaying an ambiguous commit could duplicate data.
+        """
+        for attempt in range(3):
+            try:
+                return operation()
+            except Exception as exc:
+                if (
+                    not self.turso_enabled
+                    or attempt == 2
+                    or not self._is_retryable_runtime_lease_error(exc)
+                ):
+                    raise
+                time.sleep(0.2 * (2 ** attempt))
+
     def acquire_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
         import time
         now_epoch=float(time.time() if now_epoch is None else now_epoch)
@@ -440,13 +459,17 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return out
 
     def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
+        """Persist a cache value; its UPSERT is safe to retry on a fresh connection."""
         row=(cache_key,symbol,period,interval,int(bool(validate_hourly)),payload,updated_at)
-        with self._connect() as c:
-            c.execute(
-                "INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",
-                row,
-            )
-            c.commit()
+
+        def write():
+            with self._connect() as c:
+                c.execute(
+                    "INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",
+                    row,
+                )
+
+        return self._retry_turso_cache_operation(write)
 
     def market_data_cache_health(self):
         if not self.turso_enabled:
@@ -459,9 +482,13 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             return {"enabled":True,"remote":False,"reason":str(exc)}
 
     def load_market_data_cache(self,cache_key):
-        with self._connect() as c:
-            row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
-        return dict(row) if row else None
+        """Read one cache value, retrying transient Turso failures safely."""
+        def read():
+            with self._connect() as c:
+                row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
+            return dict(row) if row else None
+
+        return self._retry_turso_cache_operation(read)
 
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
         with self._connect() as c:
