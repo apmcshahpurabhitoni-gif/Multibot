@@ -81,7 +81,16 @@ class YahooProvider:
     def _restore_persisted(self, key: tuple[str, str, str, bool]):
         if self._database is None:
             return None
-        row = self._database.load_market_data_cache(self._key_id(key))
+        try:
+            row = self._database.load_market_data_cache(self._key_id(key))
+        except Exception as exc:
+            # Durable cache is an optimization, not a prerequisite for a live
+            # Yahoo request. A transient Turso failure must not abort the scan.
+            logger.warning(
+                "Yahoo persistent cache read failed | symbol=%s error=%s",
+                key[0], exc,
+            )
+            return None
         if not row:
             logger.info("Yahoo persistent cache miss | symbol=%s key=%s", key[0], self._key_id(key))
             return None
@@ -157,12 +166,20 @@ class YahooProvider:
                 "index": [x.isoformat() for x in safe_frame.index],
                 "data": safe_frame.values.tolist(),
             }
-            self._database.save_market_data_cache(
-                self._key_id(key), key[0], key[1], key[2], key[3],
-                json.dumps(payload, separators=(",", ":"), default=str, allow_nan=False),
-                datetime.now(timezone.utc).isoformat(),
-            )
-            logger.info("Yahoo persistent cache saved | symbol=%s key=%s", key[0], self._key_id(key))
+            try:
+                self._database.save_market_data_cache(
+                    self._key_id(key), key[0], key[1], key[2], key[3],
+                    json.dumps(payload, separators=(",", ":"), default=str, allow_nan=False),
+                    datetime.now(timezone.utc).isoformat(),
+                )
+                logger.info("Yahoo persistent cache saved | symbol=%s key=%s", key[0], self._key_id(key))
+            except Exception as exc:
+                # Keep the successfully fetched frame in memory even when
+                # durable persistence is temporarily unavailable.
+                logger.warning(
+                    "Yahoo persistent cache save failed | symbol=%s error=%s",
+                    key[0], exc,
+                )
         return frame.copy()
 
     def _activate_backoff(
