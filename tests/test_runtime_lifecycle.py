@@ -190,6 +190,7 @@ def test_runtime_lease_retries_transient_turso_failure_with_fresh_connection(tmp
         def __init__(self, fail=False):
             self.fail = fail
             self.closed = False
+            self.executed = []
 
         def __enter__(self):
             return self
@@ -198,6 +199,7 @@ def test_runtime_lease_retries_transient_turso_failure_with_fresh_connection(tmp
             self.closed = True
 
         def execute(self, sql, parameters=()):
+            self.executed.append(sql)
             if sql.lstrip().startswith("INSERT INTO runtime_leases") and self.fail:
                 raise RuntimeError(
                     "interactive transaction was rolled back because the stream "
@@ -208,14 +210,18 @@ def test_runtime_lease_retries_transient_turso_failure_with_fresh_connection(tmp
             return Cursor()
 
     def connect():
+        # First connection fails during the UPSERT; retry uses a fresh
+        # connection for the write and another fresh one for verification.
         connection = FakeConnection(fail=not opened)
         opened.append(connection)
         return connection
 
     monkeypatch.setattr(database, "_connect", connect)
     assert database.acquire_runtime_lease("process-a", now_epoch=100)
-    assert len(opened) == 2
+    assert len(opened) == 3
     assert all(connection.closed for connection in opened)
+    assert opened[1].executed[0].lstrip().startswith("INSERT INTO runtime_leases")
+    assert opened[2].executed[0].lstrip().startswith("SELECT owner_id FROM runtime_leases")
 
 
 def test_runtime_lease_does_not_retry_non_transient_errors(tmp_path, monkeypatch):
