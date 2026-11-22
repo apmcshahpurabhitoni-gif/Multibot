@@ -36,6 +36,16 @@ DEFAULT_SETTINGS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "bot_settings.json"
 )
 
+_DATABASE = None
+_CONFIG_KEY = "bot_settings"
+
+
+def configure_database(database) -> None:
+    """Use the shared durable database for operator settings."""
+    global _DATABASE
+    _DATABASE = database
+
+
 ACCOUNT_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]{1,30}$")
 
 
@@ -425,36 +435,51 @@ def _write(path: str, state: dict) -> None:
 
 
 def load() -> dict:
-    """Return the saved document, falling back to the compiled-in defaults.
+    """Load durable settings, importing the legacy JSON file on first use."""
+    if _DATABASE is not None:
+        stored = _DATABASE.load_app_config(_CONFIG_KEY)
+        if stored is not None:
+            try:
+                return apply(normalize(stored))
+            except ValueError as exc:
+                logger.error("Stored settings invalid; using compiled defaults | error=%s", exc)
+                state = default_settings()
+                _DATABASE.save_app_config(_CONFIG_KEY, state)
+                return apply(state)
 
-    A missing, unreadable or invalid file must never stop the bot from starting,
-    so every failure degrades to the defaults with a warning.
-    """
     path = settings_path()
     try:
         with open(path, "r", encoding="utf-8") as handle:
             raw = json.load(handle)
     except FileNotFoundError:
-        return apply(default_settings())
+        state = default_settings()
     except (OSError, json.JSONDecodeError) as exc:
         logger.warning("Settings unreadable; using defaults | path=%s error=%s", path, exc)
-        return apply(default_settings())
+        state = default_settings()
+    else:
+        try:
+            state = normalize(raw)
+        except ValueError as exc:
+            logger.warning("Settings invalid; using defaults | path=%s error=%s", path, exc)
+            state = default_settings()
 
-    try:
-        return apply(normalize(raw))
-    except ValueError as exc:
-        logger.warning("Settings invalid; using defaults | path=%s error=%s", path, exc)
-        return apply(default_settings())
+    if _DATABASE is not None:
+        # One-time, non-destructive import: leave the legacy file in place.
+        _DATABASE.save_app_config(_CONFIG_KEY, state)
+    return apply(state)
 
 
 def save(payload: Any) -> dict:
-    """Validate, persist and apply an operator's edited document."""
+    """Validate and persist an operator's edited document."""
     state = normalize(payload)
-    path = settings_path()
-    try:
-        _write(path, state)
-    except OSError as exc:
-        raise ValueError(f"Could not write {path}: {exc}") from exc
+    if _DATABASE is not None:
+        _DATABASE.save_app_config(_CONFIG_KEY, state)
+    else:
+        path = settings_path()
+        try:
+            _write(path, state)
+        except OSError as exc:
+            raise ValueError(f"Could not write {path}: {exc}") from exc
     logger.info(
         "Settings updated | accounts=%d assets=%d session=%s-%s",
         len(state["accounts"]), len(state["assets"]),
@@ -464,14 +489,18 @@ def save(payload: Any) -> dict:
 
 
 def reset() -> dict:
-    """Drop the saved file and go back to the compiled-in configuration."""
-    try:
-        os.remove(settings_path())
-    except FileNotFoundError:
-        pass
-    except OSError as exc:
-        raise ValueError(f"Could not remove {settings_path()}: {exc}") from exc
-    return apply(default_settings())
+    """Persist the compiled-in defaults without deleting the legacy source file."""
+    state = default_settings()
+    if _DATABASE is not None:
+        _DATABASE.save_app_config(_CONFIG_KEY, state)
+    else:
+        try:
+            os.remove(settings_path())
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise ValueError(f"Could not remove {settings_path()}: {exc}") from exc
+    return apply(state)
 
 
 def settings_state() -> dict:

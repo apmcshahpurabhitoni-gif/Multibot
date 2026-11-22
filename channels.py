@@ -41,6 +41,16 @@ CHANNEL_TYPES: tuple[str, ...] = ("telegram", "discord", "slack", "webhook")
 
 _WEBHOOK_TYPES = frozenset({"discord", "slack", "webhook"})
 
+_DATABASE = None
+_CONFIG_KEY = "notification_channels"
+
+
+def configure_database(database) -> None:
+    """Use the shared durable database for notification destinations/secrets."""
+    global _DATABASE
+    _DATABASE = database
+
+
 CHANNEL_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
 
 DEFAULT_CHANNELS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "notification_channels.json")
@@ -178,38 +188,58 @@ def _write(path: str, payload: dict) -> None:
 
 
 def load() -> list[dict]:
-    """Return the saved channels, falling back to the environment default."""
+    """Load durable channels, importing the legacy JSON file on first use."""
+    if _DATABASE is not None:
+        stored = _DATABASE.load_app_config(_CONFIG_KEY)
+        if stored is not None:
+            try:
+                return normalize(stored)
+            except ValueError as exc:
+                logger.error("Stored notification channels invalid; using environment defaults | error=%s", exc)
+                defaults = default_channels()
+                _DATABASE.save_app_config(_CONFIG_KEY, {"channels": defaults})
+                return defaults
+
     path = channels_path()
     try:
         with open(path, "r", encoding="utf-8") as handle:
             raw = json.load(handle)
-        return normalize(raw)
+        result = normalize(raw)
     except FileNotFoundError:
         return default_channels()
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         logger.warning("Notification channels unreadable; using defaults | path=%s error=%s", path, exc)
         return default_channels()
 
+    if _DATABASE is not None:
+        # Import once, retaining webhook URLs, Telegram chat IDs and secrets.
+        _DATABASE.save_app_config(_CONFIG_KEY, {"channels": result})
+    return result
+
 
 def save(payload) -> list[dict]:
-    """Validate, persist and return the channel list.
-
-    The incoming document is merged over what is on disk first, because the
-    dashboard can only echo back a redacted target for webhook channels.
-    """
+    """Validate and persist channels, keeping redacted secrets unchanged."""
     raw = payload.get("channels") if isinstance(payload, dict) else payload
-    channels = normalize(_merge_stored(raw, load()))
-    path = channels_path()
-    try:
-        _write(path, {"channels": channels})
-    except OSError as exc:
-        raise ValueError(f"Could not write {path}: {exc}") from exc
+    result = normalize(_merge_stored(raw, load()))
+    if _DATABASE is not None:
+        _DATABASE.save_app_config(_CONFIG_KEY, {"channels": result})
+    else:
+        path = channels_path()
+        try:
+            _write(path, {"channels": result})
+        except OSError as exc:
+            raise ValueError(f"Could not write {path}: {exc}") from exc
     logger.info("Notification channels updated | channels=%d enabled=%d",
-                len(channels), sum(c["enabled"] for c in channels))
-    return channels
+                len(result), sum(c["enabled"] for c in result))
+    return result
 
 
 def reset() -> list[dict]:
+    """Restore environment defaults as a durable channel configuration."""
+    result = default_channels()
+    if _DATABASE is not None:
+        _DATABASE.save_app_config(_CONFIG_KEY, {"channels": result})
+        return result
     try:
         os.remove(channels_path())
     except FileNotFoundError:
@@ -229,7 +259,7 @@ def state() -> dict:
     environment rather than a saved file are additionally marked `default` so
     the Tools card can show them as locked instead of removable.
     """
-    stored = os.path.exists(channels_path())
+    stored = (_DATABASE.load_app_config(_CONFIG_KEY) is not None) if _DATABASE is not None else os.path.exists(channels_path())
     channels = []
     for channel in load():
         public = dict(channel)

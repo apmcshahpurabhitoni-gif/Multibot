@@ -2,7 +2,7 @@
 
 > ### 🧠 A modular, plug-and-play algorithmic **paper-trading engine**
 >
-> **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Supabase · Dashboard · Strategy Lab**
+> **Yahoo Finance · Multi-Strategy · Risk Controlled · Telegram · Turso · Dashboard · Strategy Lab**
 
 [![Version](https://img.shields.io/badge/version-3.5.0-111827?style=for-the-badge)](.)
 [![Mode](https://img.shields.io/badge/mode-PAPER-16a34a?style=for-the-badge)](.)
@@ -80,7 +80,7 @@ Material 3 is presentation-only. It does not introduce a second DOM, component f
                     │ dashboard             │
                     └──────────┬───────────┘
                                ▼
-                     🗄️ Supabase / SQLite
+                     🗄️ Turso / SQLite
 ```
 
 ---
@@ -155,8 +155,8 @@ Strategies are identified by stable IDs such as `adaptive_trend` and `sweep_v2`,
 | ⏳ Signal freshness | exactly 1 hour |
 | 🔁 Maximum sends / identity | 2 |
 | 🌏 Timezone | Asia/Kolkata |
-| 🗄️ Runtime primary | SQLite |
-| ☁️ Durable mirror | Supabase (optional; SQLite-only without it) |
+| 🗄️ Durable primary | Turso / libSQL |
+| 💻 Local development | SQLite (one-time legacy import supported) |
 
 ### Account limits
 
@@ -196,7 +196,7 @@ Every strategy follows the same safety path:
       ↓
 📐 TradePlan
       ↓
-💾 Supabase / SQLite
+💾 Turso / SQLite
       ↓
 💬 Telegram
       ↓
@@ -363,8 +363,8 @@ The bot also provides operational commands such as `/start`, `/check`, `/balance
 MULTIBOT2 uses:
 
 ```text
-SQLite    → runtime primary store (all reads and writes)
-Supabase  → optional durable mirror (write-through + cold restore)
+Turso/libSQL → durable runtime primary (all deployed reads and writes)
+SQLite       → local development and one-time import of existing state
 ```
 
 Signal send history is persisted so duplicate protection can survive process restarts.
@@ -385,7 +385,7 @@ MULTIBOT2/
 ├── market_data.py              # canonical market data helpers
 ├── candles.py                  # candle normalization/building
 ├── yahoo_provider.py            # Yahoo-only provider
-├── db.py                        # Supabase + SQLite persistence
+├── db.py                        # Turso/libSQL + local SQLite persistence
 ├── telegram.py                  # Telegram adapter
 ├── dashboard.py                 # dashboard backend payloads
 ├── sweep_engine.py              # Sweep 4H calculations

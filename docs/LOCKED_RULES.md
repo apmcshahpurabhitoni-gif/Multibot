@@ -28,7 +28,7 @@ budget. Reset-to-defaults always returns to the values in `config.py`.
 | 6 | **1.0× leverage — never higher** | `LEVERAGE = 1.0` | `config.py:243` |
 | 7 | **Freshness is exactly 1 hour** | `SIGNAL_FRESHNESS_HOURS = 1` | `config.py:16` |
 | 8 | **Max 2 sends per signal identity** | `send_count` caps at 2 | `db.py::record_signal_send` |
-| 9 | **SQLite primary at runtime, Supabase durable mirror** | Mirror every write when configured; empty local tables cold-restore from Supabase | `db.py`, `schema.sql` |
+| 9 | **Turso/libSQL is the durable primary database** | Runtime records persist remotely; local SQLite is used for development and one-time legacy import | `db.py`, `calendar_store.py` |
 | 10 | **IST everywhere** | `Asia/Kolkata` | `config.py:14` |
 | 11 | **Signals on completed candles only** | `schedule = "completed_candle"` | `strategies/*.py::prepare_candles` |
 
@@ -146,34 +146,26 @@ server's `actionable` flag.
 
 ## 5. Persistence
 
-**SQLite is the runtime primary store; Supabase is the durable mirror.**
-Every runtime read and write in `db.py` goes to the local SQLite database, so
-the bot runs correctly with no Supabase configuration at all. When
-`SUPABASE_URL`/`SUPABASE_KEY` are set, every write is also upserted to Supabase
-through the REST API — a mirror-write failure raises `DatabaseError` rather
-than letting the stores silently diverge — and an empty local table is
-restored from Supabase on startup (cold restore after a redeploy or a fresh
-volume). Supabase tables: `accounts`, `active_trades`, `closed_trades`,
-`sent_signals`, `signal_events`, `signal_deliveries`, `scan_runs`,
-`market_data_cache`. SQLite uses a simpler shape (`trades`, `signals`,
-`deliveries`) because it is the local runtime store, not a wire-format
-replica. `/api/health` reports `SUPABASE+SQLITE` when the mirror is configured
-and `SQLITE_FALLBACK` when it is not; `FALLBACK` there is a legacy label
-meaning "no mirror configured" — Supabase is never the primary at runtime.
+**Turso/libSQL is the runtime primary store when configured.** Every runtime
+read and write uses the same SQLite-compatible SQL schema against the remote
+Turso database. This makes accounts, trades, signal identities, delivery
+history, scan history, scan-error deduplication, market-data cache and the
+economic-calendar cache survive app restarts and redeployments without relying
+on the app container's local filesystem.
 
-`schema.sql` is canonical; `supabase/schema.sql` is a mirror. **Parity is
-enforced by `tests/test_schema_parity.py`**, which also asserts that every table
-`db.py` writes to actually exists in both.
+When Turso is not configured, local SQLite remains available for development
+and tests. On the first Turso startup, an existing local SQLite state file is
+imported once using primary-key-safe inserts; the source file is never deleted.
+Existing Turso rows win on conflicts. The database connection uses the
+server-side `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` environment variables.
+The dashboard reports `TURSO` when remote persistence is active and
+`LOCAL_SQLITE` for local development.
 
-> Never expose `SUPABASE_KEY` to the browser. It is server-side only, as the
-> schema file itself warns.
+Turso is the sole runtime remote database. Supabase REST mirroring and its
+quota-dependent writes are no longer part of the runtime. Do not remove the
+old Supabase project until any data that exists only there has been exported
+and verified in Turso. Never expose `TURSO_AUTH_TOKEN` to the browser.
 
-**Degradation is silent and must stay recoverable.** `db.py` catches `PGRST205`
-(missing table) and falls back to SQLite with a warning rather than raising.
-That is how the missing `scan_runs` table went unnoticed for so long — a
-rebuild must keep the fallback **and** add a test that catches the cause.
-
----
 
 ## 6. Market data
 
@@ -261,10 +253,10 @@ keep the free Render service warm.
 ❌ Emit a signal from an incomplete candle
 ❌ Recompute freshness, counts, or actionability in the UI
 ❌ Send a signal more than twice
-❌ Make SQLite the sole store
+❌ Run a deployment without its configured durable Turso database
 ❌ Add a 4th registered strategy without updating the docs and tests
 ❌ Change a locked value in config.py without updating this file
-❌ Expose SUPABASE_KEY to the browser
+❌ Expose TURSO_AUTH_TOKEN to the browser
 ❌ Rename or remove an API field (see docs/API.md §14)
 ❌ Introduce a second source of truth for version or schema
 ```

@@ -1,37 +1,149 @@
-"""Durable runtime state and canonical signal lifecycle."""
+"""Durable runtime state backed by Turso/libSQL, with SQLite for local development."""
 from __future__ import annotations
-import json, os, sqlite3, logging
+
+import json
+import os
+import sqlite3
 from datetime import datetime, timezone
-from urllib import error, parse, request
+
 from config import ACCOUNT_SIZE_INR, ACCOUNT_SIZES
 
 DEFAULT_DB_PATH=os.getenv("BOT_STATE_DB_PATH","/tmp/workspace/multibot2_state.db")
-SUPABASE_URL=os.getenv("SUPABASE_URL","").rstrip("/")
-SUPABASE_KEY=os.getenv("SUPABASE_KEY","")
-
-class DatabaseError(RuntimeError): pass
+TURSO_DATABASE_URL=os.getenv("TURSO_DATABASE_URL","").strip()
+TURSO_AUTH_TOKEN=os.getenv("TURSO_AUTH_TOKEN","").strip()
 
 
-def _optional_timestamp(value):
-    """Convert legacy empty timestamp strings to SQL NULL."""
-    return None if value in (None, "") else value
+class DatabaseError(RuntimeError):
+    """Raised when the configured durable database cannot be reached."""
+
+
+class _RemoteRow(dict):
+    """Mapping row with sqlite3.Row-style integer and named indexing."""
+    def __init__(self, names, values):
+        self._values=tuple(values)
+        super().__init__(zip(names,self._values))
+
+    def __getitem__(self,key):
+        if isinstance(key,int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+
+class _RemoteCursor:
+    def __init__(self,cursor):
+        self._cursor=cursor
+
+    @property
+    def description(self):
+        return self._cursor.description
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return self._cursor.lastrowid
+
+    def _convert(self,row):
+        if row is None:
+            return None
+        names=[column[0] for column in (self.description or ())]
+        return _RemoteRow(names,row)
+
+    def fetchone(self):
+        return self._convert(self._cursor.fetchone())
+
+    def fetchall(self):
+        return [self._convert(row) for row in (self._cursor.fetchall() or [])]
+
+    def fetchmany(self,size=None):
+        rows=self._cursor.fetchmany(size) if size is not None else self._cursor.fetchmany()
+        return [self._convert(row) for row in (rows or [])]
+
+    def __iter__(self):
+        while True:
+            row=self.fetchone()
+            if row is None:
+                break
+            yield row
+
+
+class _RemoteConnection:
+    """Small sqlite3-compatible adapter for Turso's DB-API connection."""
+    def __init__(self,connection):
+        self._connection=connection
+
+    def execute(self,sql,parameters=()):
+        return _RemoteCursor(self._connection.execute(sql,tuple(parameters or ())))
+
+    def executemany(self,sql,seq_of_parameters):
+        cursor=None
+        for parameters in seq_of_parameters:
+            cursor=self.execute(sql,parameters)
+        return cursor
+
+    def executescript(self,script):
+        for statement in script.split(";"):
+            if statement.strip():
+                self.execute(statement)
+
+    def commit(self):
+        self._connection.commit()
+
+    def rollback(self):
+        self._connection.rollback()
+
+    def close(self):
+        self._connection.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,exc_type,exc_value,traceback):
+        try:
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
+        finally:
+            self.close()
+        return False
 
 
 class DatabaseManager:
+    """One database interface: Turso in deployments, SQLite in local tests."""
+
+    _TABLES = (
+        "accounts","trades","signals","signal_events","deliveries","scan_runs",
+        "scan_error_alerts","market_data_cache","forex_calendar_week_cache","app_config",
+        "forex_calendar_attempts",
+    )
+
     def __init__(self,path=None):
         self.path=path or DEFAULT_DB_PATH
+        self.turso_enabled=bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
+        if bool(TURSO_DATABASE_URL) != bool(TURSO_AUTH_TOKEN):
+            raise DatabaseError("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must both be configured")
         os.makedirs(os.path.dirname(os.path.abspath(self.path)),exist_ok=True)
-        self._initialize(); self._restore_from_supabase_if_needed()
-
-    @property
-    def supabase_enabled(self): return bool(SUPABASE_URL and SUPABASE_KEY)
+        self._initialize()
+        if self.turso_enabled:
+            self._migrate_local_sqlite_once()
 
     def _connect(self):
-        c=sqlite3.connect(self.path,timeout=30); c.row_factory=sqlite3.Row; return c
+        if self.turso_enabled:
+            try:
+                import libsql
+                connection=libsql.connect(TURSO_DATABASE_URL,auth_token=TURSO_AUTH_TOKEN)
+                return _RemoteConnection(connection)
+            except Exception as exc:
+                raise DatabaseError(f"Turso connection failed: {exc}") from exc
+        connection=sqlite3.connect(self.path,timeout=30)
+        connection.row_factory=sqlite3.Row
+        return connection
 
     def _initialize(self):
-        with self._connect() as c:
-            c.executescript("""PRAGMA journal_mode=WAL;
+        schema="""
 CREATE TABLE IF NOT EXISTS accounts(name TEXT PRIMARY KEY,starting_balance REAL NOT NULL,balance REAL NOT NULL,trades_today INTEGER NOT NULL DEFAULT 0,planned_risk_used REAL NOT NULL DEFAULT 0,reset_date TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS trades(id TEXT PRIMARY KEY,status TEXT NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS signals(signal_key TEXT PRIMARY KEY,send_count INTEGER NOT NULL DEFAULT 0,first_sent_at TEXT,last_sent_at TEXT,reminder_due_at TEXT,reminder_sent INTEGER NOT NULL DEFAULT 0,message_text TEXT,metadata TEXT);
@@ -40,214 +152,91 @@ CREATE TABLE IF NOT EXISTS deliveries(id INTEGER PRIMARY KEY AUTOINCREMENT,signa
 CREATE TABLE IF NOT EXISTS scan_runs(id TEXT PRIMARY KEY,strategy_id TEXT NOT NULL,started_at TEXT NOT NULL,finished_at TEXT,status TEXT NOT NULL,payload TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS scan_error_alerts(strategy_id TEXT PRIMARY KEY,fingerprint TEXT NOT NULL,first_sent_at TEXT NOT NULL,last_sent_at TEXT NOT NULL,suppressed INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS market_data_cache(cache_key TEXT PRIMARY KEY,symbol TEXT NOT NULL,period TEXT NOT NULL,interval TEXT NOT NULL,validate_hourly INTEGER NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS forex_calendar_week_cache(feed_key TEXT NOT NULL,week_start TEXT NOT NULL,fetched_at TEXT NOT NULL,events TEXT NOT NULL,PRIMARY KEY(feed_key,week_start));
+CREATE TABLE IF NOT EXISTS forex_calendar_attempts(feed_key TEXT NOT NULL,week_start TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT NOT NULL,PRIMARY KEY(feed_key,week_start));
+CREATE TABLE IF NOT EXISTS multibot_migrations(migration_key TEXT PRIMARY KEY,completed_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS app_config(config_key TEXT PRIMARY KEY,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
 CREATE INDEX IF NOT EXISTS deliveries_signal_idx ON deliveries(signal_id,attempted_at DESC);
 CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
-"""); c.commit()
+"""
+        with self._connect() as connection:
+            if not self.turso_enabled:
+                connection.execute("PRAGMA journal_mode=WAL")
+            for statement in schema.split(";"):
+                if statement.strip():
+                    connection.execute(statement)
+            connection.commit()
 
-    def _supabase_request(self,method,table,*,params="",data=None,upsert=False):
-        if not self.supabase_enabled:return None
-        url=f"{SUPABASE_URL}/rest/v1/{table}"+("?"+params if params else "")
-        headers={"apikey":SUPABASE_KEY,"Authorization":f"Bearer {SUPABASE_KEY}","Content-Type":"application/json","Accept":"application/json","Prefer":"return=representation"}
-        if upsert: headers["Prefer"]="resolution=merge-duplicates,return=representation"
-        try:
-            body=None if data is None else json.dumps(data,default=str).encode()
-            with request.urlopen(request.Request(url,data=body,headers=headers,method=method),timeout=10) as response:
-                raw=response.read().decode(); return json.loads(raw) if raw else True
-        except error.HTTPError as exc:
-            try: detail=exc.read().decode("utf-8","replace").strip()
-            except Exception: detail=""
-            suffix=f" | response: {detail}" if detail else ""
-            raise DatabaseError(f"Supabase {method} {table} failed: HTTP {exc.code} {exc.reason}{suffix}") from exc
-        except (error.URLError,TimeoutError,ValueError) as exc:
-            raise DatabaseError(f"Supabase {method} {table} failed: {exc}") from exc
+    def _migrate_local_sqlite_once(self):
+        """Import a pre-existing local SQLite state file into Turso exactly once.
 
-    def _require_supabase(self,result,operation):
-        if self.supabase_enabled and result is None: raise DatabaseError(f"Supabase persistence failed during {operation}")
-
-    @staticmethod
-    def _is_missing_scan_runs(exc):
-        text=str(exc)
-        return "scan_runs" in text and "PGRST205" in text
-
-    @staticmethod
-    def _is_missing_remote_table(exc, table):
-        """True when Supabase simply has not been migrated to this table yet."""
-        text=str(exc)
-        return table in text and "PGRST205" in text
-
-    def _restore_from_supabase_if_needed(self):
-        """Best-effort remote rehydration; local SQLite must remain bootable.
-
-        Supabase is a remote mirror, not a prerequisite for starting the
-        dashboard/scanner. A paused project, exhausted quota, transient DNS
-        failure or network outage must not turn an otherwise healthy local
-        SQLite database into a process-start failure. Writes retain the strict
-        _require_supabase contract.
+        Existing rows in Turso win on primary-key conflicts. The local source file
+        is never deleted or modified by this migration.
         """
-        if not self.supabase_enabled:
-            return
-        logger = logging.getLogger(__name__)
-
-        # Keep each restore boundary explicit so the architecture contract
-        # remains reviewable. A failed section stops further remote rehydrate
-        # attempts for this boot, but the already initialized SQLite store
-        # remains available to the dashboard/scanner.
-        try:
-            self._restore_accounts_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=accounts | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_trades_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=trades | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_signals_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=signals | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_signal_events_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=signal_events | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_deliveries_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=signal_deliveries | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_scan_runs_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=scan_runs | using local SQLite state | error=%s", exc)
-            return
-        try:
-            self._restore_scan_error_alerts_if_needed()
-        except DatabaseError as exc:
-            logger.warning("Supabase restore unavailable | section=scan_error_alerts | using local SQLite state | error=%s", exc)
-            return
-        logger.info("Supabase restore completed | local SQLite remains primary")
-
-    def _restore_scan_error_alerts_if_needed(self):
-        """Rehydrate alert dedup state after a wiped disk (Render redeploy).
-
-        Without this, a redeploy would forget an open incident and re-alert
-        the next sweep. Tolerates a not-yet-migrated remote table exactly like
-        scan_runs: local dedup still works, remote durability activates once
-        the DDL is applied.
-        """
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM scan_error_alerts LIMIT 1").fetchone(): return
-        try:
-            rows=self._supabase_request("GET","scan_error_alerts",params="select=*") or []
-        except DatabaseError as exc:
-            if self._is_missing_remote_table(exc,"scan_error_alerts"):
-                logging.getLogger(__name__).warning("Supabase scan error alert restore skipped: public.scan_error_alerts is not available; using local alert state")
+        migration_key="local-sqlite-to-turso-v1"
+        with self._connect() as remote:
+            if remote.execute("SELECT 1 FROM multibot_migrations WHERE migration_key=?",(migration_key,)).fetchone():
                 return
-            raise
-        with self._connect() as c:
-            for r in rows:
-                strategy_id=str(r.get("strategy_id") or "")
-                fingerprint=str(r.get("fingerprint") or "")
-                if not strategy_id or not fingerprint: continue
-                c.execute("INSERT OR IGNORE INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?)",
-                    (strategy_id,fingerprint,str(r.get("first_sent_at") or ""),str(r.get("last_sent_at") or ""),int(r.get("suppressed") or 0),str(r.get("updated_at") or "")))
-            c.commit()
+            # Both paths have existed in deployed versions: main.py used the
+            # configured path while CalendarStore historically defaulted to
+            # /tmp/workspace. Import both before marking the one-time migration.
+            candidates=[]
+            for candidate in (self.path,DEFAULT_DB_PATH):
+                absolute=os.path.abspath(candidate)
+                if absolute not in candidates:
+                    candidates.append(absolute)
+            try:
+                for local_path in candidates:
+                    if not os.path.isfile(local_path) or os.path.getsize(local_path)==0:
+                        continue
+                    source=sqlite3.connect(f"file:{local_path}?mode=ro",uri=True)
+                    try:
+                        existing={row[0] for row in source.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                        for table in self._TABLES:
+                            if table not in existing:
+                                continue
+                            columns=[row[1] for row in source.execute(f"PRAGMA table_info({table})")]
+                            if not columns:
+                                continue
+                            placeholders=",".join("?" for _ in columns)
+                            column_sql=",".join(f'"{column}"' for column in columns)
+                            sql=f"INSERT OR IGNORE INTO {table} ({column_sql}) VALUES ({placeholders})"
+                            for row in source.execute(f'SELECT * FROM "{table}"'):
+                                remote.execute(sql,tuple(row))
+                    finally:
+                        source.close()
+            except Exception as exc:
+                raise DatabaseError(f"Local SQLite to Turso migration failed; local files preserved: {exc}") from exc
+            remote.execute(
+                "INSERT OR REPLACE INTO multibot_migrations(migration_key,completed_at) VALUES(?,?)",
+                (migration_key,datetime.now(timezone.utc).isoformat()),
+            )
+            remote.commit()
 
-    def _restore_accounts_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM accounts LIMIT 1").fetchone(): return
-        rows=self._supabase_request("GET","accounts",params="select=*") or []
-        with self._connect() as c:
-            for r in rows:
-                if not r.get("name"):continue
-                c.execute("INSERT OR IGNORE INTO accounts VALUES(?,?,?,?,?,?)",(r["name"],float(r.get("starting_balance",100000) or 100000),float(r.get("balance",100000) or 100000),int(r.get("daily_trades",r.get("trades_today",0)) or 0),float(r.get("planned_risk_used",0) or 0),str(r.get("last_reset_date",r.get("reset_date","")) or "")))
-            c.commit()
 
-    def _restore_trades_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM trades LIMIT 1").fetchone(): return
-        self._restore_trades()
-
-    def _restore_signals_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM signals LIMIT 1").fetchone(): return
-        self._restore_signals()
-
-    def _restore_signal_events_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM signal_events LIMIT 1").fetchone(): return
-        rows=self._supabase_request("GET","signal_events",params="select=*") or []
-        with self._connect() as c:
-            for r in rows:
-                sid=str(r.get("signal_id","") or ""); key=str(r.get("signal_key","") or "")
-                if not sid or not key: continue
-                metadata=r.get("metadata") or {}
-                if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
-                c.execute("INSERT OR IGNORE INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",(sid,key,str(r.get("strategy","")),str(r.get("version","")),str(r.get("symbol","")),str(r.get("direction","NO_SIGNAL")),str(r.get("timestamp","")),str(r.get("timeframe","")),str(r.get("reason","")),str(r.get("pipeline_status","GENERATED")),metadata,str(r.get("created_at") or r.get("timestamp") or ""),str(r.get("updated_at") or r.get("created_at") or r.get("timestamp") or "")))
-            c.commit()
-
-    def _restore_deliveries_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM deliveries LIMIT 1").fetchone(): return
-        rows=self._supabase_request("GET","signal_deliveries",params="select=*&order=attempted_at.asc") or []
-        with self._connect() as c:
-            for r in rows:
-                metadata=r.get("metadata") or {}
-                if not isinstance(metadata,str): metadata=json.dumps(metadata,default=str)
-                c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(str(r.get("signal_id","")),str(r.get("channel","")),str(r.get("status","")),str(r.get("attempted_at") or ""),r.get("error"),r.get("message_type"),metadata))
-            c.commit()
-
-    def _restore_scan_runs_if_needed(self):
-        with self._connect() as c:
-            if c.execute("SELECT 1 FROM scan_runs LIMIT 1").fetchone(): return
+    def load_app_config(self,key):
+        """Load an operator configuration document from the durable store."""
+        with self._connect() as connection:
+            row=connection.execute("SELECT payload FROM app_config WHERE config_key=?",(key,)).fetchone()
+        if not row:
+            return None
         try:
-            rows=self._supabase_request("GET","scan_runs",params="select=*&order=started_at.desc") or []
-        except DatabaseError as exc:
-            if self._is_missing_scan_runs(exc):
-                logging.getLogger(__name__).warning("Supabase scan history restore skipped: public.scan_runs is not available; using local scan history")
-                return
-            raise
-        with self._connect() as c:
-            for r in rows:
-                run_id=str(r.get("id","") or "")
-                strategy_id=str(r.get("strategy_id","") or "")
-                started_at=str(r.get("started_at","") or "")
-                if not run_id or not strategy_id or not started_at: continue
-                payload=r.get("payload") or {}
-                if not isinstance(payload,str): payload=json.dumps(payload,default=str)
-                c.execute("INSERT OR IGNORE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,r.get("finished_at"),str(r.get("status","UNKNOWN")),payload))
-            c.commit()
+            return json.loads(row["payload"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise DatabaseError(f"Stored configuration {key!r} is invalid JSON: {exc}") from exc
 
-    def _restore_accounts(self): self._restore_accounts_if_needed()
-
-    def _restore_trades(self):
-        for table,status in (("active_trades","OPEN"),("closed_trades","CLOSED")):
-            rows=self._supabase_request("GET",table,params="select=*") or []
-            with self._connect() as c:
-                for r in rows:
-                    tid=str(r.get("id","") or "")
-                    if not tid:continue
-                    payload={"id":tid,"status":status,"symbol":r.get("symbol",""),"market":r.get("market","NSE"),"account":r.get("account",""),"strategy":r.get("strat",r.get("strategy","")),"type":r.get("type","BUY"),"entry":float(r.get("entry",0) or 0),"sl":float(r.get("sl",0) or 0),"tp":float(r.get("tp",0) or 0),"qty":float(r.get("qty",0) or 0),"trail_sl":float(r.get("trail_sl",r.get("sl",0)) or 0),"signal_ts":r.get("ts_trigger",""),"opened_at":r.get("opened_at","") or ""}
-                    if status=="CLOSED": payload.update({"exit_price":float(r.get("exit_price",0) or 0),"pnl":float(r.get("pnl",0) or 0),"result":r.get("result",""),"exit_reason":r.get("exit_reason",""),"closed_at":r.get("closed_at",r.get("close_time","")) or ""})
-                    updated=payload.get("closed_at") or payload.get("opened_at") or datetime.now(timezone.utc).isoformat()
-                    c.execute("INSERT OR REPLACE INTO trades VALUES(?,?,?,?)",(tid,status,json.dumps(payload,default=str),str(updated)))
-                c.commit()
-
-    def _restore_signals(self):
-        rows=self._supabase_request("GET","sent_signals",params="select=*") or []
-        with self._connect() as c:
-            for r in rows:
-                key=str(r.get("sig_key",r.get("signal_key","")) or "")
-                if not key:continue
-                count=min(int(r.get("send_count",0) or 0),2); metadata=r.get("metadata") or "{}"
-                if isinstance(metadata,dict): metadata=json.dumps(metadata)
-                c.execute("INSERT OR REPLACE INTO signals VALUES(?,?,?,?,?,?,?,?)",(key,count,None,None,r.get("reminder_due_at"),int(count>=2),r.get("message_text"),metadata))
-            c.commit()
+    def save_app_config(self,key,payload):
+        """Atomically replace one operator configuration document."""
+        encoded=json.dumps(payload,separators=(",",":"),ensure_ascii=False)
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO app_config(config_key,payload,updated_at) VALUES(?,?,?)",
+                (key,encoded,datetime.now(timezone.utc).isoformat()),
+            )
+            connection.commit()
 
     def load_accounts(self,names,starting_balance,today):
         """Create/refresh one row per account.
@@ -277,62 +266,62 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return int(live["n"] if live and "n" in live.keys() else 0)
 
     def save_account(self,name,*,balance,trades_today,planned_risk_used,reset_date):
-        opening=float(ACCOUNT_SIZES.get(name,ACCOUNT_SIZE_INR))
-        with self._connect() as c:c.execute("UPDATE accounts SET balance=?,trades_today=?,planned_risk_used=?,reset_date=? WHERE name=?",(balance,trades_today,planned_risk_used,reset_date,name)); c.commit()
-        result=self._supabase_request("POST","accounts",data={"name":name,"starting_balance":opening,"balance":balance,"daily_trades":trades_today,"trades_today":trades_today,"planned_risk_used":planned_risk_used,"last_reset_date":reset_date,"reset_date":reset_date},upsert=True); self._require_supabase(result,"account")
+        with self._connect() as c:
+            c.execute(
+                "UPDATE accounts SET balance=?,trades_today=?,planned_risk_used=?,reset_date=? WHERE name=?",
+                (balance,trades_today,planned_risk_used,reset_date,name),
+            )
+            c.commit()
 
     def save_trade(self,trade_id,status,payload,updated_at):
-        payload=dict(payload); payload["status"]=status
-        with self._connect() as c:c.execute("INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",(trade_id,status,json.dumps(payload,default=str),updated_at)); c.commit()
-        if status=="OPEN":
-            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0))}
-            result=self._supabase_request("POST","active_trades",data=data,upsert=True); self._require_supabase(result,"open trade")
-        else:
-            result=self._supabase_request("DELETE","active_trades",params=parse.urlencode({"id":f"eq.{trade_id}"})); self._require_supabase(result,"active trade delete")
-            opened_at=_optional_timestamp(payload.get("opened_at")) or _optional_timestamp(updated_at)
-            closed_at=_optional_timestamp(payload.get("closed_at")) or _optional_timestamp(updated_at)
-            data={"id":trade_id,"symbol":payload.get("symbol",""),"market":payload.get("market","NSE"),"account":payload.get("account",""),"strat":payload.get("strategy",""),"type":payload.get("type","BUY"),"entry":payload.get("entry",0),"sl":payload.get("sl",0),"tp":payload.get("tp",0),"qty":payload.get("qty",0),"trail_sl":payload.get("trail_sl",payload.get("sl",0)),"ts_trigger":_optional_timestamp(payload.get("signal_ts")),"opened_at":opened_at,"time_str":opened_at,"exit_price":payload.get("exit_price",0),"pnl":payload.get("pnl",0),"result":payload.get("result",payload.get("exit_reason","")),"exit_reason":payload.get("exit_reason",""),"close_time":closed_at,"closed_at":closed_at}
-            result=self._supabase_request("POST","closed_trades",data=data,upsert=True); self._require_supabase(result,"closed trade")
+        payload=dict(payload)
+        payload["status"]=status
+        with self._connect() as c:
+            c.execute(
+                "INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",
+                (trade_id,status,json.dumps(payload,default=str),updated_at),
+            )
+            c.commit()
 
     def load_trades(self,status=None):
         with self._connect() as c: rows=c.execute("SELECT payload FROM trades"+(" WHERE status=?" if status else "")+" ORDER BY updated_at DESC",(status,) if status else ()).fetchall()
         return [json.loads(x["payload"]) for x in rows]
 
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
-        ts=created_at or datetime.now(timezone.utc).isoformat(); metadata=dict(signal.metadata or {})
+        ts=created_at or datetime.now(timezone.utc).isoformat()
+        metadata=dict(signal.metadata or {})
         metadata.update({"entry":getattr(signal,"entry",None),"stop_loss":getattr(signal,"stop_loss",None),"take_profit":getattr(signal,"take_profit",None)})
         with self._connect() as c:
             existing=c.execute("SELECT signal_id,created_at FROM signal_events WHERE signal_key=?",(signal_key,)).fetchone()
-            if existing: signal_id=str(existing["signal_id"])
-        remote_existing=None
-        if self.supabase_enabled and not existing:
-            rows=self._supabase_request("GET","signal_events",params=parse.urlencode({"signal_key":f"eq.{signal_key}","select":"signal_id,created_at"})) or []
-            remote_existing=rows[0] if rows else None
-            if remote_existing: signal_id=str(remote_existing["signal_id"])
-        created_at=(existing["created_at"] if existing else (remote_existing.get("created_at") if remote_existing else ts))
-        with self._connect() as c:
             if existing:
-                c.execute("""UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key))
+                signal_id=str(existing["signal_id"])
+                created_at=existing["created_at"]
+                c.execute(
+                    """UPDATE signal_events SET strategy=?,version=?,symbol=?,direction=?,timestamp=?,timeframe=?,reason=?,pipeline_status=?,metadata=?,updated_at=? WHERE signal_key=?""",
+                    (signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,signal_key),
+                )
             else:
-                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),ts,ts); c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
+                created_at=created_at or ts
+                row=(signal_id,signal_key,signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp.isoformat(),signal.timeframe,signal.reason,pipeline_status,json.dumps(metadata,default=str),created_at,ts)
+                c.execute("INSERT INTO signal_events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",row)
             c.commit()
-        if self.supabase_enabled:
-            data={"signal_id":signal_id,"signal_key":signal_key,"strategy":signal.strategy,"version":signal.version,"symbol":signal.symbol,"direction":signal.direction,"timestamp":signal.timestamp.isoformat(),"timeframe":signal.timeframe,"reason":signal.reason,"pipeline_status":pipeline_status,"metadata":metadata,"created_at":created_at,"updated_at":ts}
-            result=self._supabase_request("POST","signal_events",data=data,upsert=True); self._require_supabase(result,"signal event")
         return signal_id
 
     def update_signal_status(self,signal_id,status):
         ts=datetime.now(timezone.utc).isoformat()
-        with self._connect() as c:c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,ts,signal_id)); c.commit()
-        if self.supabase_enabled:
-            result=self._supabase_request("PATCH","signal_events",params=parse.urlencode({"signal_id":f"eq.{signal_id}"}),data={"pipeline_status":status,"updated_at":ts}); self._require_supabase(result,"signal status")
+        with self._connect() as c:
+            c.execute("UPDATE signal_events SET pipeline_status=?,updated_at=? WHERE signal_id=?",(status,ts,signal_id))
+            c.commit()
 
     def record_delivery(self,signal_id,*,channel,status,attempted_at=None,error_text=None,message_type=None,metadata=None):
-        ts=attempted_at or datetime.now(timezone.utc).isoformat(); meta=metadata or {}
-        with self._connect() as c:c.execute("INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",(signal_id,channel,status,ts,error_text,message_type,json.dumps(meta,default=str))); c.commit()
-        if self.supabase_enabled:
-            data={"signal_id":signal_id,"channel":channel,"status":status,"attempted_at":ts,"error":error_text,"message_type":message_type,"metadata":meta}
-            result=self._supabase_request("POST","signal_deliveries",data=data); self._require_supabase(result,"signal delivery")
+        ts=attempted_at or datetime.now(timezone.utc).isoformat()
+        meta=metadata or {}
+        with self._connect() as c:
+            c.execute(
+                "INSERT INTO deliveries(signal_id,channel,status,attempted_at,error,message_type,metadata) VALUES(?,?,?,?,?,?,?)",
+                (signal_id,channel,status,ts,error_text,message_type,json.dumps(meta,default=str)),
+            )
+            c.commit()
 
     def signal_send_state(self,key):
         with self._connect() as c: row=c.execute("SELECT send_count,first_sent_at,last_sent_at FROM signals WHERE signal_key=?",(key,)).fetchone()
@@ -352,41 +341,34 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
         row=(cache_key,symbol,period,interval,int(bool(validate_hourly)),payload,updated_at)
         with self._connect() as c:
-            c.execute("INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",row); c.commit()
-        if not self.supabase_enabled:return
-        try:self._supabase_request("POST","market_data_cache",data={"cache_key":cache_key,"symbol":symbol,"period":period,"interval":interval,"validate_hourly":bool(validate_hourly),"payload":json.loads(payload),"updated_at":updated_at},upsert=True)
-        except DatabaseError as exc: logging.getLogger(__name__).warning("Supabase market-data cache save skipped | key=%s error=%s",cache_key,exc)
+            c.execute(
+                "INSERT INTO market_data_cache VALUES(?,?,?,?,?,?,?) ON CONFLICT(cache_key) DO UPDATE SET symbol=excluded.symbol,period=excluded.period,interval=excluded.interval,validate_hourly=excluded.validate_hourly,payload=excluded.payload,updated_at=excluded.updated_at",
+                row,
+            )
+            c.commit()
 
     def market_data_cache_health(self):
-        if not self.supabase_enabled:return {"enabled":False,"remote":False,"reason":"SUPABASE_NOT_CONFIGURED"}
-        try:self._supabase_request("GET","market_data_cache",params="select=cache_key&limit=1"); return {"enabled":True,"remote":True,"reason":"OK"}
-        except DatabaseError as exc:return {"enabled":True,"remote":False,"reason":str(exc)}
+        if not self.turso_enabled:
+            return {"enabled":False,"remote":False,"reason":"LOCAL_SQLITE"}
+        try:
+            with self._connect() as c:
+                c.execute("SELECT 1").fetchone()
+            return {"enabled":True,"remote":True,"reason":"OK"}
+        except Exception as exc:
+            return {"enabled":True,"remote":False,"reason":str(exc)}
 
     def load_market_data_cache(self,cache_key):
-        with self._connect() as c: row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
-        if row:return dict(row)
-        if self.supabase_enabled:
-            try: rows=self._supabase_request("GET","market_data_cache",params=parse.urlencode({"cache_key":f"eq.{cache_key}","select":"*"})) or []
-            except DatabaseError as exc: logging.getLogger(__name__).warning("Supabase market-data cache load skipped | key=%s error=%s",cache_key,exc); return None
-            if rows:
-                r=rows[0]; payload=r.get("payload") or {}
-                if not isinstance(payload,str): payload=json.dumps(payload,separators=(",",":"),default=str)
-                item={"cache_key":r["cache_key"],"symbol":r["symbol"],"period":r["period"],"interval":r["interval"],"validate_hourly":int(bool(r.get("validate_hourly",True))),"payload":payload,"updated_at":r["updated_at"]}
-                with self._connect() as c:c.execute("INSERT OR REPLACE INTO market_data_cache VALUES(?,?,?,?,?,?,?)",(item["cache_key"],item["symbol"],item["period"],item["interval"],item["validate_hourly"],item["payload"],item["updated_at"])); c.commit()
-                return item
-        return None
+        with self._connect() as c:
+            row=c.execute("SELECT * FROM market_data_cache WHERE cache_key=?",(cache_key,)).fetchone()
+        return dict(row) if row else None
 
     def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):
-        data={"id":run_id,"strategy_id":strategy_id,"started_at":started_at,"finished_at":finished_at,"status":status,"payload":payload or {}}
-        with self._connect() as c:c.execute("INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",(run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str))); c.commit()
-        try:
-            result=self._supabase_request("POST","scan_runs",data=data,upsert=True)
-            self._require_supabase(result,"scan run")
-        except DatabaseError as exc:
-            if self._is_missing_scan_runs(exc):
-                logging.getLogger(__name__).warning("Supabase scan history save skipped: public.scan_runs is not available; local scan history preserved")
-                return
-            raise
+        with self._connect() as c:
+            c.execute(
+                "INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)",
+                (run_id,strategy_id,started_at,finished_at,status,json.dumps(payload or {},default=str)),
+            )
+            c.commit()
 
     def load_scan_runs(self,limit=50):
         with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
@@ -398,9 +380,8 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return out
 
     # --- scan-level error alert state (durable dedup) -------------------------
-    # The incident record lives in the same SQLite-primary / Supabase-mirror
-    # architecture as every other runtime state table, so suppression survives
-    # process restarts, Render redeploys (via the mirror) and worker recycling.
+    # The incident record lives in the same durable database as every other runtime
+    # state table, so suppression survives process restarts and redeploys.
 
     def load_scan_error_alert(self,strategy_id):
         with self._connect() as c:
@@ -411,18 +392,11 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         updated_at=updated_at or datetime.now(timezone.utc).isoformat()
         row=(strategy_id,fingerprint,first_sent_at,last_sent_at,int(suppressed),updated_at)
         with self._connect() as c:
-            c.execute("INSERT INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(strategy_id) DO UPDATE SET fingerprint=excluded.fingerprint,first_sent_at=excluded.first_sent_at,last_sent_at=excluded.last_sent_at,suppressed=excluded.suppressed,updated_at=excluded.updated_at",row); c.commit()
-        if not self.supabase_enabled:return
-        # Best-effort mirror (same policy as the market-data cache): a remote
-        # hiccup must never fail the scan cycle that recorded the incident.
-        try:
-            result=self._supabase_request("POST","scan_error_alerts",data={"strategy_id":strategy_id,"fingerprint":fingerprint,"first_sent_at":first_sent_at,"last_sent_at":last_sent_at,"suppressed":int(suppressed),"updated_at":updated_at},upsert=True)
-            if result is None: raise DatabaseError("Supabase unavailable")
-        except DatabaseError as exc:
-            if self._is_missing_remote_table(exc,"scan_error_alerts"):
-                logging.getLogger(__name__).warning("Supabase scan error alert save skipped: public.scan_error_alerts is not available; local alert state preserved")
-                return
-            logging.getLogger(__name__).warning("Supabase scan error alert save skipped | strategy=%s error=%s",strategy_id,exc)
+            c.execute(
+                "INSERT INTO scan_error_alerts(strategy_id,fingerprint,first_sent_at,last_sent_at,suppressed,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(strategy_id) DO UPDATE SET fingerprint=excluded.fingerprint,first_sent_at=excluded.first_sent_at,last_sent_at=excluded.last_sent_at,suppressed=excluded.suppressed,updated_at=excluded.updated_at",
+                row,
+            )
+            c.commit()
 
     def bump_scan_error_alert_suppression(self,strategy_id):
         """Count a suppressed repeat locally; counters never need remote sync."""
@@ -431,12 +405,8 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
 
     def clear_scan_error_alert(self,strategy_id):
         with self._connect() as c:
-            c.execute("DELETE FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,)); c.commit()
-        if not self.supabase_enabled:return
-        try:self._supabase_request("DELETE","scan_error_alerts",params=parse.urlencode({"strategy_id":f"eq.{strategy_id}"}))
-        except DatabaseError as exc:
-            if self._is_missing_remote_table(exc,"scan_error_alerts"): return
-            logging.getLogger(__name__).warning("Supabase scan error alert clear skipped | strategy=%s error=%s",strategy_id,exc)
+            c.execute("DELETE FROM scan_error_alerts WHERE strategy_id=?",(strategy_id,))
+            c.commit()
 
     def signal_event(self,signal_id):
         """Read the canonical lifecycle row for one signal by its event id.
@@ -470,10 +440,20 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def record_signal_send(self,key,sent_at,reminder_due_at=None,message_text=None,metadata=None):
         with self._connect() as c:
             row=c.execute("SELECT send_count FROM signals WHERE signal_key=?",(key,)).fetchone()
-            if row is None: count=1; c.execute("INSERT INTO signals VALUES(?,?,?,?,?,?,?,?)",(key,1,sent_at,sent_at,reminder_due_at,0,message_text,json.dumps(metadata or {},default=str)))
-            else: count=min(int(row["send_count"])+1,2); c.execute("UPDATE signals SET send_count=?,last_sent_at=?,reminder_sent=? WHERE signal_key=?",(count,sent_at,1 if count>=2 else 0,key))
+            if row is None:
+                count=1
+                c.execute(
+                    "INSERT INTO signals VALUES(?,?,?,?,?,?,?,?)",
+                    (key,1,sent_at,sent_at,reminder_due_at,0,message_text,json.dumps(metadata or {},default=str)),
+                )
+            else:
+                count=min(int(row["send_count"])+1,2)
+                c.execute(
+                    "UPDATE signals SET send_count=?,last_sent_at=?,reminder_sent=? WHERE signal_key=?",
+                    (count,sent_at,1 if count>=2 else 0,key),
+                )
             c.commit()
-        result=self._supabase_request("POST","sent_signals",data={"sig_key":key,"send_count":count,"last_sent_ts":int(_timestamp_ms(sent_at)),"reminder_due_at":reminder_due_at,"message_text":message_text,"metadata":metadata or {}},upsert=True); self._require_supabase(result,"signal send"); return count
+        return count
 
     def signal_count(self,key):
         with self._connect() as c: row=c.execute("SELECT send_count FROM signals WHERE signal_key=?",(key,)).fetchone()
@@ -484,9 +464,9 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         return [dict(x) for x in rows]
 
     def mark_reminder_sent(self,key,sent_at):
-        with self._connect() as c:c.execute("UPDATE signals SET send_count=2,reminder_sent=1,last_sent_at=? WHERE signal_key=? AND send_count=1",(sent_at,key)); c.commit()
-        result=self._supabase_request("POST","sent_signals",data={"sig_key":key,"send_count":2,"last_sent_ts":int(_timestamp_ms(sent_at))},upsert=True); self._require_supabase(result,"reminder")
-
-def _timestamp_ms(value):
-    try:return datetime.fromisoformat(str(value).replace("Z","+00:00")).timestamp()*1000
-    except Exception:return datetime.now(timezone.utc).timestamp()*1000
+        with self._connect() as c:
+            c.execute(
+                "UPDATE signals SET send_count=2,reminder_sent=1,last_sent_at=? WHERE signal_key=? AND send_count=1",
+                (sent_at,key),
+            )
+            c.commit()

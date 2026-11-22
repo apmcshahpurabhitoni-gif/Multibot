@@ -147,8 +147,8 @@ Liveness plus operational facts. Cheap; safe to poll.
   "version": "3.3.0",              // release_notes.APP_VERSION
   "timestamp": "2026-10-01T09:30:00+05:30",
   "runtime": true,                 // false once startup sequence failed
-  "database": "SUPABASE+SQLITE",   // SQLite primary + Supabase mirror;
-                                  // "SQLITE_FALLBACK" = no mirror configured
+  "database": "TURSO",              // durable Turso/libSQL database;
+                                  // "LOCAL_SQLITE" = local development without Turso
   "scheduler": true,               // false when STOP event is set
   "strategies": 3,                 // count from the live registry
   "provider": "yahoo",             // config.MARKET_DATA_PROVIDER
@@ -276,7 +276,7 @@ Built by `dashboard.py::build_dashboard_snapshot()`.
   }],
 
   "health": {
-    "database": "SUPABASE+SQLITE",
+    "database": "TURSO",
     "provider": "YAHOO",
     "telegram": "CONFIGURED",
     "telegram_failed_deliveries": 0,
@@ -655,7 +655,7 @@ transport being down never hides a copy the operator did receive.
 
 Events with no `signal_events` row — `SCAN`, `ERROR` and `SUMMARY` — are sent with
 `audit=False`, because `signal_deliveries.signal_id` is a foreign key into that
-table in Supabase.
+table in the same database.
 
 ---
 

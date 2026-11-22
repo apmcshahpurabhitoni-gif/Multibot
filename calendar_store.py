@@ -1,15 +1,13 @@
 """Durable weekly cache for the economic calendar.
 
 The dashboard never needs to contact Forex Factory after a week has been cached.
-Local SQLite is a fast runtime cache; when Supabase is configured the same payload
-is mirrored through the existing durable market_data_cache table so Render restarts
-do not erase the calendar.
+Turso is the durable store in deployments; local SQLite remains available for
+local development and tests.
 """
 from __future__ import annotations
 
 import json
 import os
-import sqlite3
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -24,7 +22,7 @@ class CalendarStore:
         self.path = path or DEFAULT_PATH
         os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
         self.database = DatabaseManager(self.path)
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS forex_calendar_week_cache (
                     feed_key TEXT NOT NULL,
@@ -50,7 +48,7 @@ class CalendarStore:
         return f"calendar|{feed_key}|{week_start}"
 
     def load_week(self, feed_key: str, week_start: str) -> tuple[list[dict] | None, str | None]:
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             row = conn.execute(
                 "SELECT events, fetched_at FROM forex_calendar_week_cache WHERE feed_key=? AND week_start=?",
                 (feed_key, week_start),
@@ -75,7 +73,7 @@ class CalendarStore:
         except (TypeError, ValueError, AttributeError):
             return None, None
 
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO forex_calendar_week_cache(feed_key,week_start,fetched_at,events) VALUES(?,?,?,?)",
                 (feed_key, week_start, str(fetched_at), json.dumps(events, default=str)),
@@ -86,7 +84,7 @@ class CalendarStore:
     def save_week(self, feed_key: str, week_start: str, events: list[dict]) -> str:
         fetched_at = datetime.now(IST).isoformat()
         encoded = json.dumps(events, default=str, separators=(",", ":"))
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO forex_calendar_week_cache(feed_key,week_start,fetched_at,events) VALUES(?,?,?,?)",
                 (feed_key, week_start, fetched_at, encoded),
@@ -97,8 +95,8 @@ class CalendarStore:
             )
             conn.commit()
 
-        # Reuse the production cache table already known to Supabase. Calendar
-        # persistence is best-effort: a remote outage must not make the UI fail.
+        # Keep the calendar payload in the shared durable cache table. The
+        # same Turso database backs the dashboard and scanner.
         self.database.save_market_data_cache(
             self.cache_key(feed_key, week_start),
             "FOREX_FACTORY",
@@ -111,14 +109,15 @@ class CalendarStore:
         return fetched_at
 
     def load_latest(self) -> tuple[list[dict] | None, str | None]:
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             rows = conn.execute(
                 "SELECT events, fetched_at FROM forex_calendar_week_cache ORDER BY fetched_at DESC"
             ).fetchall()
         merged: list[dict] = []
         latest = None
         seen = set()
-        for events_raw, fetched_at in rows:
+        for row in rows:
+            events_raw, fetched_at = row[0], row[1]
             try:
                 events = json.loads(events_raw)
             except (TypeError, ValueError):
@@ -134,7 +133,7 @@ class CalendarStore:
         return (merged or None), latest
 
     def load_attempt_recent(self, feed_key: str, week_start: str, minutes: int = 30) -> tuple[str, str] | None:
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             row = conn.execute(
                 "SELECT attempted_at, error FROM forex_calendar_attempts WHERE feed_key=? AND week_start=?",
                 (feed_key, week_start),
@@ -151,7 +150,7 @@ class CalendarStore:
 
     def save_attempt(self, feed_key: str, week_start: str, error: str) -> str:
         attempted_at = datetime.now(IST).isoformat()
-        with sqlite3.connect(self.path) as conn:
+        with self.database._connect() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO forex_calendar_attempts(feed_key,week_start,attempted_at,error) VALUES(?,?,?,?)",
                 (feed_key, week_start, attempted_at, error),
