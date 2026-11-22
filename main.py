@@ -274,10 +274,52 @@ def _scan_snapshot():
         "error_alerts": _scan_error_alert_state(list(strategies)),
     }
 
+def _dashboard_snapshot_stage(name,operation):
+    """Log each snapshot stage so a stalled API request has a precise last marker."""
+    started=time.monotonic()
+    logger.info("Dashboard snapshot stage started | stage=%s",name)
+    try:
+        result=operation()
+    except Exception:
+        logger.exception("Dashboard snapshot stage failed | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
+        raise
+    logger.info("Dashboard snapshot stage complete | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
+    return result
+
 def snapshot():
-    ensure_runtime(); fresh=DB.load_accounts(account_names(),ACCOUNT_SIZES,now().date().isoformat()); accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in account_names()]
-    failed_deliveries=DB.failed_deliveries(20)
-    return build_dashboard_snapshot(version=APP_VERSION,whats_new=WHAT_IS_NEW,accounts=accounts,signals=DB.load_signal_history(500),trades=DB.load_trades(),scan={**_scan_snapshot(),"history":DB.load_scan_runs(50)},health={"database":"TURSO" if DB.turso_enabled else "LOCAL_SQLITE","provider":"YAHOO","telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED","telegram_failed_deliveries":len(failed_deliveries),"open_trades":len(DB.load_trades("OPEN")),"signal_lifecycle":"ENABLED"},strategies=REGISTRY.all())
+    started=time.monotonic()
+    _dashboard_snapshot_stage("runtime_init",ensure_runtime)
+    names=account_names()
+    today=now().date().isoformat()
+    fresh=_dashboard_snapshot_stage("accounts",lambda:DB.load_accounts(names,ACCOUNT_SIZES,today))
+    accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in names]
+    signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(500))
+    trades=_dashboard_snapshot_stage("trades",DB.load_trades)
+    failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20))
+    scan=_dashboard_snapshot_stage("scan_state",_scan_snapshot)
+    scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50))
+    payload=build_dashboard_snapshot(
+        version=APP_VERSION,
+        whats_new=WHAT_IS_NEW,
+        accounts=accounts,
+        signals=signals,
+        trades=trades,
+        scan={**scan,"history":scan_history},
+        health={
+            "database":"TURSO" if DB.turso_enabled else "LOCAL_SQLITE",
+            "provider":"YAHOO",
+            "telegram":"CONFIGURED" if settings.telegram_bot_token else "DISABLED",
+            "telegram_failed_deliveries":len(failed_deliveries),
+            "open_trades":sum(1 for trade in trades if str(trade.get("status","")).upper()=="OPEN"),
+            "signal_lifecycle":"ENABLED",
+        },
+        strategies=REGISTRY.all(),
+    )
+    logger.info(
+        "Dashboard snapshot complete | elapsed_ms=%s | signals=%s | trades=%s",
+        round((time.monotonic()-started)*1000),len(signals),len(trades),
+    )
+    return payload
 # Scan-level error alerts are edge-triggered and durable: an asset outage that
 # fails every sweep must not post one bubble per sweep, and a Render redeploy or
 # process restart must not forget an open incident. The incident record lives in
@@ -692,9 +734,13 @@ def build_app():
         if path=="/api/dashboard":
             guard=_admin_api_guard(env,start)
             if guard is not None: return guard
-            try:return _json_response(start,snapshot())
+            request_started=time.monotonic()
+            try:
+                payload=snapshot()
+                logger.info("Dashboard API request complete | elapsed_ms=%s",round((time.monotonic()-request_started)*1000))
+                return _json_response(start,payload)
             except Exception as exc:
-                logger.exception("Dashboard snapshot failed")
+                logger.exception("Dashboard API request failed | elapsed_ms=%s",round((time.monotonic()-request_started)*1000))
                 return _json_response(start,{"ok":False,"error":str(exc)},"500 Internal Server Error")
         if path=="/api/diagnostics/sweep":
             guard=_admin_api_guard(env,start)
