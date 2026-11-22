@@ -97,8 +97,7 @@ def test_spec_names_the_real_registry_entrypoint():
 
 
 def test_pyproject_declares_every_root_module():
-    """Packaging drift: `startup.py` was missing from py-modules while
-    render.yaml runs `python startup.py`, so a wheel install would not ship it."""
+    """Packaging drift: ensure every root Python module is included in py-modules."""
     declared = set(
         re.findall(
             r'"([a-z_0-9]+)"',
