@@ -8,7 +8,8 @@ def test_scan_history_is_created_in_the_primary_database():
     db = (ROOT / "db.py").read_text(encoding="utf-8")
     assert "CREATE TABLE IF NOT EXISTS scan_runs" in db
     assert 'def record_scan_run(self,run_id,strategy_id,started_at,status,payload,finished_at=None):' in db
-    assert 'INSERT OR REPLACE INTO scan_runs VALUES(?,?,?,?,?,?)' in db
+    assert 'INSERT INTO scan_runs(id,strategy_id,started_at,finished_at,status,payload)' in db
+    assert 'ON CONFLICT(id) DO UPDATE SET' in db
     assert "def load_scan_runs(self,limit=50):" in db
 
 
