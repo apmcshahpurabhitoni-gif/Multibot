@@ -9,8 +9,8 @@ from trading import PaperTrade
 from config import LIVE_ASSET_MAP
 from release_notes import telegram_whats_new
 BR="━━━━━━━━━━━━━━━━━━━━━━"; BR2="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-DASHBOARD_URL=os.getenv("DASHBOARD_URL","https://multibot-1d1fdf1c.aic.com/dashboard")
-ARCHITECTURE_URL=os.getenv("ARCHITECTURE_URL","https://multibot-1d1fdf1c.aic.com/architecture")
+DASHBOARD_URL=os.getenv("DASHBOARD_URL","https://multibot-1d1fdf1c.appliedintelligencecorporation.com/dashboard")
+ARCHITECTURE_URL=os.getenv("ARCHITECTURE_URL","https://multibot-1d1fdf1c.appliedintelligencecorporation.com/architecture")
 class TelegramConfigurationError(RuntimeError): pass
 class TelegramTemplateError(RuntimeError): pass
 @dataclass(frozen=True)

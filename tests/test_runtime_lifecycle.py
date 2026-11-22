@@ -91,8 +91,8 @@ def test_deployment_entrypoints_are_consistent():
     assert "from main import main as runtime_main" in legacy
     assert "telegram_send" not in legacy
     assert "./.venv/bin/python main.py" in readme
-    assert "https://multibot-1d1fdf1c.aic.com/dashboard" in telegram
-    assert "https://multibot-1d1fdf1c.aic.com/architecture" in telegram
+    assert "https://multibot-1d1fdf1c.appliedintelligencecorporation.com/dashboard" in telegram
+    assert "https://multibot-1d1fdf1c.appliedintelligencecorporation.com/architecture" in telegram
 
 
 def test_runtime_lease_is_part_of_the_shared_schema():
