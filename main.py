@@ -815,6 +815,7 @@ def _start_worker(name,target):
 def _start_leader_workers():
     global RUNTIME_LEADER
     RUNTIME_LEADER=True
+    logger.info("Runtime leadership acquired | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
     _send_startup_announcement()
     _start_worker("scanner",scanner_loop)
     _start_worker("monitor",monitor_loop)
