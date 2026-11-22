@@ -1,4 +1,5 @@
--- MULTIBOT2 production persistence schema. No pending_sweeps workflow.
+-- LEGACY Supabase schema snapshot retained for historical reference only.
+-- Runtime schema is initialized by db.py and uses Turso/libSQL (SQLite locally).
 create table if not exists public.accounts(name text primary key,starting_balance double precision not null default 100000,balance double precision not null default 100000,daily_trades integer not null default 0,trades_today integer not null default 0,planned_risk_used double precision not null default 0,last_reset_date text,reset_date text,updated_at timestamptz not null default now());
 create table if not exists public.active_trades(id text primary key,symbol text not null default '',market text not null default 'NSE',account text not null default '',strat text not null default '',type text not null default 'LONG',entry double precision not null default 0,sl double precision not null default 0,tp double precision not null default 0,qty double precision not null default 0,trail_sl double precision not null default 0,ts_trigger text,opened_at timestamptz,time_str text,updated_at timestamptz not null default now());
 
