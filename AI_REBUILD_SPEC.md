@@ -759,7 +759,7 @@ pip install -e .
 Start:
 
 ```text
-python startup.py && python main.py
+python main.py
 ```
 
 Health:
@@ -828,7 +828,7 @@ no other section describes.
 main.py
     Runtime orchestration, HTTP endpoints, Telegram command loop.
 startup.py
-    Startup sequencing and keepalive bootstrap.
+    Backward-compatible launcher that delegates to main.py; no independent runtime side effects.
 report_builder.py
     Developer tooling: dependency-graph dump and CSS/JS cascade report
     (`python3 report_builder.py`); not imported by the runtime.
