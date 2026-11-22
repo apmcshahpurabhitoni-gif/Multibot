@@ -381,3 +381,11 @@ def test_accent_map_resolves_for_every_style_including_neo_emerald():
     assert '--accent-fill:#047857' in css
     assert '--accent-strong:#047857' in css
     assert 'background:var(--accent-fill)' in css
+
+
+
+def test_dashboard_http_server_handles_requests_concurrently():
+    source = (ROOT / "main.py").read_text(encoding="utf-8")
+    assert "class ThreadingWSGIServer(ThreadingMixIn, WSGIServer)" in source
+    assert "daemon_threads = True" in source
+    assert "server_class=ThreadingWSGIServer" in source

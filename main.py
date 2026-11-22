@@ -2,7 +2,8 @@
 from __future__ import annotations
 import errno, hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
 from urllib import parse, request
-from wsgiref.simple_server import make_server
+from socketserver import ThreadingMixIn
+from wsgiref.simple_server import WSGIServer, make_server
 import pandas as pd
 from backtest import backtest_strategy
 from config import *
@@ -41,6 +42,12 @@ RUNTIME_LEASE_LAST_VERIFIED=0.0
 RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS=5.0
 RUNTIME_LEASE_VERIFY_LOCK=threading.Lock()
 HTTP_SERVER=None
+
+class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+    """Serve dashboard requests concurrently so one slow API call cannot block the UI."""
+    daemon_threads = True
+    block_on_close = False
+    allow_reuse_address = True
 REMINDER_THREAD=None
 WORKER_THREADS={}
 _MAIN_STARTED=False
@@ -745,7 +752,7 @@ def web_server():
     while not STOP.is_set():
         server=None
         try:
-            server=make_server("0.0.0.0",port,build_app())
+            server=make_server("0.0.0.0",port,build_app(),server_class=ThreadingWSGIServer)
             with LOCK: HTTP_SERVER=server
             logger.info("Dashboard HTTP server listening | port=%s pid=%s",port,os.getpid())
             server.serve_forever()
