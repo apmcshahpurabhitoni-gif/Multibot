@@ -96,3 +96,14 @@ def test_runtime_lease_is_part_of_the_shared_schema():
     root = Path(main.__file__).resolve().parent
     schema_test = (root / "tests" / "test_schema_parity.py").read_text(encoding="utf-8")
     assert '"runtime_leases"' in schema_test
+
+
+def test_deployed_runtime_requires_shared_turso_lease_backend(monkeypatch):
+    monkeypatch.setenv("PORT", "10000")
+    monkeypatch.delenv("MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE", raising=False)
+    monkeypatch.setattr(main.DB, "turso_enabled", False)
+    with pytest.raises(RuntimeError, match="Turso is required"):
+        main._validate_runtime_lease_backend()
+
+    monkeypatch.setenv("MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE", "true")
+    main._validate_runtime_lease_backend()
