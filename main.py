@@ -38,6 +38,7 @@ RUNTIME_OWNER_ID=None
 RUNTIME_LEADER=False
 RUNTIME_LEASE_REQUIRED=False
 HTTP_SERVER=None
+REMINDER_THREAD=None
 WORKER_THREADS={}
 _MAIN_STARTED=False
 _MAIN_START_LOCK=threading.Lock()
@@ -834,7 +835,7 @@ def _start_worker(name,target):
         return worker
 
 def _start_leader_workers():
-    global RUNTIME_LEADER
+    global RUNTIME_LEADER,REMINDER_THREAD
     RUNTIME_LEADER=True
     logger.info("Runtime leadership acquired | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
     _send_startup_announcement()
@@ -849,7 +850,7 @@ def _start_leader_workers():
         else:
             logger.info("Telegram command polling disabled; signal delivery remains enabled")
         if REMINDERS is not None:
-            REMINDERS.start()
+            REMINDER_THREAD=REMINDERS.start()
             logger.info("Reminder worker started | pid=%s",os.getpid())
     logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode | pid=%s owner=%s",APP_VERSION,len(live_assets()),len(REGISTRY.all()),os.getpid(),RUNTIME_OWNER_ID)
 
@@ -933,15 +934,28 @@ def main():
         if REMINDERS is not None:
             try: REMINDERS.stop()
             except Exception: logger.exception("Reminder worker shutdown failed")
-        try:
-            DB.release_runtime_lease(RUNTIME_OWNER_ID)
-            logger.info("Runtime lease released | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
-        except Exception:
-            logger.exception("Runtime lease release failed | pid=%s",os.getpid())
         with LOCK: server=HTTP_SERVER
         if server is not None:
             try: server.shutdown()
             except Exception: logger.exception("Dashboard shutdown failed | pid=%s",os.getpid())
+        # Keep the lease until every operational worker has stopped. If a worker
+        # is stuck in an upstream request, leave the lease to expire rather than
+        # allowing a replacement process to trade concurrently with it.
+        deadline=time.monotonic()+45.0
+        workers=list(WORKER_THREADS.values())
+        if REMINDER_THREAD is not None: workers.append(REMINDER_THREAD)
+        for worker in workers:
+            if worker is threading.current_thread(): continue
+            worker.join(timeout=max(0.0,deadline-time.monotonic()))
+        still_alive=[worker.name for worker in workers if worker.is_alive()]
+        if still_alive:
+            logger.error("Runtime workers did not stop before shutdown deadline; lease left to expire | workers=%s",still_alive)
+        else:
+            try:
+                DB.release_runtime_lease(RUNTIME_OWNER_ID)
+                logger.info("Runtime lease released | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
+            except Exception:
+                logger.exception("Runtime lease release failed | pid=%s",os.getpid())
         for sig,handler in previous_handlers.items():
             try: os_signal.signal(sig,handler)
             except (ValueError,OSError): pass
