@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from db import DatabaseManager
+from strategy_service import RuntimeLeadershipError, StrategyService
 import main
 
 
@@ -69,6 +70,7 @@ def test_runtime_entrypoint_has_single_leader_gate():
     assert "DB.renew_runtime_lease" in source
     assert "_require_runtime_leader()" in source
     assert "RUNTIME_LEASE_REQUIRED=True" in source
+    assert "runtime_guard=_require_runtime_leader" in source
     assert 'if __name__=="__main__": raise SystemExit(main())' in source
 
 
@@ -137,3 +139,18 @@ def test_concurrent_runtime_claims_have_exactly_one_winner(tmp_path):
 
     assert not first.is_alive() and not second.is_alive()
     assert sum(results) == 1
+
+
+def test_strategy_service_propagates_lease_loss():
+    def lost_lease():
+        raise RuntimeLeadershipError("lease lost")
+
+    service = StrategyService(
+        registry=object(),
+        provider=object(),
+        database=object(),
+        accounts={},
+        runtime_guard=lost_lease,
+    )
+    with pytest.raises(RuntimeLeadershipError, match="lease lost"):
+        service._check_runtime_guard()
