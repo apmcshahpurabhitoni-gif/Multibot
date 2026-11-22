@@ -106,7 +106,15 @@ class _RemoteConnection:
             if exc_type is None:
                 self.commit()
             else:
-                self.rollback()
+                # A failed Turso statement may already have aborted its
+                # interactive transaction. A subsequent rollback can then
+                # raise SQLITE_UNKNOWN and mask the original SQLITE_BUSY,
+                # preventing the caller's transient-error retry from running.
+                try:
+                    self.rollback()
+                except Exception:
+                    if exc_value is None:
+                        raise
         finally:
             self.close()
         return False
