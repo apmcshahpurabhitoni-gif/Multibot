@@ -69,6 +69,7 @@ def test_runtime_entrypoint_has_single_leader_gate():
     assert "DB.renew_runtime_lease" in source
     assert "_require_runtime_leader()" in source
     assert "RUNTIME_LEASE_REQUIRED=True" in source
+    assert 'if __name__=="__main__": raise SystemExit(main())' in source
 
 
 def test_runtime_guard_fails_closed_when_process_is_not_leader(monkeypatch):
