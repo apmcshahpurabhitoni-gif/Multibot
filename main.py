@@ -966,4 +966,4 @@ def main():
             except (ValueError,OSError): pass
         logger.info("Runtime process stopped | pid=%s",os.getpid())
     return 0
-if __name__=="__main__": main()
+if __name__=="__main__": raise SystemExit(main())
