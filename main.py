@@ -818,19 +818,28 @@ def _telegram_command_polling_enabled():
     return os.getenv("TELEGRAM_COMMAND_POLLING", "true").strip().lower() in {"1","true","yes","on"}
 
 def _send_startup_announcement():
-    """Send one startup notice from the actual AIC/Render runtime entrypoint."""
+    """Send the startup notice and release notes as two separate Telegram messages."""
     if not settings.telegram_bot_token or not settings.telegram_chat_id:
-        logger.info("Telegram startup announcement skipped | reason=not_configured")
+        logger.info("Telegram startup announcements skipped | reason=not_configured")
         return
     try:
-        send_message(
-            TelegramMessage("MSG-STARTUP-V1", msg_start().replace("🤖 *MULTIBOT2 ONLINE*", "🚀 *MULTIBOT2 STARTED*")),
-            TelegramConfig.from_env(),
-        )
-        logger.info("Telegram startup announcement sent | pid=%s", os.getpid())
+        config = TelegramConfig.from_env()
     except Exception as exc:
-        # A Telegram outage must never prevent the scanner/dashboard from starting.
-        logger.warning("Telegram startup announcement failed | pid=%s error=%s", os.getpid(), exc)
+        logger.warning("Telegram startup announcements skipped | pid=%s error=%s", os.getpid(), exc)
+        return
+
+    # Keep these as two independent sends: a failure in one must not suppress
+    # the other, and neither may prevent the trading runtime from starting.
+    announcements = (
+        ("MSG-STARTUP-V1", msg_start(), "startup"),
+        ("MSG-WHATSNEW-STARTUP-V1", msg_whats_new(), "what's-new"),
+    )
+    for message_type, body, label in announcements:
+        try:
+            send_message(TelegramMessage(message_type, body), config)
+            logger.info("Telegram %s announcement sent | pid=%s", label, os.getpid())
+        except Exception as exc:
+            logger.warning("Telegram %s announcement failed | pid=%s error=%s", label, os.getpid(), exc)
 
 def _start_worker(name,target):
     """Start one named worker in this process; never create duplicate loops."""
