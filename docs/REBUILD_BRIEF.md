@@ -113,7 +113,7 @@ is exactly what documentation is for.
 | `multibot2-architecture.json` | ⚠️ stale pins | Regenerate after the UI changes |
 | `schema.sql` | ✅ exists | Canonical DDL |
 | `supabase/schema.sql` | ✅ now parity-enforced | Mirror |
-| `render.yaml` | ✅ exists | Deploy + env contract |
+| AIC Cloud | ✅ configured externally | Sole deployment target |
 
 ### Layer 3 — API
 | Doc | Status |
