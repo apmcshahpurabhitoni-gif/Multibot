@@ -260,7 +260,8 @@ def test_web_server_retries_address_in_use_without_exiting_runtime(monkeypatch):
         def server_close(self):
             closed.append(True)
 
-    def make_server(host, port, app):
+    def make_server(host, port, app, **kwargs):
+        assert kwargs.get("server_class") is main.ThreadingWSGIServer
         calls.append((host, port))
         if len(calls) == 1:
             raise OSError(errno.EADDRINUSE, "Address already in use")
