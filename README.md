@@ -410,17 +410,20 @@ MULTIBOT2/
 
 ## 🚀 Run
 
+Every deployment uses one canonical entrypoint: `main.py`. The runtime acquires a Turso-backed leader lease before starting scanners, trade monitoring, summaries, reminders or Telegram polling. Overlapping deployment instances can serve the dashboard, but only the lease holder runs trading workers.
+
 ```bash
 pip install -e ".[test]"
-python startup.py
 python main.py
 ```
 
-Render uses:
+Render and AIC Cloud both use:
 
 ```text
-python startup.py && python main.py
+python main.py
 ```
+
+`startup.py` remains only as a backward-compatible launcher and delegates to `main.py`; it never sends a separate startup message or starts a second runtime.
 
 Health endpoint:
 
