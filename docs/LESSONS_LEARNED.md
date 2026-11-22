@@ -55,9 +55,10 @@ envelope has every documented key **and no undocumented ones**.
 Covered in A1. The general rule: **one canonical artefact, one mirror, one test.**
 
 ### B3. `startup.py` missing from `pyproject.toml` `py-modules`
-**What.** 23 of 24 root modules were declared. `render.yaml` runs
+**What.** 23 of 24 root modules were declared. At the time, `render.yaml` ran
 `python startup.py && python main.py`, so a wheel install would not have shipped
-the entrypoint.
+the entrypoint. The deployment contract has since been simplified: AIC and Render
+now both run `python main.py`; `startup.py` remains a compatibility wrapper.
 **Why it survived.** CI installs with `pip install -e .`, where an editable install
 sees the source tree directly and the omission is invisible. **Only a real
 wheel/sdist build would have caught it.**

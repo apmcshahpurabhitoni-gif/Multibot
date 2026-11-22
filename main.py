@@ -1,6 +1,6 @@
 """MULTIBOT2 runtime: registry-driven strategies, one shared trade lifecycle."""
 from __future__ import annotations
-import hmac, json, logging, os, threading, time, warnings
+import hmac, json, logging, os, signal as os_signal, threading, time, uuid, warnings
 from urllib import parse, request
 from wsgiref.simple_server import make_server
 import pandas as pd
@@ -12,7 +12,7 @@ from news import NewsService
 from reminders import ReminderService
 import bot_settings
 import channels
-from strategy_service import StrategyService
+from strategy_service import RuntimeLeadershipError, StrategyService
 from strategies import discover_strategies
 from sweep_engine import last_quarantine
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_error, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
@@ -30,6 +30,21 @@ REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); 
 LAST_SCANS={}
 LAST_PING_AT=None
 SETTINGS_LOADED=False
+# A Turso-backed lease elects exactly one active worker across overlapping
+# deployment containers. Other instances may serve the dashboard in standby.
+RUNTIME_LEASE_TTL_SECONDS=60
+RUNTIME_LEASE_HEARTBEAT_SECONDS=15
+RUNTIME_OWNER_ID=None
+RUNTIME_LEADER=False
+RUNTIME_LEASE_REQUIRED=False
+RUNTIME_LEASE_LAST_VERIFIED=0.0
+RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS=5.0
+RUNTIME_LEASE_VERIFY_LOCK=threading.Lock()
+HTTP_SERVER=None
+REMINDER_THREAD=None
+WORKER_THREADS={}
+_MAIN_STARTED=False
+_MAIN_START_LOCK=threading.Lock()
 
 def now(): return pd.Timestamp.now(tz=IST_TIMEZONE)
 def validate_runtime_configuration():
@@ -63,7 +78,7 @@ def ensure_runtime():
     logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
-    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
+    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE,runtime_guard=_require_runtime_leader)
     if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:
@@ -72,7 +87,38 @@ def ensure_runtime():
                 st.manifest.id,
                 {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
             )
+def _require_runtime_leader():
+    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED
+    if not RUNTIME_LEASE_REQUIRED:
+        return
+    if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
+        raise RuntimeLeadershipError("This process is not the active MULTIBOT2 runtime leader")
+    # Guard every asset and dispatch boundary, but amortize the remote read:
+    # the lease heartbeat is 15s and a verification is cached for at most 5s.
+    # A process resuming after a long pause always re-checks before trading.
+    verified_at=time.monotonic()
+    if verified_at-RUNTIME_LEASE_LAST_VERIFIED<RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS:
+        return
+    with RUNTIME_LEASE_VERIFY_LOCK:
+        verified_at=time.monotonic()
+        if verified_at-RUNTIME_LEASE_LAST_VERIFIED<RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS:
+            return
+        try:
+            owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
+        except Exception:
+            RUNTIME_LEADER=False
+            STOP.set()
+            if REMINDERS is not None: REMINDERS.stop()
+            raise RuntimeLeadershipError("Runtime lease could not be verified; trading stopped")
+        if not owned:
+            RUNTIME_LEADER=False
+            STOP.set()
+            if REMINDERS is not None: REMINDERS.stop()
+            raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
+        RUNTIME_LEASE_LAST_VERIFIED=verified_at
+
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
+    _require_runtime_leader()
     ensure_runtime()
     current=now_at or now()
     started=time.monotonic()
@@ -109,6 +155,7 @@ def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     _notify_scan(run_id,strategy_id,payload,results)
     return results
 def run_all_cycles(*,now_at=None,send=True,period="30d",force=False):
+    _require_runtime_leader()
     ensure_runtime(); out=[]
     current=now_at or now()
     for st in REGISTRY.all():
@@ -128,6 +175,7 @@ def scanner_loop():
             except Exception: logger.exception("Could not resolve strategy scan interval")
         STOP.wait(interval)
 def monitor_once():
+    _require_runtime_leader()
     ensure_runtime(); return TRADE_MONITOR.monitor_once(now=now())
 def monitor_loop():
     while not STOP.is_set():
@@ -419,7 +467,9 @@ def run_summaries():
 
 def summary_loop():
     while not STOP.is_set():
-        try: run_summaries()
+        try:
+            _require_runtime_leader()
+            run_summaries()
         except Exception: logger.exception("Summary cycle failed")
         STOP.wait(60)
 
@@ -690,7 +740,20 @@ def build_app():
         start("404 Not Found",[("Content-Type","text/plain")]); return [b"Not found"]
     return app
 def web_server():
-    make_server("0.0.0.0",int(os.getenv("PORT","10000")),build_app()).serve_forever()
+    global HTTP_SERVER
+    server=None
+    try:
+        server=make_server("0.0.0.0",int(os.getenv("PORT","10000")),build_app())
+        with LOCK: HTTP_SERVER=server
+        logger.info("Dashboard HTTP server listening | port=%s pid=%s",os.getenv("PORT","10000"),os.getpid())
+        server.serve_forever()
+    except Exception:
+        logger.exception("Dashboard HTTP server stopped unexpectedly | pid=%s",os.getpid())
+    finally:
+        if server is not None:
+            try: server.server_close()
+            except Exception: logger.exception("Dashboard HTTP server close failed")
+        with LOCK: HTTP_SERVER=None
 def _send_chat(chat_id,message):
     config=TelegramConfig.from_env(); target=TelegramConfig(config.bot_token,str(chat_id)); send_message(message if isinstance(message,TelegramMessage) else TelegramMessage("MSG-COMMAND-V1",message),target)
 def _handle_command(chat_id,cmd):
@@ -754,24 +817,169 @@ def _telegram_command_polling_enabled():
     # the scanner's primary signal-delivery runtime.
     return os.getenv("TELEGRAM_COMMAND_POLLING", "true").strip().lower() in {"1","true","yes","on"}
 
-def main():
-    ensure_runtime()
-    threading.Thread(target=web_server,daemon=True,name="dashboard").start()
-    threading.Thread(target=scanner_loop,daemon=True,name="scanner").start()
-    threading.Thread(target=monitor_loop,daemon=True,name="monitor").start()
-    # Always running: the daily/weekly watermark is checked against the live
-    # subscriptions, so adding a channel in the Tools screen is enough to start
-    # receiving summaries without a restart.
-    threading.Thread(target=summary_loop,daemon=True,name="summaries").start()
-    logger.info("Summary scheduler started | daily_hour=%s weekly_day=%s",os.getenv("SUMMARY_DAILY_HOUR","18"),os.getenv("SUMMARY_WEEKLY_DAY","6"))
+def _send_startup_announcement():
+    """Send one startup notice from the actual AIC/Render runtime entrypoint."""
+    if not settings.telegram_bot_token or not settings.telegram_chat_id:
+        logger.info("Telegram startup announcement skipped | reason=not_configured")
+        return
+    try:
+        send_message(
+            TelegramMessage("MSG-STARTUP-V1", msg_start().replace("🤖 *MULTIBOT2 ONLINE*", "🚀 *MULTIBOT2 STARTED*")),
+            TelegramConfig.from_env(),
+        )
+        logger.info("Telegram startup announcement sent | pid=%s", os.getpid())
+    except Exception as exc:
+        # A Telegram outage must never prevent the scanner/dashboard from starting.
+        logger.warning("Telegram startup announcement failed | pid=%s error=%s", os.getpid(), exc)
+
+def _start_worker(name,target):
+    """Start one named worker in this process; never create duplicate loops."""
+    with LOCK:
+        current=WORKER_THREADS.get(name)
+        if current is not None and current.is_alive():
+            logger.warning("Worker start skipped | name=%s pid=%s reason=already_alive",name,os.getpid())
+            return current
+        worker=threading.Thread(target=target,daemon=True,name=name)
+        WORKER_THREADS[name]=worker
+        worker.start()
+        logger.info("Worker started | name=%s pid=%s",name,os.getpid())
+        return worker
+
+def _start_leader_workers():
+    global RUNTIME_LEADER,REMINDER_THREAD
+    RUNTIME_LEADER=True
+    logger.info("Runtime leadership acquired | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
+    _require_runtime_leader()
+    _send_startup_announcement()
+    _require_runtime_leader()
+    _start_worker("scanner",scanner_loop)
+    _start_worker("monitor",monitor_loop)
+    _start_worker("summaries",summary_loop)
+    logger.info("Summary scheduler started | daily_hour=%s weekly_day=%s pid=%s",os.getenv("SUMMARY_DAILY_HOUR","18"),os.getenv("SUMMARY_WEEKLY_DAY","6"),os.getpid())
     if settings.telegram_bot_token and settings.telegram_chat_id:
         if _telegram_command_polling_enabled():
-            threading.Thread(target=telegram_commands,daemon=True,name="telegram").start()
-            logger.info("Telegram command polling enabled")
+            _start_worker("telegram",telegram_commands)
+            logger.info("Telegram command polling enabled | pid=%s",os.getpid())
         else:
             logger.info("Telegram command polling disabled; signal delivery remains enabled")
         if REMINDERS is not None:
-            REMINDERS.start()
-    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(live_assets()),len(REGISTRY.all()))
-    while True: time.sleep(3600)
-if __name__=="__main__": main()
+            REMINDER_THREAD=REMINDERS.start()
+            logger.info("Reminder worker started | pid=%s",os.getpid())
+    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode | pid=%s owner=%s",APP_VERSION,len(live_assets()),len(REGISTRY.all()),os.getpid(),RUNTIME_OWNER_ID)
+
+def _validate_runtime_lease_backend():
+    # A local SQLite lease cannot coordinate separate deployment containers.
+    # Deployed processes therefore require the shared Turso primary. Local
+    # development can use SQLite; the override is explicit for special cases.
+    allow_local=os.getenv("MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE","").strip().lower() in {"1","true","yes","on"}
+    if os.getenv("PORT") and not DB.turso_enabled and not allow_local:
+        raise RuntimeError(
+            "Turso is required for deployment-wide runtime leadership. "
+            "Configure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, or explicitly "
+            "set MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE=true for a single-process test."
+        )
+
+def main():
+    global _MAIN_STARTED,RUNTIME_OWNER_ID,RUNTIME_LEADER,RUNTIME_LEASE_REQUIRED,RUNTIME_LEASE_LAST_VERIFIED
+    try:
+        _validate_runtime_lease_backend()
+    except Exception as exc:
+        logger.critical("Runtime startup refused | reason=%s",exc)
+        return 1
+    with _MAIN_START_LOCK:
+        if _MAIN_STARTED:
+            logger.warning("Runtime entrypoint invoked more than once in one process | pid=%s",os.getpid())
+            return 0
+        _MAIN_STARTED=True
+
+    STOP.clear()
+    RUNTIME_LEASE_REQUIRED=True
+    RUNTIME_LEASE_LAST_VERIFIED=0.0
+    RUNTIME_OWNER_ID=f"{os.getenv('HOSTNAME','host')}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
+    logger.info("Runtime process booting | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
+
+    def request_shutdown(signum,frame):
+        logger.info("Runtime shutdown requested | signal=%s pid=%s",signum,os.getpid())
+        STOP.set()
+
+    previous_handlers={}
+    for sig in (os_signal.SIGTERM,os_signal.SIGINT):
+        try:
+            previous_handlers[sig]=os_signal.getsignal(sig)
+            os_signal.signal(sig,request_shutdown)
+        except (ValueError,OSError):
+            # Signal handlers can only be installed by the main interpreter thread.
+            pass
+
+    _start_worker("dashboard",web_server)
+    try:
+        while not STOP.is_set():
+            if not RUNTIME_LEADER:
+                try:
+                    if DB.acquire_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS):
+                        # Initialize before declaring leadership. If initialization
+                        # fails, release the lease so another healthy instance can try.
+                        try:
+                            ensure_runtime()
+                            # Initialization/migration may take time on a cold
+                            # deployment. Re-claim immediately before workers
+                            # start so an expired lease cannot activate a stale owner.
+                            if not DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS):
+                                raise RuntimeError("Runtime lease was lost during initialization")
+                            RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
+                        except Exception:
+                            DB.release_runtime_lease(RUNTIME_OWNER_ID)
+                            raise
+                        _start_leader_workers()
+                    else:
+                        current=DB.runtime_lease_owner() or {}
+                        logger.info("Runtime standby | pid=%s active_owner=%s retry_in=%ss",os.getpid(),current.get("owner_id","unknown"),RUNTIME_LEASE_HEARTBEAT_SECONDS)
+                except Exception:
+                    logger.exception("Runtime leadership acquisition failed; trading workers remain stopped | pid=%s",os.getpid())
+            else:
+                try:
+                    renewed=DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS)
+                    if renewed: RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
+                except Exception:
+                    logger.exception("Runtime lease heartbeat failed; stopping trading workers | pid=%s",os.getpid())
+                    renewed=False
+                if not renewed:
+                    RUNTIME_LEADER=False
+                    logger.critical("Runtime leadership lost; fail-closed shutdown initiated | pid=%s",os.getpid())
+                    STOP.set()
+                    if REMINDERS is not None: REMINDERS.stop()
+            STOP.wait(RUNTIME_LEASE_HEARTBEAT_SECONDS)
+    finally:
+        RUNTIME_LEADER=False
+        STOP.set()
+        if REMINDERS is not None:
+            try: REMINDERS.stop()
+            except Exception: logger.exception("Reminder worker shutdown failed")
+        with LOCK: server=HTTP_SERVER
+        if server is not None:
+            try: server.shutdown()
+            except Exception: logger.exception("Dashboard shutdown failed | pid=%s",os.getpid())
+        # Keep the lease until every operational worker has stopped. If a worker
+        # is stuck in an upstream request, leave the lease to expire rather than
+        # allowing a replacement process to trade concurrently with it.
+        deadline=time.monotonic()+45.0
+        workers=list(WORKER_THREADS.values())
+        if REMINDER_THREAD is not None: workers.append(REMINDER_THREAD)
+        for worker in workers:
+            if worker is threading.current_thread(): continue
+            worker.join(timeout=max(0.0,deadline-time.monotonic()))
+        still_alive=[worker.name for worker in workers if worker.is_alive()]
+        if still_alive:
+            logger.error("Runtime workers did not stop before shutdown deadline; lease left to expire | workers=%s",still_alive)
+        else:
+            try:
+                DB.release_runtime_lease(RUNTIME_OWNER_ID)
+                logger.info("Runtime lease released | pid=%s owner=%s",os.getpid(),RUNTIME_OWNER_ID)
+            except Exception:
+                logger.exception("Runtime lease release failed | pid=%s",os.getpid())
+        for sig,handler in previous_handlers.items():
+            try: os_signal.signal(sig,handler)
+            except (ValueError,OSError): pass
+        logger.info("Runtime process stopped | pid=%s",os.getpid())
+    return 0
+if __name__=="__main__": raise SystemExit(main())

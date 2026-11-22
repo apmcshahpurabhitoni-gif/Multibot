@@ -39,7 +39,7 @@ likely to hit.
 ### `reference/` — the backend you are NOT rewriting
 `AI_REBUILD_SPEC.md` (full contract, §1–30) · `AI_CONTEXT.md` (orientation) ·
 `STRATEGY_DEVELOPER_GUIDE.md` · `DESIGN.md` (current UI ownership) ·
-`MANIFEST.txt` · `schema.sql` (canonical DDL) · `render.yaml` (deploy) ·
+`MANIFEST.txt` · `schema.sql` (legacy Supabase reference, not runtime DDL) · `render.yaml` (deploy) ·
 `pyproject.toml` (deps, version) · `strategies/` (the strategy contract).
 
 `reference/strategies/` is a **byte-identical copy of the repo's `strategies/`
@@ -72,10 +72,13 @@ package** — same directory layout, not flattened. Each strategy is a package
 
 ## Rebuilding this kit
 
-The kit is a copy of tracked repo files — it has no build step of its own.
-**Editing any file that ships in the kit invalidates it**, and
-`tests/test_rebuild_kit.py` will fail until you rebuild. That is intentional:
-a stale kit is worse than a missing one.
+The kit is generated from the current repository sources. **Editing any file that ships in the kit invalidates a previously generated ZIP.** The regression test rebuilds the archive in a temporary directory on every test run, so it never validates a stale checked-in binary. That is intentional: a stale kit is worse than a missing one.
+
+Preferred one-command build:
+
+```bash
+python3 tools/build_rebuild_kit.py --output multibot2-ai-rebuild-kit.zip
+```
 
 From the repository root:
 
@@ -159,9 +162,10 @@ Details and the full list: [`docs/LESSONS_LEARNED.md`](docs/LESSONS_LEARNED.md).
 
 ## Non-negotiables
 
-Paper trading only · Yahoo Finance only · 25 assets · ₹100,000 account ·
-₹2,000 risk per trade · **1.0× leverage never higher** · freshness **exactly**
-1 hour · **max 2 sends** per signal identity · SQLite runtime primary with
-Supabase as the durable mirror · signals on completed candles only.
+Paper trading only · Yahoo Finance only · 25 shipped assets · ₹100,000 default
+account · ₹2,000 default risk · **1.0× leverage never higher** · freshness
+**exactly 1 hour** · **max 2 sends** per signal identity · Turso/libSQL runtime
+primary · SQLite local development only · signals on completed candles only ·
+`main.py` single entrypoint with a database-backed single-worker lease.
 
 Full list: [`docs/LOCKED_RULES.md`](docs/LOCKED_RULES.md).

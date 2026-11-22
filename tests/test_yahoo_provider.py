@@ -94,20 +94,27 @@ def test_yahoo_rate_limit_backoff_is_shared_across_symbols(monkeypatch):
     assert calls == ["GC=F"]
 
 
-def test_yahoo_empty_response_activates_provider_wide_backoff(monkeypatch):
+def test_yahoo_empty_response_only_backs_off_the_affected_symbol(monkeypatch):
     calls = []
 
-    def empty_download(symbol, **kwargs):
+    def empty_then_valid_download(symbol, **kwargs):
         calls.append(symbol)
-        return pd.DataFrame()
+        if symbol == "GC=F":
+            return pd.DataFrame()
+        return _fake_download(symbol, **kwargs)
 
-    monkeypatch.setattr(yahoo_provider.yf, "download", empty_download)
+    monkeypatch.setattr(yahoo_provider.yf, "download", empty_then_valid_download)
     provider = yahoo_provider.YahooProvider()
 
     with pytest.raises(yahoo_provider.YahooDataError, match="returned no data"):
         provider.fetch("GC=F", period="5d", interval="1h")
 
-    with pytest.raises(yahoo_provider.YahooDataError, match="rate-limit backoff"):
-        provider.fetch("SBIN.NS", period="5d", interval="1h")
+    # A missing/unsupported Gold interval must not block unrelated symbols.
+    frame = provider.fetch("SBIN.NS", period="5d", interval="1h", validate_hourly=False)
+    assert not frame.empty
+    assert calls == ["GC=F", "SBIN.NS"]
 
-    assert calls == ["GC=F"]
+    # The affected symbol itself remains protected from repeated requests.
+    with pytest.raises(yahoo_provider.YahooDataError, match="rate-limit backoff"):
+        provider.fetch("GC=F", period="5d", interval="1h")
+    assert calls == ["GC=F", "SBIN.NS"]

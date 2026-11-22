@@ -18,6 +18,7 @@ EXPECTED_TABLES = {
     "forex_calendar_attempts",
     "multibot_migrations",
     "app_config",
+    "runtime_leases",
 }
 
 

@@ -232,12 +232,17 @@ The count (3) and each name/version are asserted against the live registry by
 |---|---|
 | Bind | `0.0.0.0:$PORT`, default `10000` |
 | Health path | `/ping` |
-| Startup order | `startup.py` then `main.py` |
+| Active worker owner | Atomic Turso/SQLite `runtime_leases` row; 60s lease, 15s heartbeat |
+| Standby behavior | Dashboard may serve; scanner, monitor, reminders and Telegram polling remain stopped |
+| Deployment database | Shared Turso required for the lease; deployed local-SQLite fallback is refused unless explicitly overridden for a single-process test |
+| Startup order | `main.py` only; `startup.py` is a compatibility wrapper |
 | Auth | No user login. `/api/settings` + `/api/notifications` reject cross-origin requests (403 `CROSS_ORIGIN`); when `DASHBOARD_API_TOKEN` is set, writes require it (401 `ADMIN_TOKEN_REQUIRED`, `X-Admin-Token` or `Bearer`). Reads stay open and redacted — do not expose publicly without a reverse-proxy auth layer. |
 | Keepalive | External cron every 10 min; `/api/health` reports `OK` ≤ 15 min, else `STALE` |
 | Python | `>=3.11`; CI uses 3.12 |
-| Dependencies | `pandas>=2.2,<3`, `yfinance>=0.2.50,<1`, `requests>=2.31,<3`, `beautifulsoup4>=4.12,<5` |
+| Dependencies | `pandas>=2.2,<3`, `yfinance>=0.2.50,<1`, `requests>=2.31,<3`, `beautifulsoup4>=4.12,<5`, `libsql==0.1.11` |
 | Version | `release_notes.APP_VERSION`, mirrored to `pyproject.toml`, `MANIFEST.txt`, `README.md`, `WHATS_NEW.md` |
+
+`main.py` is the sole runtime entrypoint on AIC Cloud and Render. The process must acquire the database-backed primary lease before starting any worker that can scan, monitor or deliver. A standby process must not poll Telegram or run trading jobs. Lease renewal failure is fail-closed: stop workers and release ownership when possible. SIGTERM/SIGINT must set the shared stop event and release the lease. `startup.py` is only a compatibility wrapper and must never send an independent announcement.
 
 `/ping` **must not** start a scan or mutate trading state. It exists purely to
 keep the free Render service warm.

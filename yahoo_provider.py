@@ -320,16 +320,16 @@ class YahooProvider:
                     return stale
                 raise YahooDataError(f"Yahoo request failed for {symbol}: {exc}") from exc
 
-            # yfinance may swallow YFRateLimitError and return an empty frame.
+            # Empty responses are ambiguous: Yahoo also returns them for
+            # unavailable symbols/periods (for example GC=F intraday history).
+            # Do not block every unrelated market on that evidence alone.
+            # Confirmed HTTP/YF rate-limit exceptions above still use provider-wide
+            # backoff; an empty response receives only a per-symbol cooldown.
             if frame is None or frame.empty:
-                # yfinance can swallow YFRateLimitError and return an empty
-                # frame. Treat empty responses as provider-wide cooldowns;
-                # this prevents the next ticker/strategy from immediately
-                # repeating the same upstream request burst.
                 self._activate_backoff(
                     symbol,
-                    "empty_response_or_rate_limit",
-                    provider_wide=True,
+                    "empty_response",
+                    provider_wide=False,
                 )
                 stale = self._stale(key)
                 if stale is not None:

@@ -759,7 +759,7 @@ pip install -e .
 Start:
 
 ```text
-python startup.py && python main.py
+python main.py
 ```
 
 Health:
@@ -826,9 +826,10 @@ no other section describes.
 ```text
 # --- runtime ---------------------------------------------------------------
 main.py
-    Runtime orchestration, HTTP endpoints, Telegram command loop.
+    Sole runtime entrypoint, database-backed leader election, worker lifecycle,
+    HTTP endpoints and Telegram command loop.
 startup.py
-    Startup sequencing and keepalive bootstrap.
+    Backward-compatible launcher that delegates to main.py; no independent runtime side effects.
 report_builder.py
     Developer tooling: dependency-graph dump and CSS/JS cascade report
     (`python3 report_builder.py`); not imported by the runtime.
@@ -880,11 +881,13 @@ sweep_engine.py
 
 # --- persistence -----------------------------------------------------------
 db.py
-    Turso/libSQL persistence with local SQLite development fallback.
+    Turso/libSQL persistence, atomic runtime-leader lease and local SQLite development fallback.
 schema.sql
-    Runtime schema is declared and initialized by db.py for both local SQLite and Turso.
+    Legacy Supabase schema snapshot retained for historical reference; not used by the runtime.
 supabase/schema.sql
-    Legacy Supabase schema retained only for historical reference; not used by the runtime.
+    Older legacy Supabase schema snapshot retained for historical reference; not used by the runtime.
+
+The only live runtime schema is declared and initialized by db.py for both local SQLite and Turso.
 
 # --- news and calendar -----------------------------------------------------
 news.py
@@ -938,7 +941,7 @@ appearance-overrides.css
 pyproject.toml
     Version, dependency pins, py-modules inventory.
 render.yaml
-    Deployment, env-var contract, health path.
+    Deployment contract; Render runs `python main.py`; AIC Cloud runs `./.venv/bin/python main.py`. Both must use main.py as the sole runtime entrypoint.
 tests/
     Contract regression suite.
 tools/check_release_docs.py

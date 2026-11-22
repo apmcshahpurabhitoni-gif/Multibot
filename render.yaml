@@ -6,7 +6,7 @@ services:
     branch: main
     autoDeploy: true
     buildCommand: pip install -e .
-    startCommand: python startup.py && python main.py
+    startCommand: python main.py
     healthCheckPath: /ping
     envVars:
       - key: PYTHON_VERSION

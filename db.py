@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS forex_calendar_week_cache(feed_key TEXT NOT NULL,week
 CREATE TABLE IF NOT EXISTS forex_calendar_attempts(feed_key TEXT NOT NULL,week_start TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT NOT NULL,PRIMARY KEY(feed_key,week_start));
 CREATE TABLE IF NOT EXISTS multibot_migrations(migration_key TEXT PRIMARY KEY,completed_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS app_config(config_key TEXT PRIMARY KEY,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS runtime_leases(lease_key TEXT PRIMARY KEY,owner_id TEXT NOT NULL,expires_at REAL NOT NULL,updated_at TEXT NOT NULL);
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
@@ -215,6 +216,69 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
                 (migration_key,datetime.now(timezone.utc).isoformat()),
             )
             remote.commit()
+
+
+    # --- single active runtime lease ----------------------------------------
+    # Every deployed process may serve the dashboard, but only the process
+    # holding this database-backed lease may scan, monitor trades or poll
+    # Telegram. Atomic UPSERT makes the election safe across containers.
+    def acquire_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
+        import time
+        now_epoch=float(time.time() if now_epoch is None else now_epoch)
+        expires=now_epoch+max(15.0,float(ttl_seconds))
+        stamp=datetime.now(timezone.utc).isoformat()
+        with self._connect() as c:
+            c.execute(
+                """INSERT INTO runtime_leases(lease_key,owner_id,expires_at,updated_at)
+                   VALUES('primary',?,?,?)
+                   ON CONFLICT(lease_key) DO UPDATE SET
+                     owner_id=excluded.owner_id,
+                     expires_at=excluded.expires_at,
+                     updated_at=excluded.updated_at
+                   WHERE runtime_leases.expires_at<=?
+                      OR runtime_leases.owner_id=?""",
+                (str(owner_id),expires,stamp,now_epoch,str(owner_id)),
+            )
+            c.commit()
+            row=c.execute(
+                "SELECT owner_id FROM runtime_leases WHERE lease_key='primary'"
+            ).fetchone()
+        return bool(row and row["owner_id"]==str(owner_id))
+
+    def renew_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
+        # Renewal is the same atomic claim: an expired owner may renew only if
+        # nobody else has acquired the lease in the meantime.
+        return self.acquire_runtime_lease(
+            owner_id,ttl_seconds=ttl_seconds,now_epoch=now_epoch
+        )
+
+    def runtime_lease_is_owned(self,owner_id,*,now_epoch=None):
+        import time
+        current=float(time.time() if now_epoch is None else now_epoch)
+        with self._connect() as c:
+            row=c.execute(
+                "SELECT owner_id,expires_at FROM runtime_leases WHERE lease_key='primary'"
+            ).fetchone()
+        return bool(
+            row
+            and row["owner_id"]==str(owner_id)
+            and float(row["expires_at"])>current
+        )
+
+    def runtime_lease_owner(self):
+        with self._connect() as c:
+            row=c.execute(
+                "SELECT owner_id,expires_at FROM runtime_leases WHERE lease_key='primary'"
+            ).fetchone()
+        return dict(row) if row else None
+
+    def release_runtime_lease(self,owner_id):
+        with self._connect() as c:
+            c.execute(
+                "DELETE FROM runtime_leases WHERE lease_key='primary' AND owner_id=?",
+                (str(owner_id),),
+            )
+            c.commit()
 
 
     def load_app_config(self,key):
