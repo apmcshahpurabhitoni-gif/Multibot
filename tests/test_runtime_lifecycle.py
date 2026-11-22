@@ -84,15 +84,15 @@ def test_runtime_guard_fails_closed_when_process_is_not_leader(monkeypatch):
 
 def test_deployment_entrypoints_are_consistent():
     root = Path(main.__file__).resolve().parent
-    render = (root / "render.yaml").read_text(encoding="utf-8")
     legacy = (root / "startup.py").read_text(encoding="utf-8")
     readme = (root / "README.md").read_text(encoding="utf-8")
+    telegram = (root / "telegram.py").read_text(encoding="utf-8")
 
-    assert "startCommand: python main.py" in render
-    assert "python startup.py && python main.py" not in render
     assert "from main import main as runtime_main" in legacy
     assert "telegram_send" not in legacy
-    assert "python main.py" in readme
+    assert "./.venv/bin/python main.py" in readme
+    assert "https://multibot-1d1fdf1c.aic.com/dashboard" in telegram
+    assert "https://multibot-1d1fdf1c.aic.com/architecture" in telegram
 
 
 def test_runtime_lease_is_part_of_the_shared_schema():
