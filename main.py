@@ -754,8 +754,25 @@ def _telegram_command_polling_enabled():
     # the scanner's primary signal-delivery runtime.
     return os.getenv("TELEGRAM_COMMAND_POLLING", "true").strip().lower() in {"1","true","yes","on"}
 
+def _send_startup_announcement():
+    """Send one startup notice from the actual AIC/Render runtime entrypoint."""
+    if not settings.telegram_bot_token or not settings.telegram_chat_id:
+        logger.info("Telegram startup announcement skipped | reason=not_configured")
+        return
+    try:
+        send_message(
+            TelegramMessage("MSG-STARTUP-V1", msg_start()),
+            TelegramConfig.from_env(),
+        )
+        logger.info("Telegram startup announcement sent | pid=%s", os.getpid())
+    except Exception as exc:
+        # A Telegram outage must never prevent the scanner/dashboard from starting.
+        logger.warning("Telegram startup announcement failed | pid=%s error=%s", os.getpid(), exc)
+
 def main():
     ensure_runtime()
+    logger.info("Runtime process initialized | pid=%s", os.getpid())
+    _send_startup_announcement()
     threading.Thread(target=web_server,daemon=True,name="dashboard").start()
     threading.Thread(target=scanner_loop,daemon=True,name="scanner").start()
     threading.Thread(target=monitor_loop,daemon=True,name="monitor").start()
@@ -772,6 +789,6 @@ def main():
             logger.info("Telegram command polling disabled; signal delivery remains enabled")
         if REMINDERS is not None:
             REMINDERS.start()
-    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode",APP_VERSION,len(live_assets()),len(REGISTRY.all()))
+    logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode | pid=%s",APP_VERSION,len(live_assets()),len(REGISTRY.all()),os.getpid())
     while True: time.sleep(3600)
 if __name__=="__main__": main()
