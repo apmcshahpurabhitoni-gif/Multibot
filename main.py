@@ -853,8 +853,25 @@ def _start_leader_workers():
             logger.info("Reminder worker started | pid=%s",os.getpid())
     logger.info("MULTIBOT2 %s started: %d assets, Yahoo, %d plug-in strategies, 1h freshness, paper mode | pid=%s owner=%s",APP_VERSION,len(live_assets()),len(REGISTRY.all()),os.getpid(),RUNTIME_OWNER_ID)
 
+def _validate_runtime_lease_backend():
+    # A local SQLite lease cannot coordinate separate deployment containers.
+    # Deployed processes therefore require the shared Turso primary. Local
+    # development can use SQLite; the override is explicit for special cases.
+    allow_local=os.getenv("MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE","").strip().lower() in {"1","true","yes","on"}
+    if os.getenv("PORT") and not DB.turso_enabled and not allow_local:
+        raise RuntimeError(
+            "Turso is required for deployment-wide runtime leadership. "
+            "Configure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, or explicitly "
+            "set MULTIBOT_ALLOW_LOCAL_RUNTIME_LEASE=true for a single-process test."
+        )
+
 def main():
     global _MAIN_STARTED,RUNTIME_OWNER_ID,RUNTIME_LEADER,RUNTIME_LEASE_REQUIRED
+    try:
+        _validate_runtime_lease_backend()
+    except Exception as exc:
+        logger.critical("Runtime startup refused | reason=%s",exc)
+        return 1
     with _MAIN_START_LOCK:
         if _MAIN_STARTED:
             logger.warning("Runtime entrypoint invoked more than once in one process | pid=%s",os.getpid())
