@@ -16,6 +16,7 @@ def test_runtime_lease_allows_one_owner_and_expires(tmp_path):
     assert db.acquire_runtime_lease("process-a", ttl_seconds=60, now_epoch=100)
     assert not db.acquire_runtime_lease("process-b", ttl_seconds=60, now_epoch=110)
     assert db.runtime_lease_owner()["owner_id"] == "process-a"
+    assert "runtime_leases" not in db._TABLES  # leases are ephemeral, never copied from old local state
     assert db.runtime_lease_is_owned("process-a", now_epoch=159)
     assert not db.runtime_lease_is_owned("process-a", now_epoch=160)
 
