@@ -170,3 +170,111 @@ def test_runtime_guard_caches_remote_lease_verification(monkeypatch):
     main._require_runtime_leader()
     main._require_runtime_leader()
     assert calls == ["process-a"]
+
+
+def test_runtime_lease_retries_transient_turso_failure_with_fresh_connection(tmp_path, monkeypatch):
+    import db as db_module
+
+    database = DatabaseManager(str(tmp_path / "runtime.db"))
+    monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
+    opened = []
+
+    class Cursor:
+        def __init__(self, row=None):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class FakeConnection:
+        def __init__(self, fail=False):
+            self.fail = fail
+            self.closed = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.closed = True
+
+        def execute(self, sql, parameters=()):
+            if sql.lstrip().startswith("INSERT INTO runtime_leases") and self.fail:
+                raise RuntimeError(
+                    "interactive transaction was rolled back because the stream "
+                    "was idle for too long; retry the transaction (SQLITE_BUSY)"
+                )
+            if sql.lstrip().startswith("SELECT owner_id FROM runtime_leases"):
+                return Cursor({"owner_id": "process-a"})
+            return Cursor()
+
+    def connect():
+        connection = FakeConnection(fail=not opened)
+        opened.append(connection)
+        return connection
+
+    monkeypatch.setattr(database, "_connect", connect)
+    assert database.acquire_runtime_lease("process-a", now_epoch=100)
+    assert len(opened) == 2
+    assert all(connection.closed for connection in opened)
+
+
+def test_runtime_lease_does_not_retry_non_transient_errors(tmp_path, monkeypatch):
+    import db as db_module
+
+    database = DatabaseManager(str(tmp_path / "runtime.db"))
+    monkeypatch.setattr(db_module.time, "sleep", lambda _seconds: None)
+    attempts = []
+
+    class BrokenConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def execute(self, sql, parameters=()):
+            attempts.append(sql)
+            raise RuntimeError("invalid SQL syntax")
+
+    monkeypatch.setattr(database, "_connect", lambda: BrokenConnection())
+    with pytest.raises(RuntimeError, match="invalid SQL syntax"):
+        database.acquire_runtime_lease("process-a", now_epoch=100)
+    assert len(attempts) == 1
+
+
+def test_web_server_retries_address_in_use_without_exiting_runtime(monkeypatch):
+    import errno
+
+    class FastStopEvent(threading.Event):
+        def wait(self, timeout=None):
+            return False
+
+    stop = FastStopEvent()
+    calls = []
+    closed = []
+
+    class FakeServer:
+        def serve_forever(self):
+            stop.set()
+
+        def server_close(self):
+            closed.append(True)
+
+    def make_server(host, port, app):
+        calls.append((host, port))
+        if len(calls) == 1:
+            raise OSError(errno.EADDRINUSE, "Address already in use")
+        return FakeServer()
+
+    monkeypatch.setattr(main, "STOP", stop)
+    monkeypatch.setattr(main, "LOCK", threading.RLock())
+    monkeypatch.setattr(main, "HTTP_SERVER", None)
+    monkeypatch.setattr(main, "make_server", make_server)
+    monkeypatch.setattr(main, "build_app", lambda: object())
+    monkeypatch.setenv("PORT", "10000")
+
+    main.web_server()
+
+    assert len(calls) == 2
+    assert closed == [True]
+    assert main.HTTP_SERVER is None
