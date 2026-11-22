@@ -116,7 +116,7 @@ class DatabaseManager:
 
     _TABLES = (
         "accounts","trades","signals","signal_events","deliveries","scan_runs",
-        "scan_error_alerts","market_data_cache","forex_calendar_week_cache",
+        "scan_error_alerts","market_data_cache","forex_calendar_week_cache","app_config",
         "forex_calendar_attempts",
     )
 
@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS market_data_cache(cache_key TEXT PRIMARY KEY,symbol T
 CREATE TABLE IF NOT EXISTS forex_calendar_week_cache(feed_key TEXT NOT NULL,week_start TEXT NOT NULL,fetched_at TEXT NOT NULL,events TEXT NOT NULL,PRIMARY KEY(feed_key,week_start));
 CREATE TABLE IF NOT EXISTS forex_calendar_attempts(feed_key TEXT NOT NULL,week_start TEXT NOT NULL,attempted_at TEXT NOT NULL,error TEXT NOT NULL,PRIMARY KEY(feed_key,week_start));
 CREATE TABLE IF NOT EXISTS multibot_migrations(migration_key TEXT PRIMARY KEY,completed_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS app_config(config_key TEXT PRIMARY KEY,payload TEXT NOT NULL,updated_at TEXT NOT NULL);
 DELETE FROM signal_events WHERE rowid NOT IN (SELECT MAX(rowid) FROM signal_events GROUP BY signal_key);
 CREATE UNIQUE INDEX IF NOT EXISTS signal_events_key_uidx ON signal_events(signal_key);
 CREATE INDEX IF NOT EXISTS signal_events_timestamp_idx ON signal_events(timestamp DESC);
@@ -215,6 +216,27 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             )
             remote.commit()
 
+
+    def load_app_config(self,key):
+        """Load an operator configuration document from the durable store."""
+        with self._connect() as connection:
+            row=connection.execute("SELECT payload FROM app_config WHERE config_key=?",(key,)).fetchone()
+        if not row:
+            return None
+        try:
+            return json.loads(row["payload"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise DatabaseError(f"Stored configuration {key!r} is invalid JSON: {exc}") from exc
+
+    def save_app_config(self,key,payload):
+        """Atomically replace one operator configuration document."""
+        encoded=json.dumps(payload,separators=(",",":"),ensure_ascii=False)
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO app_config(config_key,payload,updated_at) VALUES(?,?,?)",
+                (key,encoded,datetime.now(timezone.utc).isoformat()),
+            )
+            connection.commit()
 
     def load_accounts(self,names,starting_balance,today):
         """Create/refresh one row per account.
