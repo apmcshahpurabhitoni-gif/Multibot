@@ -883,9 +883,11 @@ sweep_engine.py
 db.py
     Turso/libSQL persistence, atomic runtime-leader lease and local SQLite development fallback.
 schema.sql
-    Runtime schema is declared and initialized by db.py for both local SQLite and Turso.
+    Legacy Supabase schema snapshot retained for historical reference; not used by the runtime.
 supabase/schema.sql
-    Legacy Supabase schema retained only for historical reference; not used by the runtime.
+    Older legacy Supabase schema snapshot retained for historical reference; not used by the runtime.
+
+The only live runtime schema is declared and initialized by db.py for both local SQLite and Turso.
 
 # --- news and calendar -----------------------------------------------------
 news.py
