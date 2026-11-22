@@ -16,20 +16,27 @@ from telegram import TelegramConfig,TelegramMessage,render_signal_message,signal
 from trading import AccountState,PaperTrade,TradePlan,can_open_trade,quantity_for_risk,register_trade
 logger=logging.getLogger("multibot2.strategy_service")
 
+class RuntimeLeadershipError(RuntimeError):
+    """Raised when this process no longer owns the live worker lease."""
+
 @dataclass(frozen=True)
 class DispatchResult:
     symbol:str; signal:Signal; trade:PaperTrade|None; message:TelegramMessage|None
     sent:bool; reason:str; account:str; trade_id:str|None=None; signal_id:str|None=None
 
 class StrategyService:
-    def __init__(self,*,registry,provider=None,database=None,accounts=None,telegram_config=None,notifier=None,news_gate=None):
-        self.registry=registry; self.engine=StrategyEngine(provider); self.database=database or DatabaseManager()
+    def __init__(self,*,registry,provider=None,database=None,accounts=None,telegram_config=None,notifier=None,news_gate=None,runtime_guard=None):
+        self.registry=registry; self.engine=StrategyEngine(provider); self.database=database or DatabaseManager(); self.runtime_guard=runtime_guard
         self.gate=SignalGate(); self.news_gate=news_gate; self.telegram_config=telegram_config; self.notifier=notifier or NotificationService(self.database,telegram_config)
         self._lock=RLock()
         if accounts is not None:self.accounts=accounts
         else:
             today=pd.Timestamp.now(tz="Asia/Kolkata").date().isoformat(); rows=self.database.load_accounts(account_names(),ACCOUNT_SIZES,today)
             self.accounts={n:AccountState(n,float(rows[n]["starting_balance"]),float(rows[n]["balance"]),float(rows[n]["planned_risk_used"]),int(rows[n]["trades_today"])) for n in account_names()}
+
+    def _check_runtime_guard(self):
+        if self.runtime_guard is not None:
+            self.runtime_guard()
 
     def _now(self,value=None):
         t=pd.Timestamp.now(tz="Asia/Kolkata") if value is None else pd.Timestamp(value)
@@ -92,6 +99,7 @@ class StrategyService:
     def _result(self,symbol,signal,account,reason,**kw): return DispatchResult(symbol,signal,kw.get("trade"),kw.get("message"),kw.get("sent",False),reason,account,kw.get("trade_id"),kw.get("signal_id"))
 
     def dispatch(self,strategy_id,symbol,signal,*,current_price,now=None,send=True):
+        self._check_runtime_guard()
         strategy=self.registry.get(strategy_id); asset=LIVE_ASSET_MAP[symbol]; current=self._now(now); account_name=resolve_account(strategy_id,asset,current,strategy.manifest.account)
         key=signal_key(signal,self.gate,symbol); sid=self._record(signal,key,"GENERATED")
         if not signal.is_directional:
@@ -135,6 +143,7 @@ class StrategyService:
             message=render_signal_message(signal,symbol=symbol,asset=asset.label,market=asset.market,timeframe=signal.timeframe,entry=entry,stop_loss=sl,take_profit=tp,quantity=qty,risk=trade.planned_risk,account=account_name,freshness="FRESH",age_str=f"{age} min ago")
             self.database.update_signal_status(sid,"READY")
             if not send:return self._result(symbol,signal,account_name,"READY_TO_SEND",trade=trade,message=message,signal_id=sid)
+            self._check_runtime_guard()
             delivered=self.notifier.deliver(signal_id=sid,message=message,metadata={"signal_key":key,"strategy":strategy.manifest.id,"symbol":symbol})
             if not delivered:
                 self.database.update_signal_status(sid,"DELIVERY_FAILED")
@@ -186,6 +195,7 @@ class StrategyService:
         # operator assigned to this strategy from the dashboard, so an added
         # asset is actually scanned instead of only appearing in the universe.
         for asset in assets_for_strategy(strategy_id):
+            self._check_runtime_guard()
             try:
                 pause = self.news_gate.check(asset,current) if self.news_gate else None
                 if pause:
@@ -208,6 +218,8 @@ class StrategyService:
                         signal=Signal(signal.strategy,signal.version,signal.symbol,signal.direction,signal.timestamp,signal.timeframe,signal.reason,signal.entry,signal.stop_loss,signal.take_profit,metadata)
                         price=float(resolved_price)
                 results.append(self.dispatch(strategy_id,asset.symbol,signal,current_price=price or 0.0,now=current,send=send))
+            except RuntimeLeadershipError:
+                raise
             except Exception as exc:
                 signal=Signal(strategy.manifest.name,strategy.manifest.version,asset.symbol,"NO_SIGNAL",current,strategy.manifest.timeframes[0],"MARKET_DATA_ERROR",metadata={"error":str(exc)} if not getattr(exc,"diagnostics",None) else {"error":str(exc),"diagnostics":exc.diagnostics})
                 key=signal_key(signal,self.gate,asset.symbol); sid=self._record(signal,key,"ERROR")
