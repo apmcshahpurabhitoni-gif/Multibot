@@ -36,7 +36,7 @@ The repository audit did find deployment lifecycle drift that needed correction 
 - Release: owner-qualified delete, so one process cannot release another process's lease
 - Failure policy: do not start workers without a lease; stop workers if renewal fails
 
-A crashed process may leave its lease until expiry (up to 60 seconds). A clean SIGTERM/SIGINT releases it immediately. During that interval, a standby process continues serving the dashboard and retries acquisition.
+A crashed process may leave its lease until expiry (up to 60 seconds). A clean SIGTERM/SIGINT drains workers and releases it immediately when they stop. If a worker does not stop within the 45-second shutdown deadline, the lease is deliberately left until expiry. During that interval, a standby process continues serving the dashboard and retries acquisition.
 
 ## Deployment contract
 
