@@ -222,28 +222,56 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     # Every deployed process may serve the dashboard, but only the process
     # holding this database-backed lease may scan, monitor trades or poll
     # Telegram. Atomic UPSERT makes the election safe across containers.
+    @staticmethod
+    def _is_retryable_runtime_lease_error(exc):
+        """Only retry transient Turso/libSQL transport and SQLite busy failures."""
+        message=str(exc).lower()
+        return any(marker in message for marker in (
+            "sqlite_busy",
+            "database is locked",
+            "database is busy",
+            "stream was idle for too long",
+            "stream is idle",
+            "connection reset",
+            "connection closed",
+            "broken pipe",
+            "timed out",
+            "timeout",
+            "temporarily unavailable",
+        ))
+
     def acquire_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
         import time
         now_epoch=float(time.time() if now_epoch is None else now_epoch)
         expires=now_epoch+max(15.0,float(ttl_seconds))
         stamp=datetime.now(timezone.utc).isoformat()
-        with self._connect() as c:
-            c.execute(
-                """INSERT INTO runtime_leases(lease_key,owner_id,expires_at,updated_at)
-                   VALUES('primary',?,?,?)
-                   ON CONFLICT(lease_key) DO UPDATE SET
-                     owner_id=excluded.owner_id,
-                     expires_at=excluded.expires_at,
-                     updated_at=excluded.updated_at
-                   WHERE runtime_leases.expires_at<=?
-                      OR runtime_leases.owner_id=?""",
-                (str(owner_id),expires,stamp,now_epoch,str(owner_id)),
-            )
-            c.commit()
-            row=c.execute(
-                "SELECT owner_id FROM runtime_leases WHERE lease_key='primary'"
-            ).fetchone()
-        return bool(row and row["owner_id"]==str(owner_id))
+        # Each retry gets a completely new connection. The UPSERT and owner
+        # read stay in one short transaction, committed once on context exit.
+        # Retrying this idempotent owner claim is safe even if a previous
+        # response was lost after the database committed it.
+        for attempt in range(3):
+            try:
+                with self._connect() as c:
+                    c.execute(
+                        """INSERT INTO runtime_leases(lease_key,owner_id,expires_at,updated_at)
+                           VALUES('primary',?,?,?)
+                           ON CONFLICT(lease_key) DO UPDATE SET
+                             owner_id=excluded.owner_id,
+                             expires_at=excluded.expires_at,
+                             updated_at=excluded.updated_at
+                           WHERE runtime_leases.expires_at<=?
+                              OR runtime_leases.owner_id=?""",
+                        (str(owner_id),expires,stamp,now_epoch,str(owner_id)),
+                    )
+                    row=c.execute(
+                        "SELECT owner_id FROM runtime_leases WHERE lease_key='primary'"
+                    ).fetchone()
+                return bool(row and row["owner_id"]==str(owner_id))
+            except Exception as exc:
+                if attempt==2 or not self._is_retryable_runtime_lease_error(exc):
+                    raise
+                time.sleep(0.2 * (2 ** attempt))
+        return False
 
     def renew_runtime_lease(self,owner_id,*,ttl_seconds=60,now_epoch=None):
         # Renewal is the same atomic claim: an expired owner may renew only if
