@@ -12,7 +12,7 @@ from news import NewsService
 from reminders import ReminderService
 import bot_settings
 import channels
-from strategy_service import StrategyService
+from strategy_service import RuntimeLeadershipError, StrategyService
 from strategies import discover_strategies
 from sweep_engine import last_quarantine
 from telegram import TelegramConfig, TelegramMessage, msg_backtest, msg_balance, msg_error, msg_news_pause, msg_news_refresh, msg_risk, msg_scan_error, msg_scan_result, msg_scan_started, msg_start, msg_whats_new, msg_stats, msg_summary, msg_test, msg_weekly, send_message
@@ -75,7 +75,7 @@ def ensure_runtime():
     logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
     if not ACCOUNTS: init_state()
     if REGISTRY is None: REGISTRY=discover_strategies()
-    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE)
+    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE,runtime_guard=_require_runtime_leader)
     if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
     if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
     with LOCK:
@@ -89,7 +89,7 @@ def _require_runtime_leader():
     if not RUNTIME_LEASE_REQUIRED:
         return
     if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
-        raise RuntimeError("This process is not the active MULTIBOT2 runtime leader")
+        raise RuntimeLeadershipError("This process is not the active MULTIBOT2 runtime leader")
     # A worker may wake after a long scheduler pause. Re-check the durable owner
     # before starting a strategy cycle so an expired/stolen lease cannot resume
     # trading merely because this process still has a stale in-memory flag.
@@ -99,12 +99,12 @@ def _require_runtime_leader():
         RUNTIME_LEADER=False
         STOP.set()
         if REMINDERS is not None: REMINDERS.stop()
-        raise RuntimeError("Runtime lease could not be verified; trading stopped")
+        raise RuntimeLeadershipError("Runtime lease could not be verified; trading stopped")
     if not owned:
         RUNTIME_LEADER=False
         STOP.set()
         if REMINDERS is not None: REMINDERS.stop()
-        raise RuntimeError("Runtime lease ownership was lost; trading stopped")
+        raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
     _require_runtime_leader()
