@@ -134,6 +134,8 @@ future timestamp → invalid
 
 # 5. Core architecture
 
+The centralized `market_sessions.py` module gates live scans before market-data access. It handles NSE weekdays/session hours and configured holidays, DST-aware COMEX gold and FX weekly sessions, and 24/7 crypto; unknown markets fail closed.
+
 The architecture is deliberately split into core infrastructure and strategy plug-ins.
 
 ```text
