@@ -31,6 +31,18 @@ REGISTRY=None; SERVICE=None; TRADE_MONITOR=None; SCHEDULER=StrategyScheduler(); 
 LAST_SCANS={}
 LAST_PING_AT=None
 SETTINGS_LOADED=False
+_RUNTIME_INIT_LOCK=threading.RLock()
+_RUNTIME_INITIALIZED=False
+# Single-flight dashboard snapshot state: one DB refresh serves all concurrent requests.
+_DASHBOARD_SNAPSHOT_CONDITION=threading.Condition(threading.Lock())
+_DASHBOARD_SNAPSHOT_CACHE=None
+_DASHBOARD_SNAPSHOT_CACHE_AT=0.0
+_DASHBOARD_SNAPSHOT_BUILDING=False
+_DASHBOARD_SNAPSHOT_LAST_ERROR=None
+_DASHBOARD_SNAPSHOT_FAILURE_AT=0.0
+_DASHBOARD_SNAPSHOT_CACHE_TTL_SECONDS=3.0
+_DASHBOARD_SNAPSHOT_WAIT_SECONDS=60.0
+_DASHBOARD_SNAPSHOT_FAILURE_COOLDOWN_SECONDS=1.0
 # A Turso-backed lease elects exactly one active worker across overlapping
 # deployment containers. Other instances may serve the dashboard in standby.
 RUNTIME_LEASE_TTL_SECONDS=60
@@ -75,25 +87,36 @@ def refresh_runtime_accounts():
     if REGISTRY is None or SERVICE is None: return
     with LOCK: init_state()
 def ensure_runtime():
-    global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR,SETTINGS_LOADED
-    # Install anything saved from the Tools screen before anything can trade,
-    # then let validate_runtime_configuration() re-check its invariants.
-    if not SETTINGS_LOADED:
-        bot_settings.load(); SETTINGS_LOADED=True
-    validate_runtime_configuration()
-    health=DB.market_data_cache_health()
-    logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
-    if not ACCOUNTS: init_state()
-    if REGISTRY is None: REGISTRY=discover_strategies()
-    if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE,runtime_guard=_require_runtime_leader)
-    if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
-    if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
-    with LOCK:
-        for st in REGISTRY.all():
-            LAST_SCANS.setdefault(
-                st.manifest.id,
-                {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
-            )
+    """Initialize shared runtime objects once, safely under concurrent requests.
+
+    Dashboard polling used to call this on every request. In particular,
+    market_data_cache_health() performs remote persistence work, so repeated
+    calls amplified Turso latency and competed with trading workers.
+    """
+    global REGISTRY,SERVICE,REMINDERS,TRADE_MONITOR,SETTINGS_LOADED,_RUNTIME_INITIALIZED
+    with _RUNTIME_INIT_LOCK:
+        if _RUNTIME_INITIALIZED:
+            return
+        # Install anything saved from the Tools screen before anything can trade,
+        # then let validate_runtime_configuration() re-check its invariants.
+        if not SETTINGS_LOADED:
+            bot_settings.load(); SETTINGS_LOADED=True
+        validate_runtime_configuration()
+        health=DB.market_data_cache_health()
+        logger.info("Market data cache health | enabled=%s remote=%s reason=%s",health["enabled"],health["remote"],health["reason"])
+        if not ACCOUNTS: init_state()
+        if REGISTRY is None: REGISTRY=discover_strategies()
+        if SERVICE is None: SERVICE=StrategyService(registry=REGISTRY,provider=YahooProvider(database=DB),database=DB,accounts=ACCOUNTS,news_gate=NEWS_GATE,runtime_guard=_require_runtime_leader)
+        if TRADE_MONITOR is None: TRADE_MONITOR=TradeMonitor(database=DB,price_lookup=lambda symbol: SERVICE.current_price(symbol),accounts=ACCOUNTS)
+        if REMINDERS is None and settings.telegram_bot_token and settings.telegram_chat_id: REMINDERS=ReminderService(DB)
+        with LOCK:
+            for st in REGISTRY.all():
+                LAST_SCANS.setdefault(
+                    st.manifest.id,
+                    {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
+                )
+        _RUNTIME_INITIALIZED=True
+
 def _require_runtime_leader():
     global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED
     if not RUNTIME_LEASE_REQUIRED:
@@ -286,7 +309,7 @@ def _dashboard_snapshot_stage(name,operation):
     logger.info("Dashboard snapshot stage complete | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
     return result
 
-def snapshot():
+def _build_dashboard_snapshot():
     started=time.monotonic()
     _dashboard_snapshot_stage("runtime_init",ensure_runtime)
     names=account_names()
@@ -320,6 +343,64 @@ def snapshot():
         round((time.monotonic()-started)*1000),len(signals),len(trades),
     )
     return payload
+def snapshot():
+    """Return a cached dashboard payload with single-flight refresh semantics.
+
+    Fresh snapshots are reused briefly. When a refresh is needed, only one
+    request performs database reads; concurrent requests receive the last
+    completed snapshot immediately. On a cold start they wait for that one
+    builder instead of starting duplicate DB workloads.
+    """
+    global _DASHBOARD_SNAPSHOT_CACHE,_DASHBOARD_SNAPSHOT_CACHE_AT,_DASHBOARD_SNAPSHOT_BUILDING,_DASHBOARD_SNAPSHOT_LAST_ERROR,_DASHBOARD_SNAPSHOT_FAILURE_AT
+    with _DASHBOARD_SNAPSHOT_CONDITION:
+        current=time.monotonic()
+        if (_DASHBOARD_SNAPSHOT_CACHE is not None and
+                current-_DASHBOARD_SNAPSHOT_CACHE_AT < _DASHBOARD_SNAPSHOT_CACHE_TTL_SECONDS):
+            return _DASHBOARD_SNAPSHOT_CACHE
+        if _DASHBOARD_SNAPSHOT_BUILDING:
+            if _DASHBOARD_SNAPSHOT_CACHE is not None:
+                return _DASHBOARD_SNAPSHOT_CACHE
+            deadline=current+_DASHBOARD_SNAPSHOT_WAIT_SECONDS
+            while _DASHBOARD_SNAPSHOT_BUILDING:
+                remaining=deadline-time.monotonic()
+                if remaining<=0:
+                    raise TimeoutError("Timed out waiting for the initial dashboard snapshot")
+                _DASHBOARD_SNAPSHOT_CONDITION.wait(timeout=remaining)
+            if _DASHBOARD_SNAPSHOT_CACHE is not None:
+                return _DASHBOARD_SNAPSHOT_CACHE
+            # The builder failed. Do not let every cold-start waiter become
+            # the next builder in turn and stampede an unavailable database.
+            if _DASHBOARD_SNAPSHOT_LAST_ERROR is not None:
+                raise RuntimeError("Initial dashboard snapshot build failed") from _DASHBOARD_SNAPSHOT_LAST_ERROR
+        if (_DASHBOARD_SNAPSHOT_LAST_ERROR is not None and
+                current-_DASHBOARD_SNAPSHOT_FAILURE_AT < _DASHBOARD_SNAPSHOT_FAILURE_COOLDOWN_SECONDS):
+            if _DASHBOARD_SNAPSHOT_CACHE is not None:
+                return _DASHBOARD_SNAPSHOT_CACHE
+            raise RuntimeError("Dashboard snapshot refresh is in failure backoff") from _DASHBOARD_SNAPSHOT_LAST_ERROR
+        _DASHBOARD_SNAPSHOT_BUILDING=True
+
+    try:
+        payload=_build_dashboard_snapshot()
+    except Exception as exc:
+        with _DASHBOARD_SNAPSHOT_CONDITION:
+            _DASHBOARD_SNAPSHOT_BUILDING=False
+            _DASHBOARD_SNAPSHOT_LAST_ERROR=exc
+            _DASHBOARD_SNAPSHOT_FAILURE_AT=time.monotonic()
+            cached=_DASHBOARD_SNAPSHOT_CACHE
+            _DASHBOARD_SNAPSHOT_CONDITION.notify_all()
+        if cached is not None:
+            logger.exception("Dashboard refresh failed; serving last completed snapshot")
+            return cached
+        raise
+    with _DASHBOARD_SNAPSHOT_CONDITION:
+        _DASHBOARD_SNAPSHOT_CACHE=payload
+        _DASHBOARD_SNAPSHOT_CACHE_AT=time.monotonic()
+        _DASHBOARD_SNAPSHOT_LAST_ERROR=None
+        _DASHBOARD_SNAPSHOT_FAILURE_AT=0.0
+        _DASHBOARD_SNAPSHOT_BUILDING=False
+        _DASHBOARD_SNAPSHOT_CONDITION.notify_all()
+        return _DASHBOARD_SNAPSHOT_CACHE
+
 # Scan-level error alerts are edge-triggered and durable: an asset outage that
 # fails every sweep must not post one bubble per sweep, and a Render redeploy or
 # process restart must not forget an open incident. The incident record lives in
@@ -1023,17 +1104,35 @@ def main():
                 except Exception:
                     logger.exception("Runtime leadership acquisition failed; trading workers remain stopped | pid=%s",os.getpid())
             else:
+                heartbeat_error=None
                 try:
                     renewed=DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS)
                     if renewed: RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
-                except Exception:
+                except Exception as exc:
+                    heartbeat_error=f"{type(exc).__name__}: {exc}"
                     logger.exception("Runtime lease heartbeat failed; stopping trading workers | pid=%s",os.getpid())
                     renewed=False
                 if not renewed:
+                    # Fence local work immediately. Diagnostic reads must never
+                    # delay the fail-closed transition after lease renewal fails.
                     RUNTIME_LEADER=False
-                    logger.critical("Runtime leadership lost; fail-closed shutdown initiated | pid=%s",os.getpid())
                     STOP.set()
                     if REMINDERS is not None: REMINDERS.stop()
+                    # Capture the competing owner/expiry only after workers have
+                    # been told to stop. This distinguishes takeover from outage.
+                    try:
+                        lease_state=DB.runtime_lease_owner() or {}
+                        lease_owner=lease_state.get("owner_id","none")
+                        lease_expires=lease_state.get("expires_at")
+                        lease_state_error=None
+                    except Exception as exc:
+                        lease_owner="unavailable"
+                        lease_expires=None
+                        lease_state_error=f"{type(exc).__name__}: {exc}"
+                    logger.critical(
+                        "Runtime leadership lost; fail-closed shutdown initiated | pid=%s local_owner=%s db_owner=%s expires_at=%s heartbeat_error=%s lease_read_error=%s",
+                        os.getpid(),RUNTIME_OWNER_ID,lease_owner,lease_expires,heartbeat_error,lease_state_error,
+                    )
             STOP.wait(RUNTIME_LEASE_HEARTBEAT_SECONDS)
     finally:
         RUNTIME_LEADER=False
