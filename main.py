@@ -372,9 +372,10 @@ def snapshot():
             # the next builder in turn and stampede an unavailable database.
             if _DASHBOARD_SNAPSHOT_LAST_ERROR is not None:
                 raise RuntimeError("Initial dashboard snapshot build failed") from _DASHBOARD_SNAPSHOT_LAST_ERROR
-        if (_DASHBOARD_SNAPSHOT_CACHE is None and
-                _DASHBOARD_SNAPSHOT_LAST_ERROR is not None and
+        if (_DASHBOARD_SNAPSHOT_LAST_ERROR is not None and
                 current-_DASHBOARD_SNAPSHOT_FAILURE_AT < _DASHBOARD_SNAPSHOT_FAILURE_COOLDOWN_SECONDS):
+            if _DASHBOARD_SNAPSHOT_CACHE is not None:
+                return _DASHBOARD_SNAPSHOT_CACHE
             raise RuntimeError("Dashboard snapshot refresh is in failure backoff") from _DASHBOARD_SNAPSHOT_LAST_ERROR
         _DASHBOARD_SNAPSHOT_BUILDING=True
 
