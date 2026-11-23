@@ -41,6 +41,11 @@ RUNTIME_LEASE_REQUIRED=False
 RUNTIME_LEASE_LAST_VERIFIED=0.0
 RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS=5.0
 RUNTIME_LEASE_VERIFY_LOCK=threading.Lock()
+# A brief DNS/connect failure must not shut trading down. Lease verification is
+# deferred (and retried) across this many consecutive transient failures before
+# the runtime fails closed, which keeps a momentary Turso blip harmless.
+RUNTIME_LEASE_MAX_TRANSIENT_FAILURES=4
+RUNTIME_LEASE_TRANSIENT_FAILURES=0
 HTTP_SERVER=None
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
@@ -95,7 +100,7 @@ def ensure_runtime():
                 {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
             )
 def _require_runtime_leader():
-    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED
+    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED,RUNTIME_LEASE_TRANSIENT_FAILURES
     if not RUNTIME_LEASE_REQUIRED:
         return
     if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
@@ -112,7 +117,17 @@ def _require_runtime_leader():
             return
         try:
             owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
-        except Exception:
+        except Exception as exc:
+            # A transient DNS/connect failure is not lost leadership: defer this
+            # verification, keep trading, and re-check on the next boundary.
+            if DB.is_transient_database_error(exc):
+                RUNTIME_LEASE_TRANSIENT_FAILURES+=1
+                if RUNTIME_LEASE_TRANSIENT_FAILURES<RUNTIME_LEASE_MAX_TRANSIENT_FAILURES:
+                    logger.warning(
+                        "Runtime lease verification deferred | transient database error | attempt=%s/%s | error=%s",
+                        RUNTIME_LEASE_TRANSIENT_FAILURES,RUNTIME_LEASE_MAX_TRANSIENT_FAILURES,exc,
+                    )
+                    return
             RUNTIME_LEADER=False
             STOP.set()
             if REMINDERS is not None: REMINDERS.stop()
@@ -122,6 +137,7 @@ def _require_runtime_leader():
             STOP.set()
             if REMINDERS is not None: REMINDERS.stop()
             raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
+        RUNTIME_LEASE_TRANSIENT_FAILURES=0
         RUNTIME_LEASE_LAST_VERIFIED=verified_at
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):
@@ -274,30 +290,65 @@ def _scan_snapshot():
         "error_alerts": _scan_error_alert_state(list(strategies)),
     }
 
-def _dashboard_snapshot_stage(name,operation):
-    """Log each snapshot stage so a stalled API request has a precise last marker."""
+_SNAPSHOT_NO_FALLBACK=object()
+
+def _dashboard_snapshot_stage(name,operation,*,fallback=_SNAPSHOT_NO_FALLBACK,degraded=None,attempts=3):
+    """Log each snapshot stage so a stalled API request has a precise last marker.
+
+    A brief Turso/DNS outage must not turn the dashboard into a 500: transient
+    database errors are retried on a fresh connection, and a section that still
+    cannot be read returns a degraded value the browser can render instead of
+    aborting the whole snapshot.
+    """
     started=time.monotonic()
     logger.info("Dashboard snapshot stage started | stage=%s",name)
-    try:
-        result=operation()
-    except Exception:
-        logger.exception("Dashboard snapshot stage failed | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
-        raise
-    logger.info("Dashboard snapshot stage complete | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
-    return result
+    for attempt in range(max(1,int(attempts))):
+        try:
+            result=operation()
+        except Exception as exc:
+            if DB.is_transient_database_error(exc) and attempt+1<attempts:
+                logger.warning(
+                    "Dashboard snapshot stage retry | stage=%s | attempt=%s/%s | error=%s",
+                    name,attempt+1,attempts,exc,
+                )
+                time.sleep(0.2*(2**attempt))
+                continue
+            # Degrade only for a transport blip. A permanent error (missing
+            # table, bad SQL) must still surface instead of silently rendering
+            # an empty dashboard.
+            if fallback is _SNAPSHOT_NO_FALLBACK or not DB.is_transient_database_error(exc):
+                logger.exception("Dashboard snapshot stage failed | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
+                raise
+            logger.warning(
+                "Dashboard snapshot stage degraded | stage=%s | elapsed_ms=%s | error=%s",
+                name,round((time.monotonic()-started)*1000),exc,
+            )
+            if degraded is not None and name not in degraded:
+                degraded.append(name)
+            return fallback
+        logger.info("Dashboard snapshot stage complete | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
+        return result
 
 def snapshot():
     started=time.monotonic()
+    degraded=[]
     _dashboard_snapshot_stage("runtime_init",ensure_runtime)
     names=account_names()
     today=now().date().isoformat()
-    fresh=_dashboard_snapshot_stage("accounts",lambda:DB.load_accounts(names,ACCOUNT_SIZES,today))
-    accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in names]
-    signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(500))
-    trades=_dashboard_snapshot_stage("trades",DB.load_trades)
-    failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20))
+    fresh=_dashboard_snapshot_stage(
+        "accounts",
+        lambda:DB.load_accounts(names,ACCOUNT_SIZES,today),
+        fallback={name:{"starting_balance":acct.starting_balance,"balance":acct.balance,
+                        "planned_risk_used":acct.planned_risk_used,"trades_today":acct.trades_today}
+                  for name,acct in ACCOUNTS.items()},
+        degraded=degraded,
+    )
+    accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in names if n in fresh]
+    signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(500),fallback=[],degraded=degraded)
+    trades=_dashboard_snapshot_stage("trades",DB.load_trades,fallback=[],degraded=degraded)
+    failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20),fallback=[],degraded=degraded)
     scan=_dashboard_snapshot_stage("scan_state",_scan_snapshot)
-    scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50))
+    scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50),fallback=[],degraded=degraded)
     payload=build_dashboard_snapshot(
         version=APP_VERSION,
         whats_new=WHAT_IS_NEW,
@@ -312,12 +363,14 @@ def snapshot():
             "telegram_failed_deliveries":len(failed_deliveries),
             "open_trades":sum(1 for trade in trades if str(trade.get("status","")).upper()=="OPEN"),
             "signal_lifecycle":"ENABLED",
+            "degraded_sections":list(degraded),
         },
         strategies=REGISTRY.all(),
     )
+    payload["degraded"]=bool(degraded)
     logger.info(
-        "Dashboard snapshot complete | elapsed_ms=%s | signals=%s | trades=%s",
-        round((time.monotonic()-started)*1000),len(signals),len(trades),
+        "Dashboard snapshot complete | elapsed_ms=%s | signals=%s | trades=%s | degraded=%s",
+        round((time.monotonic()-started)*1000),len(signals),len(trades),degraded or "none",
     )
     return payload
 # Scan-level error alerts are edge-triggered and durable: an asset outage that

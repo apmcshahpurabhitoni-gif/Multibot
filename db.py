@@ -229,15 +229,31 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     # Every deployed process may serve the dashboard, but only the process
     # holding this database-backed lease may scan, monitor trades or poll
     # Telegram. Atomic UPSERT makes the election safe across containers.
+    # Transport-level failures are transient: a DNS blip or a refused connect
+    # says the network is momentarily down, not that the write was rejected.
+    # They must be retried on a fresh connection instead of being reported as a
+    # hard database failure (which used to 500 the dashboard and stop trading).
+    _TRANSIENT_TURSO_MARKERS=(
+        "sqlite_busy","database is locked","database is busy",
+        "interactive transaction was rolled back","stream was idle for too long",
+        "stream is idle for too long","connection reset","connection closed",
+        "broken pipe","timed out","timeout","temporarily unavailable","transport error",
+        "dns error","name resolution","failed to lookup address","lookup address information",
+        "name or service not known","nodename nor servname","getaddrinfo",
+        "error trying to connect","connect error","connection refused",
+        "network is unreachable","network is down","no route to host",
+        "server closed the connection",
+    )
+
     @staticmethod
     def _is_retryable_turso_error(exc):
         message=str(exc).lower()
-        return any(marker in message for marker in (
-            "sqlite_busy","database is locked","database is busy",
-            "interactive transaction was rolled back","stream was idle for too long",
-            "stream is idle for too long","connection reset","connection closed",
-            "broken pipe","timed out","timeout","temporarily unavailable","transport error",
-        ))
+        return any(marker in message for marker in DatabaseManager._TRANSIENT_TURSO_MARKERS)
+
+    @staticmethod
+    def is_transient_database_error(exc):
+        """True when a database error is worth retrying rather than failing on."""
+        return DatabaseManager._is_retryable_turso_error(exc)
 
     @staticmethod
     def _is_retryable_runtime_lease_error(exc):
@@ -307,10 +323,14 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
     def runtime_lease_is_owned(self,owner_id,*,now_epoch=None):
         import time
         current=float(time.time() if now_epoch is None else now_epoch)
-        with self._connect() as c:
-            row=c.execute(
-                "SELECT owner_id,expires_at FROM runtime_leases WHERE lease_key='primary'"
-            ).fetchone()
+        def verify():
+            with self._connect() as c:
+                return c.execute(
+                    "SELECT owner_id,expires_at FROM runtime_leases WHERE lease_key='primary'"
+                ).fetchone()
+        # A read is idempotent, so a transient DNS/connect failure is retried on
+        # a fresh connection instead of being mistaken for lost leadership.
+        row=self._retry_turso_operation(verify,operation_name="runtime lease verification")
         return bool(
             row
             and row["owner_id"]==str(owner_id)
