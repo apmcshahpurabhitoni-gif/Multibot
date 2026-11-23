@@ -351,7 +351,7 @@ def snapshot():
     completed snapshot immediately. On a cold start they wait for that one
     builder instead of starting duplicate DB workloads.
     """
-    global _DASHBOARD_SNAPSHOT_CACHE,_DASHBOARD_SNAPSHOT_CACHE_AT,_DASHBOARD_SNAPSHOT_BUILDING
+    global _DASHBOARD_SNAPSHOT_CACHE,_DASHBOARD_SNAPSHOT_CACHE_AT,_DASHBOARD_SNAPSHOT_BUILDING,_DASHBOARD_SNAPSHOT_LAST_ERROR,_DASHBOARD_SNAPSHOT_FAILURE_AT
     with _DASHBOARD_SNAPSHOT_CONDITION:
         current=time.monotonic()
         if (_DASHBOARD_SNAPSHOT_CACHE is not None and
