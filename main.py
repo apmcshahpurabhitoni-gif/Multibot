@@ -1088,15 +1088,31 @@ def main():
                 except Exception:
                     logger.exception("Runtime leadership acquisition failed; trading workers remain stopped | pid=%s",os.getpid())
             else:
+                heartbeat_error=None
                 try:
                     renewed=DB.renew_runtime_lease(RUNTIME_OWNER_ID,ttl_seconds=RUNTIME_LEASE_TTL_SECONDS)
                     if renewed: RUNTIME_LEASE_LAST_VERIFIED=time.monotonic()
-                except Exception:
+                except Exception as exc:
+                    heartbeat_error=f"{type(exc).__name__}: {exc}"
                     logger.exception("Runtime lease heartbeat failed; stopping trading workers | pid=%s",os.getpid())
                     renewed=False
                 if not renewed:
+                    # Capture the competing owner/expiry when the DB is readable.
+                    # This separates lease replacement from a transient DB outage.
+                    try:
+                        lease_state=DB.runtime_lease_owner() or {}
+                        lease_owner=lease_state.get("owner_id","none")
+                        lease_expires=lease_state.get("expires_at")
+                        lease_state_error=None
+                    except Exception as exc:
+                        lease_owner="unavailable"
+                        lease_expires=None
+                        lease_state_error=f"{type(exc).__name__}: {exc}"
                     RUNTIME_LEADER=False
-                    logger.critical("Runtime leadership lost; fail-closed shutdown initiated | pid=%s",os.getpid())
+                    logger.critical(
+                        "Runtime leadership lost; fail-closed shutdown initiated | pid=%s local_owner=%s db_owner=%s expires_at=%s heartbeat_error=%s lease_read_error=%s",
+                        os.getpid(),RUNTIME_OWNER_ID,lease_owner,lease_expires,heartbeat_error,lease_state_error,
+                    )
                     STOP.set()
                     if REMINDERS is not None: REMINDERS.stop()
             STOP.wait(RUNTIME_LEASE_HEARTBEAT_SECONDS)
