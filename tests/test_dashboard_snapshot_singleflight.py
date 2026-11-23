@@ -59,3 +59,28 @@ def test_stale_dashboard_snapshot_is_served_during_refresh(monkeypatch):
         assert refresh.result(timeout=5)["generation"] == 2
 
     assert main.snapshot()["generation"] == 2
+
+ 
+ 
+def test_concurrent_runtime_initialization_runs_health_check_once(monkeypatch):
+    from types import SimpleNamespace
+
+    calls = []
+    monkeypatch.setattr(main, "_RUNTIME_INIT_LOCK", threading.RLock())
+    monkeypatch.setattr(main, "_RUNTIME_INITIALIZED", False)
+    monkeypatch.setattr(main, "SETTINGS_LOADED", True)
+    monkeypatch.setattr(main, "validate_runtime_configuration", lambda: None)
+    monkeypatch.setattr(main.DB, "market_data_cache_health", lambda: calls.append(1) or {
+        "enabled": True, "remote": True, "reason": "READ_WRITE_OK"
+    })
+    monkeypatch.setattr(main, "ACCOUNTS", {"test": object()})
+    monkeypatch.setattr(main, "REGISTRY", SimpleNamespace(all=lambda: []))
+    monkeypatch.setattr(main, "SERVICE", object())
+    monkeypatch.setattr(main, "TRADE_MONITOR", object())
+    monkeypatch.setattr(main, "REMINDERS", None)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(lambda _: main.ensure_runtime(), range(8)))
+
+    assert len(calls) == 1
+    assert main._RUNTIME_INITIALIZED is True
