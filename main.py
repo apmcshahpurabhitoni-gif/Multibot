@@ -41,10 +41,12 @@ RUNTIME_LEASE_REQUIRED=False
 RUNTIME_LEASE_LAST_VERIFIED=0.0
 RUNTIME_LEASE_VERIFY_INTERVAL_SECONDS=5.0
 RUNTIME_LEASE_VERIFY_LOCK=threading.Lock()
-# A brief DNS/connect failure must not shut trading down. Lease verification is
-# deferred (and retried) across this many consecutive transient failures before
-# the runtime fails closed, which keeps a momentary Turso blip harmless.
-RUNTIME_LEASE_MAX_TRANSIENT_FAILURES=4
+# A brief DNS/connect failure must not shut trading down. The deferral is a
+# wall-clock window, not a call budget: one scan calls the guard once per asset,
+# so a counter would be spent in milliseconds. The window opens at the first
+# transient failure and trading continues until it closes.
+RUNTIME_LEASE_TRANSIENT_GRACE_SECONDS=60.0
+RUNTIME_LEASE_TRANSIENT_UNTIL=0.0
 RUNTIME_LEASE_TRANSIENT_FAILURES=0
 HTTP_SERVER=None
 
@@ -100,11 +102,16 @@ def ensure_runtime():
                 {"status":"NOT_RUN","at":None,"checked":0,"directional":0,"sent":0,"errors":0},
             )
 def _require_runtime_leader():
-    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED,RUNTIME_LEASE_TRANSIENT_FAILURES
+    global RUNTIME_LEADER,RUNTIME_LEASE_LAST_VERIFIED,RUNTIME_LEASE_TRANSIENT_FAILURES,RUNTIME_LEASE_TRANSIENT_UNTIL
     if not RUNTIME_LEASE_REQUIRED:
         return
     if not RUNTIME_LEADER or STOP.is_set() or not RUNTIME_OWNER_ID:
         raise RuntimeLeadershipError("This process is not the active MULTIBOT2 runtime leader")
+    # While the transient grace window is open, skip the remote read entirely:
+    # a scan touches this guard once per asset, so retrying per call would hammer
+    # a failing endpoint and exhaust any call-count budget immediately.
+    if RUNTIME_LEASE_TRANSIENT_UNTIL and time.monotonic()<RUNTIME_LEASE_TRANSIENT_UNTIL:
+        return
     # Guard every asset and dispatch boundary, but amortize the remote read:
     # the lease heartbeat is 15s and a verification is cached for at most 5s.
     # A process resuming after a long pause always re-checks before trading.
@@ -118,15 +125,19 @@ def _require_runtime_leader():
         try:
             owned=DB.runtime_lease_is_owned(RUNTIME_OWNER_ID)
         except Exception as exc:
-            # A transient DNS/connect failure is not lost leadership: defer this
-            # verification, keep trading, and re-check on the next boundary.
+            # A transient DNS/connect failure is not lost leadership: open a
+            # time-bounded grace window, keep trading, and only fail closed once
+            # that window has actually elapsed.
             if DB.is_transient_database_error(exc):
                 RUNTIME_LEASE_TRANSIENT_FAILURES+=1
-                if RUNTIME_LEASE_TRANSIENT_FAILURES<RUNTIME_LEASE_MAX_TRANSIENT_FAILURES:
+                if not RUNTIME_LEASE_TRANSIENT_UNTIL:
+                    RUNTIME_LEASE_TRANSIENT_UNTIL=time.monotonic()+RUNTIME_LEASE_TRANSIENT_GRACE_SECONDS
                     logger.warning(
-                        "Runtime lease verification deferred | transient database error | attempt=%s/%s | error=%s",
-                        RUNTIME_LEASE_TRANSIENT_FAILURES,RUNTIME_LEASE_MAX_TRANSIENT_FAILURES,exc,
+                        "Runtime lease verification deferred | transient database error | grace_seconds=%s | error=%s",
+                        RUNTIME_LEASE_TRANSIENT_GRACE_SECONDS,exc,
                     )
+                    return
+                if time.monotonic()<RUNTIME_LEASE_TRANSIENT_UNTIL:
                     return
             RUNTIME_LEADER=False
             STOP.set()
@@ -138,6 +149,7 @@ def _require_runtime_leader():
             if REMINDERS is not None: REMINDERS.stop()
             raise RuntimeLeadershipError("Runtime lease ownership was lost; trading stopped")
         RUNTIME_LEASE_TRANSIENT_FAILURES=0
+        RUNTIME_LEASE_TRANSIENT_UNTIL=0.0
         RUNTIME_LEASE_LAST_VERIFIED=verified_at
 
 def run_strategy_cycle(strategy_id,*,now_at=None,send=True,period="30d"):

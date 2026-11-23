@@ -7,6 +7,7 @@ fresh connection, must not stop trading, and must not turn /api/dashboard into a
 import io
 import json
 import threading
+import time
 
 import main
 from db import DatabaseError, DatabaseManager
@@ -72,36 +73,47 @@ def test_runtime_lease_read_retries_dns_failure_on_a_fresh_connection(tmp_path):
     assert len(attempts) == 2, "the DNS blip should be retried exactly once more"
 
 
-def test_lease_guard_defers_on_dns_failure_instead_of_stopping(monkeypatch):
+def test_lease_guard_defers_across_a_whole_scan_without_hammering_turso(monkeypatch):
+    """One scan calls the guard once per asset; the deferral must survive that."""
     stop = threading.Event()
     monkeypatch.setattr(main, "STOP", stop)
     monkeypatch.setattr(main, "RUNTIME_LEASE_REQUIRED", True)
     monkeypatch.setattr(main, "RUNTIME_LEADER", True)
     monkeypatch.setattr(main, "RUNTIME_OWNER_ID", "owner-1")
     monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_FAILURES", 0)
-    monkeypatch.setattr(main.DB, "runtime_lease_is_owned", _raiser)
+    monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_UNTIL", 0.0)
+    reads = []
 
-    for _ in range(3):
-        monkeypatch.setattr(main, "RUNTIME_LEASE_LAST_VERIFIED", 0.0)
-        main._require_runtime_leader()  # must not raise, must not stop trading
+    def failing_read(*args, **kwargs):
+        reads.append(1)
+        raise _dns_error()
 
-    assert stop.is_set() is False
-    assert main.RUNTIME_LEASE_TRANSIENT_FAILURES == 3
+    monkeypatch.setattr(main.DB, "runtime_lease_is_owned", failing_read)
 
-
-def test_lease_guard_still_fails_closed_after_persistent_dns_failure(monkeypatch):
-    stop = threading.Event()
-    monkeypatch.setattr(main, "STOP", stop)
-    monkeypatch.setattr(main, "RUNTIME_LEASE_REQUIRED", True)
-    monkeypatch.setattr(main, "RUNTIME_LEADER", True)
-    monkeypatch.setattr(main, "RUNTIME_OWNER_ID", "owner-1")
-    monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_FAILURES", 0)
-    monkeypatch.setattr(main.DB, "runtime_lease_is_owned", _raiser)
-
-    for _ in range(main.RUNTIME_LEASE_MAX_TRANSIENT_FAILURES - 1):
-        monkeypatch.setattr(main, "RUNTIME_LEASE_LAST_VERIFIED", 0.0)
+    # 500 per-asset guard calls, as a large scan would do.
+    for _ in range(500):
         main._require_runtime_leader()
 
+    assert stop.is_set() is False, "a transient blip must not stop trading mid-scan"
+    assert len(reads) == 1, f"expected one probe then a quiet grace window, got {len(reads)} reads"
+    assert main.RUNTIME_LEASE_TRANSIENT_UNTIL > 0.0
+
+
+def test_lease_guard_still_fails_closed_once_the_grace_window_expires(monkeypatch):
+    stop = threading.Event()
+    monkeypatch.setattr(main, "STOP", stop)
+    monkeypatch.setattr(main, "RUNTIME_LEASE_REQUIRED", True)
+    monkeypatch.setattr(main, "RUNTIME_LEADER", True)
+    monkeypatch.setattr(main, "RUNTIME_OWNER_ID", "owner-1")
+    monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_FAILURES", 0)
+    monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_UNTIL", 0.0)
+    monkeypatch.setattr(main.DB, "runtime_lease_is_owned", _raiser)
+
+    main._require_runtime_leader()  # opens the grace window
+    assert stop.is_set() is False
+
+    # The window has elapsed and the endpoint is still unreachable.
+    monkeypatch.setattr(main, "RUNTIME_LEASE_TRANSIENT_UNTIL", time.monotonic() - 1.0)
     monkeypatch.setattr(main, "RUNTIME_LEASE_LAST_VERIFIED", 0.0)
     try:
         main._require_runtime_leader()
