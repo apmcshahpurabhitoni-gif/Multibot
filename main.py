@@ -38,8 +38,11 @@ _DASHBOARD_SNAPSHOT_CONDITION=threading.Condition(threading.Lock())
 _DASHBOARD_SNAPSHOT_CACHE=None
 _DASHBOARD_SNAPSHOT_CACHE_AT=0.0
 _DASHBOARD_SNAPSHOT_BUILDING=False
+_DASHBOARD_SNAPSHOT_LAST_ERROR=None
+_DASHBOARD_SNAPSHOT_FAILURE_AT=0.0
 _DASHBOARD_SNAPSHOT_CACHE_TTL_SECONDS=3.0
 _DASHBOARD_SNAPSHOT_WAIT_SECONDS=60.0
+_DASHBOARD_SNAPSHOT_FAILURE_COOLDOWN_SECONDS=1.0
 # A Turso-backed lease elects exactly one active worker across overlapping
 # deployment containers. Other instances may serve the dashboard in standby.
 RUNTIME_LEASE_TTL_SECONDS=60
@@ -365,13 +368,23 @@ def snapshot():
                 _DASHBOARD_SNAPSHOT_CONDITION.wait(timeout=remaining)
             if _DASHBOARD_SNAPSHOT_CACHE is not None:
                 return _DASHBOARD_SNAPSHOT_CACHE
+            # The builder failed. Do not let every cold-start waiter become
+            # the next builder in turn and stampede an unavailable database.
+            if _DASHBOARD_SNAPSHOT_LAST_ERROR is not None:
+                raise RuntimeError("Initial dashboard snapshot build failed") from _DASHBOARD_SNAPSHOT_LAST_ERROR
+        if (_DASHBOARD_SNAPSHOT_CACHE is None and
+                _DASHBOARD_SNAPSHOT_LAST_ERROR is not None and
+                current-_DASHBOARD_SNAPSHOT_FAILURE_AT < _DASHBOARD_SNAPSHOT_FAILURE_COOLDOWN_SECONDS):
+            raise RuntimeError("Dashboard snapshot refresh is in failure backoff") from _DASHBOARD_SNAPSHOT_LAST_ERROR
         _DASHBOARD_SNAPSHOT_BUILDING=True
 
     try:
         payload=_build_dashboard_snapshot()
-    except Exception:
+    except Exception as exc:
         with _DASHBOARD_SNAPSHOT_CONDITION:
             _DASHBOARD_SNAPSHOT_BUILDING=False
+            _DASHBOARD_SNAPSHOT_LAST_ERROR=exc
+            _DASHBOARD_SNAPSHOT_FAILURE_AT=time.monotonic()
             cached=_DASHBOARD_SNAPSHOT_CACHE
             _DASHBOARD_SNAPSHOT_CONDITION.notify_all()
         if cached is not None:
@@ -381,6 +394,8 @@ def snapshot():
     with _DASHBOARD_SNAPSHOT_CONDITION:
         _DASHBOARD_SNAPSHOT_CACHE=payload
         _DASHBOARD_SNAPSHOT_CACHE_AT=time.monotonic()
+        _DASHBOARD_SNAPSHOT_LAST_ERROR=None
+        _DASHBOARD_SNAPSHOT_FAILURE_AT=0.0
         _DASHBOARD_SNAPSHOT_BUILDING=False
         _DASHBOARD_SNAPSHOT_CONDITION.notify_all()
         return _DASHBOARD_SNAPSHOT_CACHE
@@ -1097,8 +1112,13 @@ def main():
                     logger.exception("Runtime lease heartbeat failed; stopping trading workers | pid=%s",os.getpid())
                     renewed=False
                 if not renewed:
-                    # Capture the competing owner/expiry when the DB is readable.
-                    # This separates lease replacement from a transient DB outage.
+                    # Fence local work immediately. Diagnostic reads must never
+                    # delay the fail-closed transition after lease renewal fails.
+                    RUNTIME_LEADER=False
+                    STOP.set()
+                    if REMINDERS is not None: REMINDERS.stop()
+                    # Capture the competing owner/expiry only after workers have
+                    # been told to stop. This distinguishes takeover from outage.
                     try:
                         lease_state=DB.runtime_lease_owner() or {}
                         lease_owner=lease_state.get("owner_id","none")
@@ -1108,13 +1128,10 @@ def main():
                         lease_owner="unavailable"
                         lease_expires=None
                         lease_state_error=f"{type(exc).__name__}: {exc}"
-                    RUNTIME_LEADER=False
                     logger.critical(
                         "Runtime leadership lost; fail-closed shutdown initiated | pid=%s local_owner=%s db_owner=%s expires_at=%s heartbeat_error=%s lease_read_error=%s",
                         os.getpid(),RUNTIME_OWNER_ID,lease_owner,lease_expires,heartbeat_error,lease_state_error,
                     )
-                    STOP.set()
-                    if REMINDERS is not None: REMINDERS.stop()
             STOP.wait(RUNTIME_LEASE_HEARTBEAT_SECONDS)
     finally:
         RUNTIME_LEADER=False
