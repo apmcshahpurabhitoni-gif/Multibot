@@ -11,6 +11,8 @@ def _reset_snapshot_state(monkeypatch):
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE", None)
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", 0.0)
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_BUILDING", False)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_LAST_ERROR", None)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_FAILURE_AT", 0.0)
 
 
 def test_concurrent_cold_dashboard_requests_share_one_snapshot_build(monkeypatch):
@@ -84,3 +86,49 @@ def test_concurrent_runtime_initialization_runs_health_check_once(monkeypatch):
 
     assert len(calls) == 1
     assert main._RUNTIME_INITIALIZED is True
+
+
+
+def test_concurrent_cold_failure_does_not_retry_for_each_waiter(monkeypatch):
+    _reset_snapshot_state(monkeypatch)
+
+    class TrackingCondition(threading.Condition):
+        def __init__(self):
+            super().__init__(threading.Lock())
+            self.waiter_count = 0
+            self.all_waiting = threading.Event()
+
+        def wait(self, timeout=None):
+            self.waiter_count += 1
+            if self.waiter_count >= 7:
+                self.all_waiting.set()
+            return super().wait(timeout)
+
+    condition = TrackingCondition()
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CONDITION", condition)
+    calls = []
+    started = threading.Event()
+    release = threading.Event()
+
+    def build():
+        calls.append(1)
+        started.set()
+        assert release.wait(3)
+        raise OSError("temporary database outage")
+
+    monkeypatch.setattr(main, "_build_dashboard_snapshot", build)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = [pool.submit(main.snapshot) for _ in range(8)]
+        assert started.wait(2)
+        assert condition.all_waiting.wait(2)
+        release.set()
+        for future in futures:
+            try:
+                future.result(timeout=5)
+            except (OSError, RuntimeError):
+                pass
+            else:
+                raise AssertionError("cold snapshot failure should reach every waiter")
+
+    assert len(calls) == 1
+    assert main._DASHBOARD_SNAPSHOT_BUILDING is False
