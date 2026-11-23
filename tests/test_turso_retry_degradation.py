@@ -9,8 +9,18 @@ import json
 import threading
 import time
 
+import pytest
+
 import main
 from db import DatabaseError, DatabaseManager
+
+
+@pytest.fixture(autouse=True)
+def _fresh_snapshot_cache():
+    """Every test must see an empty snapshot cache, as a newly booted process does."""
+    main._SNAPSHOT_CACHE.update({"payload": None, "at": 0.0})
+    yield
+    main._SNAPSHOT_CACHE.update({"payload": None, "at": 0.0})
 
 DNS_FAILURE = (
     "Turso SQL execution failed: Hrana: `http error: `error trying to connect: "
@@ -124,22 +134,35 @@ def test_lease_guard_still_fails_closed_once_the_grace_window_expires(monkeypatc
     assert stop.is_set() is True
 
 
-def test_dashboard_degrades_instead_of_500_on_dns_failure(monkeypatch):
-    # The default snapshot reads every section on one connection; when that read
-    # fails it falls back to per-section reads, which must each degrade too.
-    monkeypatch.setattr(main.DB, "dashboard_reads", _raiser)
-    monkeypatch.setattr(main.DB, "load_trades", _raiser)
-    monkeypatch.setattr(main.DB, "load_signal_history", _raiser)
-    monkeypatch.setattr(main.DB, "load_scan_runs", _raiser)
+def test_dashboard_degrades_on_the_first_failed_read_without_retrying(monkeypatch):
+    """A failed read must degrade at once, not re-read every section."""
+    reads, section_reads = [], []
+
+    def failing_reads(*args, **kwargs):
+        reads.append(1)
+        raise _dns_error()
+
+    def unexpected_section_read(*args, **kwargs):
+        section_reads.append(1)
+        raise AssertionError("a failed dashboard read must not re-run the sections")
+
+    monkeypatch.setattr(main.DB, "dashboard_reads", failing_reads)
+    monkeypatch.setattr(main.DB, "load_trades", unexpected_section_read)
+    monkeypatch.setattr(main.DB, "load_signal_history", unexpected_section_read)
+    monkeypatch.setattr(main.DB, "load_scan_runs", unexpected_section_read)
+    monkeypatch.setattr(main.DB, "load_scan_error_alerts", unexpected_section_read)
 
     status, payload = _call("GET", "/api/dashboard")
 
     assert status.startswith("200"), status
     assert payload["ok"] is True
     assert payload["degraded"] is True
-    assert {"dashboard_reads", "trades", "signal_history", "scan_history"} <= set(payload["health"]["degraded_sections"])
+    assert "dashboard_reads" in payload["health"]["degraded_sections"]
     assert payload["counts"]["trades"] == 0
     assert payload["counts"]["signals"] == 0
+    assert len(reads) == 1, f"expected one attempt, got {len(reads)}"
+    assert section_reads == [], "the section fallback must not run during an outage"
+    assert main._SNAPSHOT_CACHE["payload"] is None, "a degraded payload must not be cached"
 
 
 def test_dashboard_still_reports_a_non_transient_failure(monkeypatch):
@@ -170,3 +193,38 @@ def test_dashboard_snapshot_reads_every_section_on_one_connection(monkeypatch):
     assert payload["ok"] is True
     assert len(opened) == 1, f"expected one connection per snapshot, got {len(opened)}"
     assert {"signals", "trades", "accounts", "scan", "health", "counts", "strategies", "universe"} <= set(payload)
+
+
+def test_repeated_requests_reuse_the_cached_snapshot(monkeypatch):
+    """The page polls every 30s; a second request inside the window must be free."""
+    opened = []
+    real_connect = main.DB._connect
+
+    def counting_connect():
+        opened.append(1)
+        return real_connect()
+
+    monkeypatch.setattr(main.DB, "_connect", counting_connect)
+
+    first_status, first = _call("GET", "/api/dashboard")
+    after_first = len(opened)
+    second_status, second = _call("GET", "/api/dashboard")
+
+    assert first_status.startswith("200") and second_status.startswith("200")
+    assert after_first >= 1
+    assert len(opened) == after_first, "a cached snapshot must not touch the database again"
+    assert second["generated_at"] == first["generated_at"]
+    assert second["counts"] == first["counts"]
+
+
+def test_cached_snapshot_expires_after_the_ttl(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main, "_build_dashboard_payload", lambda started: calls.append(1) or {"ok": True, "degraded": False})
+
+    main.snapshot()
+    main.snapshot()
+    assert len(calls) == 1, "the second call inside the TTL should be served from cache"
+
+    main._SNAPSHOT_CACHE["at"] = time.monotonic() - (main.SNAPSHOT_CACHE_TTL_SECONDS + 1)
+    main.snapshot()
+    assert len(calls) == 2, "an expired cache entry must be rebuilt"

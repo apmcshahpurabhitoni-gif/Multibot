@@ -572,7 +572,9 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
                 "failed_deliveries":failed_deliveries,
                 "scan_error_alerts":scan_error_alerts,"scan_runs":scan_runs,
             }
-        return self._retry_turso_operation(read,operation_name="dashboard reads")
+        # One attempt: an unreachable Turso fails the read fast so the caller can
+        # degrade immediately instead of re-running the whole read set.
+        return self._retry_turso_operation(read,operation_name="dashboard reads",attempts=1)
 
     # --- scan-level error alert state (durable dedup) -------------------------
     # The incident record lives in the same durable database as every other runtime

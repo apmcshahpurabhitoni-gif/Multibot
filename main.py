@@ -358,9 +358,37 @@ def _dashboard_snapshot_stage(name,operation,*,fallback=_SNAPSHOT_NO_FALLBACK,de
 # The dashboard's default snapshot shows the most recent 500 signals; the
 # read is one query on the shared dashboard connection.
 SIGNAL_HISTORY_LIMIT=500
+# The page refreshes every 30s, so a snapshot younger than this is served from
+# memory instead of rebuilding and paying another Turso handshake per request.
+SNAPSHOT_CACHE_TTL_SECONDS=10.0
+_SNAPSHOT_CACHE={"payload":None,"at":0.0}
+_SNAPSHOT_CACHE_LOCK=threading.Lock()
+
+def _account_fallback():
+    """Last-resort account state when the durable read is unavailable."""
+    return {name:{"starting_balance":acct.starting_balance,"balance":acct.balance,
+                  "planned_risk_used":acct.planned_risk_used,"trades_today":acct.trades_today}
+            for name,acct in ACCOUNTS.items()}
 
 def snapshot():
+    """Return the dashboard payload, reusing a recent one when it is still fresh."""
     started=time.monotonic()
+    with _SNAPSHOT_CACHE_LOCK:
+        cached=_SNAPSHOT_CACHE["payload"]
+        cached_at=_SNAPSHOT_CACHE["at"]
+    if cached is not None and started-cached_at<SNAPSHOT_CACHE_TTL_SECONDS:
+        logger.info("Dashboard snapshot cache hit | age_ms=%s",round((started-cached_at)*1000))
+        return cached
+    payload=_build_dashboard_payload(started)
+    # Never cache a degraded payload: the next request should retry the read
+    # instead of serving empty sections for the whole TTL.
+    if not payload.get("degraded"):
+        with _SNAPSHOT_CACHE_LOCK:
+            _SNAPSHOT_CACHE["payload"]=payload
+            _SNAPSHOT_CACHE["at"]=time.monotonic()
+    return payload
+
+def _build_dashboard_payload(started):
     degraded=[]
     _dashboard_snapshot_stage("runtime_init",ensure_runtime)
     names=account_names()
@@ -377,23 +405,17 @@ def snapshot():
         ),
         fallback=None,
         degraded=degraded,
+        attempts=1,
     )
     if bundle is None:
-        # The single read hit a transient failure: keep the per-section path so
-        # each section can degrade on its own instead of failing the request.
-        fresh=_dashboard_snapshot_stage(
-            "accounts",
-            lambda:DB.load_accounts(names,ACCOUNT_SIZES,today),
-            fallback={name:{"starting_balance":acct.starting_balance,"balance":acct.balance,
-                            "planned_risk_used":acct.planned_risk_used,"trades_today":acct.trades_today}
-                      for name,acct in ACCOUNTS.items()},
-            degraded=degraded,
-        )
-        signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(SIGNAL_HISTORY_LIMIT),fallback=[],degraded=degraded)
-        trades=_dashboard_snapshot_stage("trades",DB.load_trades,fallback=[],degraded=degraded)
-        failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20),fallback=[],degraded=degraded)
-        scan_alerts=None
-        scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50),fallback=[],degraded=degraded)
+        # Degrade straight away. Re-running the sections individually would pay
+        # another handshake per section while Turso is already unreachable.
+        fresh=_account_fallback()
+        signals=[]
+        trades=[]
+        failed_deliveries=[]
+        scan_alerts={}
+        scan_history=[]
     else:
         fresh=bundle["accounts"]
         signals=bundle["signals"]
