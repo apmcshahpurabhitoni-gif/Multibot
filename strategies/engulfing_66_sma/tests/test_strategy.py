@@ -38,7 +38,7 @@ def test_manifest_and_data_request_are_consistent():
     assert strategy.manifest.timeframes == ("1h",)
     assert strategy.manifest.parameters["timeframe"]["options"] == ["1h"]
     assert strategy.manifest.parameters["timeframe"]["editable"] is False
-    assert strategy.data_request("RELIANCE") == ("1h", "60d")
+    assert strategy.data_request("RELIANCE") == ("1h", "30d")
 
 
 def test_bullish_setup_matches_pine_rules():

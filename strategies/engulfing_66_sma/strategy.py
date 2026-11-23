@@ -63,7 +63,11 @@ class Engulfing66SMA(Strategy):
         return merged
 
     def data_request(self, symbol: str, *, period: str = "30d") -> tuple[str, str]:
-        return "1h", "60d"
+        # Yahoo rate-limits long-history 1h requests more aggressively. The
+        # strategy needs enough completed bars for the 66-SMA, ATR and slope
+        # warm-up; use a rolling 30-day 1h window, not 60d. The signal rules,
+        # timeframe and closed-candle contract are unchanged.
+        return "1h", "30d"
 
     @staticmethod
     def _wilder_rma(values: pd.Series, length: int) -> pd.Series:
