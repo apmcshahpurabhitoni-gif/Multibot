@@ -132,3 +132,23 @@ def test_concurrent_cold_failure_does_not_retry_for_each_waiter(monkeypatch):
 
     assert len(calls) == 1
     assert main._DASHBOARD_SNAPSHOT_BUILDING is False
+
+
+
+def test_failed_refresh_serves_stale_cache_and_obeys_cooldown(monkeypatch):
+    _reset_snapshot_state(monkeypatch)
+    stale = {"ok": True, "generation": 1}
+    calls = []
+
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE", stale)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", 0.0)
+
+    def build():
+        calls.append(1)
+        raise OSError("temporary database outage")
+
+    monkeypatch.setattr(main, "_build_dashboard_snapshot", build)
+
+    assert main.snapshot() is stale
+    assert main.snapshot() is stale
+    assert len(calls) == 1
