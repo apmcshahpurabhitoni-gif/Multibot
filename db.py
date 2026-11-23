@@ -367,20 +367,36 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             with self._connect() as connection:
                 connection.execute("INSERT OR REPLACE INTO app_config(config_key,payload,updated_at) VALUES(?,?,?)",(key,encoded,datetime.now(timezone.utc).isoformat()))
         return self._retry_turso_operation(write,operation_name="save app configuration")
-    def load_accounts(self,names,starting_balance,today):
-        """Create/refresh account rows; replay is safe because values are deterministic."""
+    def _load_accounts_with(self,c,names,starting_balance,today):
+        """Create/refresh account rows on a caller-owned connection.
+
+        One SELECT for every account instead of one round trip per name, and a
+        re-read only when a row actually changed. Turso charges a connection
+        handshake per statement batch, so this is most of the account cost.
+        """
         sizes=starting_balance if isinstance(starting_balance,dict) else None
         names=tuple(names)
+        if not names:return {}
+        marks=",".join("?" for _ in names)
+        existing={x["name"]:dict(x) for x in c.execute("SELECT * FROM accounts WHERE name IN (%s)" % marks,names).fetchall()}
+        changed=False
+        for name in names:
+            opening=float(sizes.get(name,ACCOUNT_SIZE_INR) if sizes is not None else starting_balance)
+            if name not in existing:
+                # Deterministic values, so a duplicate insert from a racing
+                # request must not abort the read.
+                c.execute("INSERT OR IGNORE INTO accounts VALUES(?,?,?,?,?,?)",(name,opening,opening,0,0.0,today)); changed=True
+            elif existing[name]["reset_date"]!=today:
+                c.execute("UPDATE accounts SET trades_today=0,planned_risk_used=0,reset_date=? WHERE name=?",(today,name)); changed=True
+        if changed:
+            existing={x["name"]:dict(x) for x in c.execute("SELECT * FROM accounts WHERE name IN (%s)" % marks,names).fetchall()}
+        return existing
+
+    def load_accounts(self,names,starting_balance,today):
+        """Create/refresh account rows; replay is safe because values are deterministic."""
         def load():
             with self._connect() as c:
-                for name in names:
-                    opening=float(sizes.get(name,ACCOUNT_SIZE_INR) if sizes is not None else starting_balance)
-                    row=c.execute("SELECT * FROM accounts WHERE name=?",(name,)).fetchone()
-                    if row is None:c.execute("INSERT INTO accounts VALUES(?,?,?,?,?,?)",(name,opening,opening,0,0.0,today))
-                    elif row["reset_date"]!=today:c.execute("UPDATE accounts SET trades_today=0,planned_risk_used=0,reset_date=? WHERE name=?",(today,name))
-                if not names:return {}
-                rows=c.execute("SELECT * FROM accounts WHERE name IN (%s)" % ",".join("?" for _ in names),names).fetchall()
-            return {x["name"]:dict(x) for x in rows}
+                return self._load_accounts_with(c,names,starting_balance,today)
         return self._retry_turso_operation(load,operation_name="load accounts")
     def account_trade_count(self,name):
         """Trades ever recorded against an account, open and closed.
@@ -404,9 +420,12 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             with self._connect() as c:
                 c.execute("INSERT INTO trades VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,payload=excluded.payload,updated_at=excluded.updated_at",(trade_id,status,encoded,updated_at))
         return self._retry_turso_operation(write,operation_name="save trade")
-    def load_trades(self,status=None):
-        with self._connect() as c: rows=c.execute("SELECT payload FROM trades"+(" WHERE status=?" if status else "")+" ORDER BY updated_at DESC",(status,) if status else ()).fetchall()
+    def _load_trades_with(self,c,status=None):
+        rows=c.execute("SELECT payload FROM trades"+(" WHERE status=?" if status else "")+" ORDER BY updated_at DESC",(status,) if status else ()).fetchall()
         return [json.loads(x["payload"]) for x in rows]
+
+    def load_trades(self,status=None):
+        with self._connect() as c: return self._load_trades_with(c,status)
 
     def record_signal_event(self,signal_id,signal_key,signal,*,pipeline_status,created_at=None):
         ts=created_at or datetime.now(timezone.utc).isoformat()
@@ -446,9 +465,8 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         with self._connect() as c: row=c.execute("SELECT send_count,first_sent_at,last_sent_at FROM signals WHERE signal_key=?",(key,)).fetchone()
         return dict(row) if row else {"send_count":0,"first_sent_at":None,"last_sent_at":None}
 
-    def failed_deliveries(self,limit=20):
-        with self._connect() as c:
-            rows=c.execute("""SELECT d.* FROM deliveries d JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest ON latest.max_id=d.id WHERE d.status='FAILED' ORDER BY d.id LIMIT ?""",(int(limit),)).fetchall()
+    def _load_failed_deliveries_with(self,c,limit=20):
+        rows=c.execute("""SELECT d.* FROM deliveries d JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest ON latest.max_id=d.id WHERE d.status='FAILED' ORDER BY d.id LIMIT ?""",(int(limit),)).fetchall()
         out=[]
         for r in rows:
             item=dict(r)
@@ -456,6 +474,9 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
             except Exception:item["metadata"]={}
             out.append(item)
         return out
+
+    def failed_deliveries(self,limit=20):
+        with self._connect() as c: return self._load_failed_deliveries_with(c,limit)
 
     def save_market_data_cache(self,cache_key,symbol,period,interval,validate_hourly,payload,updated_at):
         """Persist a cache value; its UPSERT is safe to retry on a fresh connection."""
@@ -508,14 +529,50 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
                     strategy_id=excluded.strategy_id,started_at=excluded.started_at,
                     finished_at=excluded.finished_at,status=excluded.status,payload=excluded.payload""",row)
         return self._retry_turso_operation(write,operation_name="record scan run")
-    def load_scan_runs(self,limit=50):
-        with self._connect() as c: rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
+    def _load_scan_runs_with(self,c,limit=50):
+        rows=c.execute("SELECT * FROM scan_runs ORDER BY started_at DESC LIMIT ?",(int(limit),)).fetchall()
         out=[]
         for r in rows:
             try: payload=json.loads(r["payload"] or "{}")
             except Exception: payload={}
             out.append({**dict(r),"payload":payload})
         return out
+
+    def load_scan_runs(self,limit=50):
+        with self._connect() as c: return self._load_scan_runs_with(c,limit)
+
+    def _load_scan_error_alerts_with(self,c,strategy_ids):
+        ids=tuple(strategy_ids)
+        if not ids:return {}
+        marks=",".join("?" for _ in ids)
+        rows=c.execute("SELECT * FROM scan_error_alerts WHERE strategy_id IN (%s)" % marks,ids).fetchall()
+        return {row["strategy_id"]:dict(row) for row in rows}
+
+    def load_scan_error_alerts(self,strategy_ids):
+        """Every strategy's open incident row in one query instead of one per strategy."""
+        with self._connect() as c: return self._load_scan_error_alerts_with(c,strategy_ids)
+
+    def dashboard_reads(self,*,names,starting_balance,today,signal_limit=500,scan_limit=50,delivery_limit=20,strategy_ids=()):
+        """Read every dashboard section on one connection and one handshake.
+
+        Each Turso connection pays a handshake, so the dashboard's per-section
+        reads cost seconds even when every section is tiny. The sections stay
+        independent in the returned mapping; the caller decides what to degrade.
+        """
+        def read():
+            with self._connect() as c:
+                accounts=self._load_accounts_with(c,names,starting_balance,today)
+                signals=self._load_signal_history_with(c,signal_limit)
+                trades=self._load_trades_with(c)
+                failed_deliveries=self._load_failed_deliveries_with(c,delivery_limit)
+                scan_error_alerts=self._load_scan_error_alerts_with(c,strategy_ids)
+                scan_runs=self._load_scan_runs_with(c,scan_limit)
+            return {
+                "accounts":accounts,"signals":signals,"trades":trades,
+                "failed_deliveries":failed_deliveries,
+                "scan_error_alerts":scan_error_alerts,"scan_runs":scan_runs,
+            }
+        return self._retry_turso_operation(read,operation_name="dashboard reads")
 
     # --- scan-level error alert state (durable dedup) -------------------------
     # The incident record lives in the same durable database as every other runtime
@@ -555,17 +612,7 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
         with self._connect() as c: row=c.execute("SELECT status,attempted_at,error,message_type FROM deliveries WHERE signal_id=? ORDER BY id DESC LIMIT 1",(signal_id,)).fetchone()
         return dict(row) if row else None
 
-    def load_signal_history(self,limit=500):
-        """Load signal rows and their latest delivery/send state in one DB round trip.
-
-        The dashboard displays at most 500 signals. Fetching delivery_status()
-        and signal_send_state() inside this loop used to open two additional
-        Turso connections per signal (up to 1,001 reads for one snapshot).
-        The joins preserve the previous latest-delivery-by-id semantics while
-        keeping the whole history read to one query.
-        """
-        bounded_limit=max(1,min(int(limit),2000))
-        sql="""SELECT e.*,
+    _SIGNAL_HISTORY_SQL="""SELECT e.*,
                       d.status AS delivery_status,
                       d.attempted_at AS delivery_attempted_at,
                       d.error AS delivery_error,
@@ -574,12 +621,27 @@ CREATE INDEX IF NOT EXISTS scan_runs_started_idx ON scan_runs(started_at DESC);
                       s.first_sent_at AS state_first_sent_at,
                       s.last_sent_at AS state_last_sent_at
                FROM signal_events e
-               LEFT JOIN deliveries d
-                 ON d.id=(SELECT MAX(d2.id) FROM deliveries d2 WHERE d2.signal_id=e.signal_id)
+               LEFT JOIN (SELECT signal_id,MAX(id) AS max_id FROM deliveries GROUP BY signal_id) latest
+                 ON latest.signal_id=e.signal_id
+               LEFT JOIN deliveries d ON d.id=latest.max_id
                LEFT JOIN signals s ON s.signal_key=e.signal_key
                ORDER BY e.timestamp DESC LIMIT ?"""
+
+    def load_signal_history(self,limit=500):
+        """Load signal rows and their latest delivery/send state in one DB round trip.
+
+        The dashboard displays at most 500 signals. Fetching delivery_status()
+        and signal_send_state() inside this loop used to open two additional
+        Turso connections per signal (up to 1,001 reads for one snapshot).
+        The latest delivery comes from one grouped join rather than a correlated
+        subquery evaluated once per returned row.
+        """
         with self._connect() as c:
-            rows=c.execute(sql,(bounded_limit,)).fetchall()
+            return self._load_signal_history_with(c,limit)
+
+    def _load_signal_history_with(self,c,limit=500):
+        bounded_limit=max(1,min(int(limit),2000))
+        rows=c.execute(self._SIGNAL_HISTORY_SQL,(bounded_limit,)).fetchall()
         out=[]
         for r in rows:
             try: metadata=json.loads(r["metadata"] or "{}")

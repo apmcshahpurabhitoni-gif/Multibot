@@ -257,22 +257,36 @@ def _backtest_payload(strategy,symbol,period):
         equity += float(trade.pnl)
         equity_curve.append({"timestamp": trade.timestamp.isoformat(), "equity": round(equity, 2)})
     return {"ok":True,"strategy":result.strategy,"strategy_id":st.manifest.id,"strategy_version":result.strategy_version,"symbol":symbol,"asset":BACKTEST_ASSETS[symbol],"period":period,"parameters":result.parameters,"candle_count":len(frame),"buy_signals":buy_signals,"sell_signals":sell_signals,"trades_taken":trades_taken,"planned_risk":planned_risk,"equity_curve":equity_curve,"metrics":{"return_pct":m.return_pct,"max_drawdown_pct":m.max_drawdown_pct,"sharpe":m.sharpe,"sortino":m.sortino,"win_rate_pct":m.win_rate_pct,"profit_factor":m.profit_factor,"number_of_trades":m.number_of_trades,"average_trade":m.average_trade,"max_losing_streak":m.max_losing_streak,"exposure_pct":m.exposure_pct,"risk_adjusted_performance":m.risk_adjusted_performance,"rating":m.rating,"rating_label":m.rating_label,"breakdown":m.breakdown},"daily":[{"date":d,**v} for d,v in sorted(daily.items())],"signals":signals,"trades":[{"timestamp":x.timestamp.isoformat(),"direction":x.direction,"entry":x.entry,"exit":x.exit,"pnl":x.pnl,"bars_held":x.bars_held} for x in result.trades][-200:],"generated_at":now().isoformat()}
-def _scan_error_alert_state(strategy_ids):
-    """Persisted incident rows for the dashboard's scan diagnostics (no secrets)."""
+def _scan_error_alert_state(strategy_ids, entries=None):
+    """Persisted incident rows for the dashboard's scan diagnostics (no secrets).
+
+    `entries` is the preloaded {strategy_id: row} map from the single dashboard
+    read; without it each strategy costs its own Turso round trip.
+    """
+    ids = tuple(strategy_ids)
+    if entries is None:
+        try:
+            entries = DB.load_scan_error_alerts(ids)
+        except Exception as exc:
+            # Scan diagnostics are not worth failing the whole dashboard over.
+            if not DB.is_transient_database_error(exc):
+                raise
+            entries = {}
     state = {}
-    for strategy_id in strategy_ids:
-        entry = DB.load_scan_error_alert(strategy_id)
-        if entry:
-            state[strategy_id] = {
-                "fingerprint": entry["fingerprint"],
-                "first_sent_at": entry["first_sent_at"],
-                "last_sent_at": entry["last_sent_at"],
-                "suppressed": int(entry["suppressed"]),
-                "updated_at": entry["updated_at"],
-            }
+    for strategy_id in ids:
+        entry = entries.get(strategy_id)
+        if not entry:
+            continue
+        state[strategy_id] = {
+            "fingerprint": entry["fingerprint"],
+            "first_sent_at": entry["first_sent_at"],
+            "last_sent_at": entry["last_sent_at"],
+            "suppressed": int(entry["suppressed"]),
+            "updated_at": entry["updated_at"],
+        }
     return state
 
-def _scan_snapshot():
+def _scan_snapshot(error_alerts=None):
     """Return one dashboard contract with aggregate and per-strategy scan state."""
     with LOCK:
         strategies = {key: dict(value) for key, value in LAST_SCANS.items()}
@@ -280,7 +294,7 @@ def _scan_snapshot():
         return {
             "status": "NOT_RUN", "at": None, "checked": 0,
             "directional": 0, "sent": 0, "errors": 0,
-            "strategies": {}, "error_alerts": _scan_error_alert_state([]),
+            "strategies": {}, "error_alerts": _scan_error_alert_state([], error_alerts or {}),
         }
     rows = list(strategies.values())
     completed = [row for row in rows if row.get("status") in {"OK","PARTIAL"}]
@@ -299,7 +313,7 @@ def _scan_snapshot():
         "sent": sum(int(row.get("sent", 0)) for row in completed),
         "errors": sum(int(row.get("errors", 0)) for row in rows),
         "strategies": strategies,
-        "error_alerts": _scan_error_alert_state(list(strategies)),
+        "error_alerts": _scan_error_alert_state(list(strategies), error_alerts),
     }
 
 _SNAPSHOT_NO_FALLBACK=object()
@@ -341,26 +355,54 @@ def _dashboard_snapshot_stage(name,operation,*,fallback=_SNAPSHOT_NO_FALLBACK,de
         logger.info("Dashboard snapshot stage complete | stage=%s | elapsed_ms=%s",name,round((time.monotonic()-started)*1000))
         return result
 
+# The dashboard's default snapshot shows the most recent 500 signals; the
+# read is one query on the shared dashboard connection.
+SIGNAL_HISTORY_LIMIT=500
+
 def snapshot():
     started=time.monotonic()
     degraded=[]
     _dashboard_snapshot_stage("runtime_init",ensure_runtime)
     names=account_names()
     today=now().date().isoformat()
-    fresh=_dashboard_snapshot_stage(
-        "accounts",
-        lambda:DB.load_accounts(names,ACCOUNT_SIZES,today),
-        fallback={name:{"starting_balance":acct.starting_balance,"balance":acct.balance,
-                        "planned_risk_used":acct.planned_risk_used,"trades_today":acct.trades_today}
-                  for name,acct in ACCOUNTS.items()},
+    with LOCK: strategy_ids=tuple(LAST_SCANS)
+    # One connection and one handshake for every section. Each Turso connection
+    # costs most of a second, so the per-section reads used to dominate the
+    # request even though every section is small.
+    bundle=_dashboard_snapshot_stage(
+        "dashboard_reads",
+        lambda:DB.dashboard_reads(
+            names=names,starting_balance=ACCOUNT_SIZES,today=today,
+            signal_limit=SIGNAL_HISTORY_LIMIT,strategy_ids=strategy_ids,
+        ),
+        fallback=None,
         degraded=degraded,
     )
+    if bundle is None:
+        # The single read hit a transient failure: keep the per-section path so
+        # each section can degrade on its own instead of failing the request.
+        fresh=_dashboard_snapshot_stage(
+            "accounts",
+            lambda:DB.load_accounts(names,ACCOUNT_SIZES,today),
+            fallback={name:{"starting_balance":acct.starting_balance,"balance":acct.balance,
+                            "planned_risk_used":acct.planned_risk_used,"trades_today":acct.trades_today}
+                      for name,acct in ACCOUNTS.items()},
+            degraded=degraded,
+        )
+        signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(SIGNAL_HISTORY_LIMIT),fallback=[],degraded=degraded)
+        trades=_dashboard_snapshot_stage("trades",DB.load_trades,fallback=[],degraded=degraded)
+        failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20),fallback=[],degraded=degraded)
+        scan_alerts=None
+        scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50),fallback=[],degraded=degraded)
+    else:
+        fresh=bundle["accounts"]
+        signals=bundle["signals"]
+        trades=bundle["trades"]
+        failed_deliveries=bundle["failed_deliveries"]
+        scan_alerts=bundle["scan_error_alerts"]
+        scan_history=bundle["scan_runs"]
     accounts=[AccountState(n,float(fresh[n]["starting_balance"]),float(fresh[n]["balance"]),float(fresh[n]["planned_risk_used"]),int(fresh[n]["trades_today"])) for n in names if n in fresh]
-    signals=_dashboard_snapshot_stage("signal_history",lambda:DB.load_signal_history(500),fallback=[],degraded=degraded)
-    trades=_dashboard_snapshot_stage("trades",DB.load_trades,fallback=[],degraded=degraded)
-    failed_deliveries=_dashboard_snapshot_stage("failed_deliveries",lambda:DB.failed_deliveries(20),fallback=[],degraded=degraded)
-    scan=_dashboard_snapshot_stage("scan_state",_scan_snapshot)
-    scan_history=_dashboard_snapshot_stage("scan_history",lambda:DB.load_scan_runs(50),fallback=[],degraded=degraded)
+    scan=_dashboard_snapshot_stage("scan_state",lambda:_scan_snapshot(scan_alerts))
     payload=build_dashboard_snapshot(
         version=APP_VERSION,
         whats_new=WHAT_IS_NEW,

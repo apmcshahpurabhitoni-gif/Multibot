@@ -125,6 +125,9 @@ def test_lease_guard_still_fails_closed_once_the_grace_window_expires(monkeypatc
 
 
 def test_dashboard_degrades_instead_of_500_on_dns_failure(monkeypatch):
+    # The default snapshot reads every section on one connection; when that read
+    # fails it falls back to per-section reads, which must each degrade too.
+    monkeypatch.setattr(main.DB, "dashboard_reads", _raiser)
     monkeypatch.setattr(main.DB, "load_trades", _raiser)
     monkeypatch.setattr(main.DB, "load_signal_history", _raiser)
     monkeypatch.setattr(main.DB, "load_scan_runs", _raiser)
@@ -134,7 +137,7 @@ def test_dashboard_degrades_instead_of_500_on_dns_failure(monkeypatch):
     assert status.startswith("200"), status
     assert payload["ok"] is True
     assert payload["degraded"] is True
-    assert {"trades", "signal_history", "scan_history"} <= set(payload["health"]["degraded_sections"])
+    assert {"dashboard_reads", "trades", "signal_history", "scan_history"} <= set(payload["health"]["degraded_sections"])
     assert payload["counts"]["trades"] == 0
     assert payload["counts"]["signals"] == 0
 
@@ -143,9 +146,27 @@ def test_dashboard_still_reports_a_non_transient_failure(monkeypatch):
     def broken(*args, **kwargs):
         raise DatabaseError("no such table: trades")
 
-    monkeypatch.setattr(main.DB, "load_trades", broken)
+    monkeypatch.setattr(main.DB, "dashboard_reads", broken)
 
     status, payload = _call("GET", "/api/dashboard")
 
     assert status.startswith("500"), status
     assert payload["ok"] is False
+
+
+def test_dashboard_snapshot_reads_every_section_on_one_connection(monkeypatch):
+    """A snapshot pays for one Turso handshake, not one per section."""
+    opened = []
+    real_connect = main.DB._connect
+
+    def counting_connect():
+        opened.append(1)
+        return real_connect()
+
+    monkeypatch.setattr(main.DB, "_connect", counting_connect)
+
+    payload = main.snapshot()
+
+    assert payload["ok"] is True
+    assert len(opened) == 1, f"expected one connection per snapshot, got {len(opened)}"
+    assert {"signals", "trades", "accounts", "scan", "health", "counts", "strategies", "universe"} <= set(payload)
