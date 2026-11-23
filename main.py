@@ -360,7 +360,9 @@ def _dashboard_snapshot_stage(name,operation,*,fallback=_SNAPSHOT_NO_FALLBACK,de
 SIGNAL_HISTORY_LIMIT=500
 # The page refreshes every 30s, so a snapshot younger than this is served from
 # memory instead of rebuilding and paying another Turso handshake per request.
-SNAPSHOT_CACHE_TTL_SECONDS=10.0
+# The TTL stays just under the poll interval, so a page refresh is a cache hit
+# while a long-idle tab still rebuilds.
+SNAPSHOT_CACHE_TTL_SECONDS=25.0
 _SNAPSHOT_CACHE={"payload":None,"at":0.0}
 _SNAPSHOT_CACHE_LOCK=threading.Lock()
 
