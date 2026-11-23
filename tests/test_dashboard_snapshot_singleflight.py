@@ -9,7 +9,7 @@ import main
 def _reset_snapshot_state(monkeypatch):
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CONDITION", threading.Condition(threading.Lock()))
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE", None)
-    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", 0.0)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", -1e9)
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_BUILDING", False)
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_LAST_ERROR", None)
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_FAILURE_AT", 0.0)
@@ -45,7 +45,7 @@ def test_stale_dashboard_snapshot_is_served_during_refresh(monkeypatch):
     started = threading.Event()
     release = threading.Event()
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE", stale)
-    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", 0.0)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", -1e9)
 
     def build():
         started.set()
@@ -141,7 +141,7 @@ def test_failed_refresh_serves_stale_cache_and_obeys_cooldown(monkeypatch):
     calls = []
 
     monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE", stale)
-    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", 0.0)
+    monkeypatch.setattr(main, "_DASHBOARD_SNAPSHOT_CACHE_AT", -1e9)
 
     def build():
         calls.append(1)
